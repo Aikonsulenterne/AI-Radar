@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_storage_bucket: str = "documents"
 
+    # AI-provider (OpenAI-kompatibel adapter, Technical Master §10).
+    ai_provider_base_url: str = ""
+    ai_provider_api_key: str = ""
+    ai_model_id: str = ""
+
     max_upload_bytes: int = 20_000_000
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 5_000_000

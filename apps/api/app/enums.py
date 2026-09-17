@@ -52,3 +52,98 @@ class UserRole(StrEnum):
     reader = "reader"
     reviewer = "reviewer"
     admin = "admin"
+
+
+# --- Claims og entities (Slice 2) ---
+class EntityType(StrEnum):
+    company = "company"
+    technology = "technology"
+    vendor = "vendor"
+
+
+class ClaimType(StrEnum):
+    adoption = "adoption"
+    use_case = "use_case"
+    stage = "stage"
+    technology_vendor = "technology_vendor"
+    effect = "effect"
+    negative = "negative"
+    organization = "organization"
+
+
+class Predicate(StrEnum):
+    USES_CAPABILITY = "USES_CAPABILITY"
+    USES_FOR = "USES_FOR"
+    ADOPTION_STAGE = "ADOPTION_STAGE"
+    USES_TECHNOLOGY = "USES_TECHNOLOGY"
+    USES_VENDOR = "USES_VENDOR"
+    REPORTED_EFFECT = "REPORTED_EFFECT"
+    REPORTS_BARRIER = "REPORTS_BARRIER"
+    REPORTS_NEGATIVE_OUTCOME = "REPORTS_NEGATIVE_OUTCOME"
+    ABANDONED_OR_REPLACED = "ABANDONED_OR_REPLACED"
+    USES_GOVERNANCE_MODEL = "USES_GOVERNANCE_MODEL"
+    USES_HUMAN_REVIEW = "USES_HUMAN_REVIEW"
+    REPORTS_ADOPTION_APPROACH = "REPORTS_ADOPTION_APPROACH"
+    REPORTS_DATA_FOUNDATION = "REPORTS_DATA_FOUNDATION"
+
+
+# Eksklusiv mapping claim_type → tilladte predicates (Technical Master §5).
+PREDICATES_BY_CLAIM_TYPE: dict[ClaimType, frozenset[Predicate]] = {
+    ClaimType.adoption: frozenset({Predicate.USES_CAPABILITY}),
+    ClaimType.use_case: frozenset({Predicate.USES_FOR}),
+    ClaimType.stage: frozenset({Predicate.ADOPTION_STAGE}),
+    ClaimType.technology_vendor: frozenset({Predicate.USES_TECHNOLOGY, Predicate.USES_VENDOR}),
+    ClaimType.effect: frozenset({Predicate.REPORTED_EFFECT}),
+    ClaimType.negative: frozenset(
+        {
+            Predicate.REPORTS_BARRIER,
+            Predicate.REPORTS_NEGATIVE_OUTCOME,
+            Predicate.ABANDONED_OR_REPLACED,
+        }
+    ),
+    ClaimType.organization: frozenset(
+        {
+            Predicate.USES_GOVERNANCE_MODEL,
+            Predicate.USES_HUMAN_REVIEW,
+            Predicate.REPORTS_ADOPTION_APPROACH,
+            Predicate.REPORTS_DATA_FOUNDATION,
+        }
+    ),
+}
+
+# Tilladte adoption stages (Technical Master §5).
+ADOPTION_STAGES: frozenset[str] = frozenset(
+    {"Experiment", "Pilot", "Production", "Scale", "Unknown"}
+)
+
+
+class ReviewStatus(StrEnum):
+    proposed = "proposed"
+    approved = "approved"
+    approved_with_edits = "approved_with_edits"
+    needs_corroboration = "needs_corroboration"
+    rejected = "rejected"
+
+
+class ClaimLifecycle(StrEnum):
+    current = "current"
+    contradicted = "contradicted"
+    superseded = "superseded"
+    expired = "expired"
+
+
+class ClaimCreatedBy(StrEnum):
+    ai = "ai"
+    human = "human"
+
+
+class EvidenceRelationship(StrEnum):
+    supports = "supports"
+    contradicts = "contradicts"
+    supersedes = "supersedes"
+
+
+class TechHorizon(StrEnum):
+    now = "now"
+    next = "next"
+    horizon = "horizon"

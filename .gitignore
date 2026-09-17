@@ -1,0 +1,32 @@
+# Environment og secrets — commit aldrig nøgler
+.env
+.env.*
+!.env.example
+*.pem
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+dist/
+*.egg-info/
+
+# Supabase lokal udvikling
+supabase/.branches/
+supabase/.temp/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

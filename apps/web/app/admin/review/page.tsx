@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listDocuments, type DocumentRow } from "../../lib/api";
 
 export const dynamic = "force-dynamic";
@@ -35,9 +36,8 @@ export default async function ReviewPage() {
     <>
       <h1>Review</h1>
       <p className="page-lead">
-        Dokumenter i pipelinen med status. Claim-review (godkend, ret, afvis)
-        bygges i Slice 2 — her vises indtil da dokumenternes provenance og
-        behandlingsstatus.
+        Dokumenter i pipelinen. Åbn et dokument for at køre AI-behandling og
+        reviewe foreslåede claims med evidensuddrag.
       </p>
 
       {documents === null ? (
@@ -70,7 +70,9 @@ export default async function ReviewPage() {
             {documents.map((doc) => (
               <tr key={doc.id}>
                 <td>
-                  {doc.title ?? "(uden titel)"}
+                  <Link href={`/admin/review/${doc.id}`}>
+                    {doc.title ?? "(uden titel)"}
+                  </Link>
                   {doc.canonical_url ? (
                     <span className="cell-sub">{doc.canonical_url}</span>
                   ) : null}

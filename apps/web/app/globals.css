@@ -317,6 +317,97 @@ a {
   align-items: center;
 }
 
+.review-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.claim-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.claim-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.claim-card-header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.claim-statement {
+  margin: 0;
+  font-size: 15px;
+}
+
+.claim-predicate {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  color: var(--color-ink-secondary);
+}
+
+.evidence-quote {
+  margin: 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-bg);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.claim-actions,
+.claim-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.claim-edit label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-secondary);
+}
+
+.claim-edit input {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  max-width: 480px;
+}
+
+.btn-danger {
+  color: #7c2222;
+  border-color: #d9b0b0;
+}
+
+.badge-danger {
+  background: #fbeeee;
+  border-color: #d9b0b0;
+  color: #7c2222;
+}
+
+.document-text {
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-ink-secondary);
+  margin: 12px 0 0;
+}
+
 .visually-hidden-input {
   position: absolute;
   width: 1px;

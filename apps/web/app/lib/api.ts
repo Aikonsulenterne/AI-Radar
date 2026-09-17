@@ -166,3 +166,101 @@ export function uploadDocument(
 export function listDocuments(): Promise<Paginated<DocumentRow>> {
   return request<Paginated<DocumentRow>>("/review/documents?limit=100");
 }
+
+export type ClaimType =
+  | "adoption"
+  | "use_case"
+  | "stage"
+  | "technology_vendor"
+  | "effect"
+  | "negative"
+  | "organization";
+
+export type ReviewStatus =
+  | "proposed"
+  | "approved"
+  | "approved_with_edits"
+  | "needs_corroboration"
+  | "rejected";
+
+export interface Evidence {
+  id: string;
+  document_id: string;
+  supporting_excerpt: string;
+  excerpt_start: number | null;
+  excerpt_end: number | null;
+  relationship: "supports" | "contradicts" | "supersedes";
+  source_type_snapshot: SourceType | null;
+  review_status: ReviewStatus;
+}
+
+export interface Claim {
+  id: string;
+  claim_type: ClaimType;
+  predicate: string;
+  subject_entity_type: "company" | "technology" | "vendor";
+  subject_entity_id: string;
+  subject_name: string | null;
+  object_entity_type: "company" | "technology" | "vendor" | null;
+  object_entity_id: string | null;
+  object_name: string | null;
+  object_text: string | null;
+  normalized_value: Record<string, unknown> | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  observed_at: string;
+  review_status: ReviewStatus;
+  lifecycle_status: "current" | "contradicted" | "superseded" | "expired";
+  created_by: "ai" | "human";
+  reviewed_at: string | null;
+  evidence: Evidence[];
+  possible_duplicate_ids: string[];
+}
+
+export interface DocumentReview extends DocumentRow {
+  normalized_text: string | null;
+  raw_storage_path: string | null;
+  raw_url: string | null;
+  claims: Claim[];
+}
+
+export interface ProcessResult {
+  document_id: string;
+  status: ProcessingStatus;
+  claims_created: number;
+  claims_skipped: number;
+  skipped_reasons: string[];
+}
+
+export function getDocument(documentId: string): Promise<DocumentReview> {
+  return request<DocumentReview>(`/review/documents/${documentId}`);
+}
+
+export function processDocument(documentId: string): Promise<ProcessResult> {
+  return request<ProcessResult>(`/review/documents/${documentId}/process`, {
+    method: "POST",
+  });
+}
+
+export function completeReview(documentId: string): Promise<DocumentRow> {
+  return request<DocumentRow>(`/review/documents/${documentId}/complete`, {
+    method: "POST",
+  });
+}
+
+export function approveClaim(
+  claimId: string,
+  edits?: { object_text?: string | null },
+): Promise<Claim> {
+  return request<Claim>(`/review/claims/${claimId}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edits ? { edits } : {}),
+  });
+}
+
+export function rejectClaim(claimId: string): Promise<Claim> {
+  return request<Claim>(`/review/claims/${claimId}/reject`, {
+    method: "POST",
+  });
+}

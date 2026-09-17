@@ -264,3 +264,83 @@ export function rejectClaim(claimId: string): Promise<Claim> {
     method: "POST",
   });
 }
+
+export function listApprovedClaims(): Promise<Paginated<Claim>> {
+  return request<Paginated<Claim>>(
+    "/review/claims?review_status=approved&limit=200",
+  );
+}
+
+export type DocumentationLevel = "strong" | "limited" | "early" | "conflicting";
+export type SignalStatus = "draft" | "published" | "archived";
+
+export interface Signal {
+  id: string;
+  title: string;
+  summary: string;
+  analysis: string | null;
+  recommendation: string | null;
+  documentation_level: DocumentationLevel;
+  status: SignalStatus;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+  claim_count: number;
+}
+
+export interface SignalDetail extends Signal {
+  claims: Claim[];
+  companies: { id: string; name: string }[];
+  technologies: { id: string; name: string }[];
+}
+
+export interface Dashboard {
+  published_signals: number;
+  approved_claims: number;
+  companies_with_claims: number;
+  documents_in_review: number;
+  technologies_by_horizon: { now: number; next: number; horizon: number };
+  latest_signals: Signal[];
+}
+
+export interface SignalCreateInput {
+  title: string;
+  summary: string;
+  analysis?: string | null;
+  recommendation?: string | null;
+  documentation_level: DocumentationLevel;
+  claim_ids: string[];
+}
+
+export function getDashboard(): Promise<Dashboard> {
+  return request<Dashboard>("/dashboard");
+}
+
+export function listSignals(status?: SignalStatus): Promise<Paginated<Signal>> {
+  const query = status ? `?status=${status}` : "";
+  return request<Paginated<Signal>>(`/signals${query}`);
+}
+
+export function getSignal(signalId: string): Promise<SignalDetail> {
+  return request<SignalDetail>(`/signals/${signalId}`);
+}
+
+export function createSignal(input: SignalCreateInput): Promise<Signal> {
+  return request<Signal>("/signals", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export function publishSignal(signalId: string): Promise<Signal> {
+  return request<Signal>(`/signals/${signalId}/publish`, { method: "POST" });
+}
+
+export function archiveSignal(signalId: string): Promise<Signal> {
+  return request<Signal>(`/signals/${signalId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "archived" }),
+  });
+}

@@ -408,6 +408,142 @@ a {
   margin: 12px 0 0;
 }
 
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.kpi-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+}
+
+.kpi-value {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.kpi-label {
+  margin: 4px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.kpi-definition {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--color-ink-secondary);
+}
+
+.section-title {
+  font-size: 18px;
+  margin: 24px 0 12px;
+}
+
+.section-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-ink-secondary);
+  margin-left: 8px;
+}
+
+.signal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.signal-card-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.signal-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signal-card-link:hover .signal-card {
+  border-color: var(--color-accent);
+}
+
+.signal-title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.signal-summary {
+  margin: 0;
+  color: var(--color-ink-secondary);
+  font-size: 14px;
+}
+
+.signal-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.signal-section .section-title {
+  margin-top: 0;
+}
+
+.signal-analysis {
+  border-left: 4px solid #b7cfbc;
+}
+
+.signal-recommendation {
+  border-left: 4px solid var(--color-accent);
+}
+
+.field textarea {
+  font: inherit;
+  padding: 7px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  resize: vertical;
+}
+
+.claim-picker {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.claim-picker legend {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-secondary);
+  padding: 0 4px;
+}
+
+.claim-picker-item {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 14px;
+}
+
 .visually-hidden-input {
   position: absolute;
   width: 1px;

@@ -1,17 +1,120 @@
-import { EmptyState } from "./components/EmptyState";
+import Link from "next/link";
+import { getDashboard, type Dashboard } from "./lib/api";
+import { DOCUMENTATION_LABELS, formatDateTime } from "./lib/labels";
 
-export default function OverblikPage() {
+export const dynamic = "force-dynamic";
+
+function KpiCard({
+  value,
+  label,
+  definition,
+}: {
+  value: number | string;
+  label: string;
+  definition: string;
+}) {
+  return (
+    <div className="kpi-card">
+      <p className="kpi-value">{value}</p>
+      <p className="kpi-label">{label}</p>
+      <p className="kpi-definition">{definition}</p>
+    </div>
+  );
+}
+
+export default async function OverblikPage() {
+  let dashboard: Dashboard | null = null;
+  try {
+    dashboard = await getDashboard();
+  } catch {
+    dashboard = null;
+  }
+
+  if (dashboard === null) {
+    return (
+      <>
+        <h1>Overblik</h1>
+        <div className="alert-error" role="alert">
+          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
+        </div>
+      </>
+    );
+  }
+
+  const horizon = dashboard.technologies_by_horizon;
+
   return (
     <>
       <h1>Overblik</h1>
       <p className="page-lead">
-        Vigtigste publicerede signaler, KPI&#8217;er med kilde, teknologier i
-        NU/NÆSTE/HORIZON, adoption cases og opportunity-kandidater.
+        Verificerede signaler og nøgletal. Hvert tal er en optælling i
+        databasen — åbn et signal for at se evidensen bag.
       </p>
-      <EmptyState slice="Slice 3">
-        Overblikket viser kun verificerede signaler. Der er endnu ingen
-        publicerede signaler, fordi ingestion- og review-kæden ikke er bygget.
-      </EmptyState>
+
+      <div className="kpi-grid">
+        <KpiCard
+          value={dashboard.published_signals}
+          label="Publicerede signaler"
+          definition="Signaler med status published"
+        />
+        <KpiCard
+          value={dashboard.approved_claims}
+          label="Godkendte claims"
+          definition="Claims godkendt af reviewer"
+        />
+        <KpiCard
+          value={dashboard.companies_with_claims}
+          label="Virksomheder"
+          definition="Med mindst ét godkendt claim"
+        />
+        <KpiCard
+          value={dashboard.documents_in_review}
+          label="Dokumenter i review"
+          definition="Afventer claim-review"
+        />
+        <KpiCard
+          value={`${horizon.now} / ${horizon.next} / ${horizon.horizon}`}
+          label="Teknologier NU / NÆSTE / HORIZON"
+          definition="Aktive teknologier pr. horisont"
+        />
+      </div>
+
+      <h2 className="section-title">Seneste signaler</h2>
+      {dashboard.latest_signals.length === 0 ? (
+        <div className="empty-state">
+          <p>
+            <strong>Ingen publicerede signaler endnu.</strong>
+          </p>
+          <p>
+            Signaler publiceres, når reviewede claims er samlet og godkendt i
+            signalbyggeren.
+          </p>
+        </div>
+      ) : (
+        <div className="signal-list">
+          {dashboard.latest_signals.map((signal) => (
+            <Link
+              key={signal.id}
+              href={`/signals/${signal.id}`}
+              className="signal-card-link"
+            >
+              <article className="signal-card">
+                <header className="claim-card-header">
+                  <span className="badge badge-muted">
+                    {DOCUMENTATION_LABELS[signal.documentation_level]}
+                  </span>
+                  <span className="cell-sub">
+                    Publiceret {formatDateTime(signal.published_at)} ·{" "}
+                    {signal.claim_count} claims
+                  </span>
+                </header>
+                <h3 className="signal-title">{signal.title}</h3>
+                <p className="signal-summary">{signal.summary}</p>
+              </article>
+            </Link>
+          ))}
+        </div>
+      )}
     </>
   );
 }

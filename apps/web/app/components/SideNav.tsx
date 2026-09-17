@@ -16,6 +16,7 @@ const primaryNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { href: "/admin/review", label: "Review" },
+  { href: "/admin/signals", label: "Signaler" },
   { href: "/admin/sources", label: "Source Registry" },
 ];
 

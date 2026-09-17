@@ -66,9 +66,13 @@ prompts, én kontrolleret retry), relevansklassifikation, claim
 extraction med ordrette evidensuddrag, deterministisk entity resolution,
 duplicate-kandidater samt review-handlinger (approve/edit/reject/
 complete) i API og UI. AI-pipelinen er fixture-testet og kræver
-`AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` for liveskørsel. Lokale
-implementeringsvalg står i `docs/03_Implementation_Notes.md`. Næste:
-Slice 3 (Published signal og Overblik), se Technical Master §20.
+`AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` for liveskørsel. Slice 3 er også
+etableret: signaler med publiceringsflow (kun godkendte claims som
+faktagrundlag), dashboard/Overblik med KPI-optællinger, signal-detalje
+med fakta/analyse/anbefaling adskilt og fuld provenance, samt
+admin-signalbygger. Lokale implementeringsvalg står i
+`docs/03_Implementation_Notes.md`. Næste: Slice 4 (Adoption og
+Technology), se Technical Master §20.
 UI-prototypen og `colors_and_type.css` er endnu ikke tilføjet repoet —
 web-shellen bruger midlertidige neutrale tokens, der skal erstattes af
 OK's tokens.

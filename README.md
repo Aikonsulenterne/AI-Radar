@@ -54,7 +54,7 @@ Pull request og grøn CI kræves før merge til `main`.
 
 ## Status
 
-**Slice 0–2** er etableret:
+**Slice 0–3** er etableret:
 
 - Source Registry (API + admin-UI) med roller (Reader/Reviewer/Admin)
 - Manuel upload (txt/html/pdf) og web fetch af public kilder
@@ -65,6 +65,10 @@ Pull request og grøn CI kræves før merge til `main`.
 - Deterministisk entity resolution og duplicate-kandidater
 - Review pr. dokument: godkend, ret og godkend, afvis, afslut —
   inkl. batchgodkendelse i UI'et
+- Signaler med publiceringsflow: kun godkendte claims som faktagrundlag,
+  fakta/analyse/anbefaling adskilt, dokumentationsstyrke og provenance
+- Overblik med KPI-optællinger og seneste signaler; signalbygger under
+  `/admin/signals`
 
 AI-kørsel kræver `AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` i API'ets miljø;
 pipelinen er fixture-testet uden netkald. Implementeringsrækkefølgen

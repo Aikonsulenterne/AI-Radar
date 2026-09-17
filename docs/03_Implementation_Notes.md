@@ -76,3 +76,25 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **Seed:** de 8 startteknologier (Product Master §6) ligger i
   `supabase/seed.sql` med foreløbig horizon-kuratering, der skal
   valideres af produktejeren.
+
+## Slice 3 (Published signal og Overblik)
+
+- **Signal-authoring-endpoints** (`POST /signals`, `PATCH /signals/{id}`,
+  `POST /signals/{id}/publish`) supplerer masterens read-endpoints:
+  masteren definerer publiceringsflowet, men lister ikke endpoints til at
+  oprette signaler. Reviewer/Admin kan oprette; publicering håndhæver, at
+  alle tilknyttede claims er godkendte, og at der er mindst ét.
+- **Relationer afledes af claims:** signal↔claims er eksplicit
+  (signal_claims); virksomheder og teknologier på et signal afledes af de
+  tilknyttede claims i stedet for separate junction-tabeller — provenance
+  frem for dobbelt kuratering.
+- **Readers ser kun published**; kladder og arkiverede signaler kræver
+  Reviewer/Admin. `GET /signals/{id}` svarer 404 (ikke 403) for en kladde
+  til en Reader, så eksistensen ikke afsløres.
+- **Signal-detaljerute** `/signals/[signalId]` supplerer masterens
+  frontend-ruteliste (route-baserede detaljer skal kunne deles og
+  genindlæses, Product Master §12); admin-signalbyggeren ligger på
+  `/admin/signals`.
+- **Dashboardet** viser kun optællinger (ingen beregnede scores) med
+  definition på hvert KPI-kort, jf. "kompakte KPI'er med kilde eller
+  definition".

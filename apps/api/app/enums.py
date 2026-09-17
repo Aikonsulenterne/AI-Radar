@@ -161,3 +161,10 @@ class SignalStatus(StrEnum):
     draft = "draft"
     published = "published"
     archived = "archived"
+
+
+# --- Adoption cases (Slice 4) ---
+class CaseStatus(StrEnum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"

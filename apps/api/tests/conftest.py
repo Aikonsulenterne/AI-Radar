@@ -40,8 +40,34 @@ def db_session_factory() -> Generator[SessionFactory, None, None]:
     )
     Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine)
+    _seed_technologies(factory)
     yield factory
     engine.dispose()
+
+
+def _seed_technologies(factory: SessionFactory) -> None:
+    """Spejler supabase/seed.sql for de teknologier, testene bruger."""
+    from app.enums import EntityType, TechHorizon
+    from app.models_claims import EntityAlias, Technology
+
+    with factory() as session:
+        technology = Technology(
+            name="Agent Assist",
+            slug="agent-assist",
+            definition="AI-støtte til medarbejdere under kundekontakt.",
+            horizon=TechHorizon.now,
+        )
+        session.add(technology)
+        session.flush()
+        session.add(
+            EntityAlias(
+                entity_type=EntityType.technology,
+                entity_id=technology.id,
+                alias="Agent Assist",
+                normalized_alias="agent assist",
+            )
+        )
+        session.commit()
 
 
 @pytest.fixture()

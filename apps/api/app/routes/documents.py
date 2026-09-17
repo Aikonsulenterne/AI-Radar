@@ -158,6 +158,28 @@ def list_documents(
     )
 
 
+@router.get("/claims", response_model=Paginated[ClaimOut])
+def list_claims(
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    review_status: ReviewStatus | None = Query(default=None),
+    db: Session = Depends(get_db),
+    _user: object = Depends(require_role(UserRole.reviewer)),
+) -> Paginated[ClaimOut]:
+    """Claims på tværs af dokumenter — bl.a. til signalbyggerens claim-valg."""
+    stmt = select(Claim).order_by(Claim.created_at.desc())
+    if review_status is not None:
+        stmt = stmt.where(Claim.review_status == review_status)
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    rows = db.scalars(stmt.limit(limit).offset(offset)).all()
+    return Paginated[ClaimOut](
+        items=[_claim_out(db, row) for row in rows],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
 @router.get("/documents/{document_id}", response_model=DocumentReviewOut)
 def get_document(
     document_id: uuid.UUID,

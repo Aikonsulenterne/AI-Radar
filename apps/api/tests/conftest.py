@@ -92,3 +92,105 @@ def reviewer_headers(db_session_factory: SessionFactory) -> dict[str, str]:
 @pytest.fixture()
 def reader_headers(db_session_factory: SessionFactory) -> dict[str, str]:
     return _seed_user(db_session_factory, UserRole.reader)
+
+
+# --- Delt fake AI-provider og dokument-helper (Slice 2/3-tests) ---
+
+import json  # noqa: E402
+from typing import Any  # noqa: E402
+
+from app.routes.documents import ai_provider_dep  # noqa: E402
+
+DOC_TEXT = (
+    "Danske Bank bruger Agent Assist i kundeservice. "
+    "Banken rapporterer 20 procent lavere efterbehandlingstid."
+)
+
+EXTRACTION_RESPONSE = {
+    "claims": [
+        {
+            "claim_type": "adoption",
+            "predicate": "USES_CAPABILITY",
+            "subject_name": "Danske Bank",
+            "object_name": "Agent Assist",
+            "object_text": None,
+            "supporting_excerpt": "Danske Bank bruger Agent Assist i kundeservice.",
+        },
+        {
+            "claim_type": "effect",
+            "predicate": "REPORTED_EFFECT",
+            "subject_name": "Danske Bank",
+            "object_name": None,
+            "object_text": "20 procent lavere efterbehandlingstid",
+            "supporting_excerpt": "Banken rapporterer 20 procent lavere efterbehandlingstid.",
+        },
+        {
+            "claim_type": "effect",
+            "predicate": "REPORTED_EFFECT",
+            "subject_name": "Danske Bank",
+            "object_name": None,
+            "object_text": "opfundet effekt",
+            "supporting_excerpt": "Dette uddrag findes ikke i dokumentet.",
+        },
+    ]
+}
+
+
+class FakeProvider:
+    """Returnerer faste svar pr. prompt-id; kan fejle med ugyldig JSON."""
+
+    def __init__(
+        self,
+        relevance: dict[str, Any] | None = None,
+        extraction: dict[str, Any] | None = None,
+        invalid_json: bool = False,
+    ) -> None:
+        self.relevance = relevance or {"relevant": True, "reason": "AI-adoption omtalt"}
+        self.extraction = extraction or EXTRACTION_RESPONSE
+        self.invalid_json = invalid_json
+        self.calls: list[str] = []
+
+    def complete_text(
+        self,
+        *,
+        prompt_id: str,
+        prompt_version: str,
+        system: str,
+        user: str,
+        document_id: uuid.UUID | None = None,
+    ) -> str:
+        self.calls.append(prompt_id)
+        if self.invalid_json:
+            return "not json at all"
+        if prompt_id == "relevance_classification":
+            return json.dumps(self.relevance)
+        return json.dumps(self.extraction)
+
+
+@pytest.fixture()
+def fake_provider() -> Any:
+    provider = FakeProvider()
+    app.dependency_overrides[ai_provider_dep] = lambda: provider
+    yield provider
+    app.dependency_overrides.pop(ai_provider_dep, None)
+
+
+def _upload_document(client: TestClient, headers: dict[str, str]) -> str:
+    source = client.post(
+        "/api/v1/sources",
+        json={
+            "name": "Testmedie",
+            "source_type": "media",
+            "retrieval_method": "manual_upload",
+            "access_class": "public",
+        },
+        headers=headers,
+    ).json()
+    upload = client.post(
+        f"/api/v1/sources/{source['id']}/documents",
+        files={"file": ("artikel.txt", DOC_TEXT.encode(), "text/plain")},
+        headers=headers,
+    )
+    assert upload.status_code == 200, upload.text
+    document_id: str = upload.json()["document"]["id"]
+    return document_id

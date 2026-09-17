@@ -147,3 +147,17 @@ class TechHorizon(StrEnum):
     now = "now"
     next = "next"
     horizon = "horizon"
+
+
+# --- Signaler (Slice 3) ---
+class DocumentationLevel(StrEnum):
+    strong = "strong"
+    limited = "limited"
+    early = "early"
+    conflicting = "conflicting"
+
+
+class SignalStatus(StrEnum):
+    draft = "draft"
+    published = "published"
+    archived = "archived"

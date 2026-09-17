@@ -216,7 +216,7 @@ def process_document_endpoint(
     """Kør relevans + claim extraction for et normaliseret dokument.
 
     Lokalt implementeringsvalg: synkron kørsel i API'et; planlagt/asynkron
-    behandling via worker kommer senere (docs/03_Implementation_Notes.md).
+    behandling via worker kommer senere (docs/05_Implementation_Notes.md).
     """
     document = db.get(Document, document_id)
     if document is None:

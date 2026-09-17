@@ -1,11 +1,13 @@
 # CLAUDE.md — AI Radar
 
 Internt, evidensbaseret technology-intelligence-produkt for OK.
-**Source of truth:** `docs/01_AI_Radar_Product_Design.md` (produktadfærd og scope)
-og `docs/02_AI_Radar_Technical_Build.md` (arkitektur, datamodel, sikkerhed,
-kontrakter, deployment, slices). Læs begge før væsentlige ændringer.
-Ved konflikt: låste beslutninger i Product Master → Product Master →
-Technical Build Master → designreferencer → ældre noter.
+**Source of truth:** `docs/01_AI_Radar_Product_Design.md` (produktadfærd og
+scope), `docs/02_AI_Radar_Technical_Build.md` (arkitektur, datamodel,
+sikkerhed, kontrakter, deployment, slices) og
+`docs/03_AI_Radar_UI_Design_Implementation.md` (UI, designsystem,
+komponenter, states, interaktioner). Læs dem før væsentlige ændringer.
+Ved konflikt: låste beslutninger i Product/Technical Master → UI Master →
+`colors_and_type.css` → `AI Radar.dc.html` → ældre noter.
 
 ## Kommandoer
 
@@ -49,9 +51,11 @@ Technical Build Master → designreferencer → ældre noter.
 7. Ingen nye services, frameworks eller databaser uden konkret krav.
    Bevidst ude af scope: se Technical Master §21 (ingen vector-DB, MCP,
    Kubernetes, multi-agent, paywall-bypass m.m.).
-8. HTML-prototypen er designreference, ikke produktionskode. Design tokens
-   fra `colors_and_type.css` når den foreligger. Undgå AI-glow, gradients som
-   standard og nyhedsside-udtryk. WCAG 2.1 AA.
+8. HTML-prototypen er designreference, ikke produktionskode. OK's brand
+   tokens er staged i `apps/web/src/styles/tokens.css` (autoritativ
+   tokenkilde, UI Master §3) — brug tokens frem for rå hexværdier. Undgå
+   AI-glow, gradients, glassmorphism og nyhedsside-udtryk; farve er aldrig
+   eneste statusmarkør. WCAG 2.1 AA.
 9. Demo-/seeddata markeres `is_demo` og må aldrig publiceres som production
    intelligence.
 10. Stop ved væsentlige produkt- eller arkitekturkonflikter og beskriv
@@ -80,7 +84,10 @@ genereret af publiceret intelligence, worker-entrypoint
 (`python -m app.worker`), request-logging med correlation ids,
 evalueringsrunner (`python -m app.evaluation`), offentlig kildeside og
 deployment-guide (`docs/04_Deployment.md`). Lokale implementeringsvalg
-og kendte udeståender står i `docs/03_Implementation_Notes.md`.
-UI-prototypen og `colors_and_type.css` er endnu ikke tilføjet repoet —
-web-shellen bruger midlertidige neutrale tokens, der skal erstattes af
-OK's tokens.
+og kendte udeståender står i `docs/05_Implementation_Notes.md`.
+OK-designsystemet fra UI Master er implementeret: tokens i
+`src/styles/tokens.css`, burgundy sidebar/topbar/app-shell i
+`src/components/layout/`, semantiske fakta/analyse/anbefaling-mønstre,
+evidens-/horizon-farver og fallback-fonte. OKfamily/Fellix-fontfilerne
+skal leveres fra OK's brandpakke (se `apps/web/public/fonts/README.md`)
+— pixel-fidelity accepteres først, når de er staged.

@@ -36,7 +36,7 @@ class Company(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     slug: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     # Nullable som dokumenteret afvigelse: landet må ikke opfindes, når
-    # kilden ikke nævner det (docs/03_Implementation_Notes.md).
+    # kilden ikke nævner det (docs/05_Implementation_Notes.md).
     country_code: Mapped[str | None] = mapped_column(Text)
     industry: Mapped[str | None] = mapped_column(Text)
     website_url: Mapped[str | None] = mapped_column(Text)

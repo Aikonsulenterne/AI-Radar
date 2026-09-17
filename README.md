@@ -82,9 +82,9 @@ Pull request og grøn CI kræves før merge til `main`.
 Kæden **Source → Document → Claim → Evidence → Human review → Published
 signal → Adoption/Technology → Opportunity** er implementeret; se
 `docs/04_Deployment.md` for staging-opsætning og
-`docs/03_Implementation_Notes.md` for valg og kendte udeståender.
+`docs/05_Implementation_Notes.md` for valg og kendte udeståender.
 
 AI-kørsel kræver `AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` i API'ets miljø;
 pipelinen er fixture-testet uden netkald. Implementeringsrækkefølgen
 (Slice 0–6) står i Technical Master §20; lokale implementeringsvalg i
-`docs/03_Implementation_Notes.md`.
+`docs/05_Implementation_Notes.md`.

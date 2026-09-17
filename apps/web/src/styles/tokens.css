@@ -1,0 +1,100 @@
+/*
+ * OK brand tokens — autoritativ tokenkilde
+ * (docs/03_AI_Radar_UI_Design_Implementation.md §3).
+ * Brug tokens frem for rå hexværdier i komponenter.
+ */
+:root {
+  --ok-200: #F7EFEB;
+  --ok-600: #FF3C3C;
+  --ok-800: #460019;
+
+  --ok-cream: var(--ok-200);
+  --ok-red: var(--ok-600);
+  --ok-burgundy: var(--ok-800);
+
+  --ok-red-deep: #AA2825;
+  --ok-red-dark: #8C0000;
+  --ok-red-pale: #FFF2F2;
+  --ok-red-tint: #FFE6E6;
+  --ok-red-soft: #FFBEBE;
+  --ok-red-mid: #FF8C8C;
+  --ok-burgundy-deep: #23000D;
+  --ok-cream-warm: #F2E7E1;
+  --ok-cream-cool: #FFFAF7;
+
+  --ok-ink: #1A1614;
+  --ok-ink-soft: #4D433E;
+  --ok-ink-mute: #736762;
+  --ok-stone: #998C85;
+  --ok-stone-soft: #BFB2AA;
+  --ok-stone-pale: #E6D9D2;
+  --ok-white: #FFFFFF;
+  --ok-black: #000000;
+
+  --ok-blue: #0071C2;
+  --ok-blue-mid: #4BB4FF;
+  --ok-blue-light: #CDEBFF;
+  --ok-blue-pale: #F2F9FF;
+  --ok-green: #006626;
+  --ok-green-light: #CFFDE1;
+
+  --bg: var(--ok-cream);
+  --bg-elev: var(--ok-white);
+  --bg-inverse: var(--ok-burgundy);
+  --bg-accent: var(--ok-red);
+  --fg: var(--ok-ink);
+  --fg-soft: var(--ok-ink-soft);
+  --fg-mute: var(--ok-ink-mute);
+  --fg-on-dark: var(--ok-cream);
+  --fg-on-accent: var(--ok-white);
+  --fg-accent: var(--ok-red);
+  --border: var(--ok-stone-pale);
+  --border-strong: var(--ok-stone);
+  --border-on-dark: rgba(247, 239, 235, 0.15);
+  --state-success: var(--ok-green);
+  --state-info: var(--ok-blue);
+  --state-warn: #D08A1F;
+  --state-danger: var(--ok-red-deep);
+
+  --font-display: 'OKfamily', Georgia, 'Times New Roman', serif;
+  --font-body: 'Fellix', Inter, 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --t-display-1: clamp(56px, 6.6vw, 96px);
+  --t-display-2: clamp(40px, 4.4vw, 64px);
+  --t-h1: clamp(32px, 3.2vw, 44px);
+  --t-h2: clamp(24px, 2.4vw, 32px);
+  --t-h3: 20px;
+  --t-body-lg: 22px;
+  --t-body: 18px;
+  --t-body-sm: 15px;
+  --t-caption: 13px;
+  --t-eyebrow: 12px;
+
+  --lh-tight: 1.05;
+  --lh-snug: 1.2;
+  --lh-body: 1.45;
+  --lh-loose: 1.6;
+  --tracking-tight: -0.01em;
+  --tracking-eyebrow: 0.12em;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 96px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(70, 0, 25, 0.06);
+  --shadow-md: 0 4px 12px rgba(70, 0, 25, 0.08), 0 1px 2px rgba(70, 0, 25, 0.05);
+  --shadow-lg: 0 12px 32px rgba(70, 0, 25, 0.12), 0 2px 4px rgba(70, 0, 25, 0.06);
+}

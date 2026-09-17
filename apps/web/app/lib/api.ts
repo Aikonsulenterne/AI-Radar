@@ -344,3 +344,117 @@ export function archiveSignal(signalId: string): Promise<Signal> {
     body: JSON.stringify({ status: "archived" }),
   });
 }
+
+export type TechHorizon = "now" | "next" | "horizon";
+export type CaseStatus = "draft" | "published" | "archived";
+
+export interface Company {
+  id: string;
+  name: string;
+  slug: string;
+  country_code: string | null;
+  industry: string | null;
+  website_url: string | null;
+  active: boolean;
+  approved_claim_count: number;
+  published_case_count: number;
+}
+
+export interface Technology {
+  id: string;
+  name: string;
+  slug: string;
+  definition: string;
+  horizon: TechHorizon;
+  active: boolean;
+  adopting_company_count: number;
+}
+
+export interface CaseFacts {
+  capability: string | null;
+  use_case: string | null;
+  stage: string | null;
+  vendor: string | null;
+  effect: string | null;
+}
+
+export interface AdoptionCase {
+  id: string;
+  company_id: string;
+  company_name: string | null;
+  title: string;
+  summary: string | null;
+  status: CaseStatus;
+  created_at: string;
+  updated_at: string;
+  claim_count: number;
+  facts: CaseFacts;
+}
+
+export interface AdoptionCaseDetail extends AdoptionCase {
+  claims: Claim[];
+  technologies: string[];
+}
+
+export interface CompanyDetail extends Company {
+  claims: Claim[];
+  cases: AdoptionCase[];
+}
+
+export interface TechnologyDetail extends Technology {
+  claims: Claim[];
+  companies: Company[];
+}
+
+export function listCompanies(): Promise<Paginated<Company>> {
+  return request<Paginated<Company>>("/companies?limit=200");
+}
+
+export function getCompany(companyId: string): Promise<CompanyDetail> {
+  return request<CompanyDetail>(`/companies/${companyId}`);
+}
+
+export function listTechnologies(): Promise<Paginated<Technology>> {
+  return request<Paginated<Technology>>("/technologies?limit=200");
+}
+
+export function getTechnology(technologyId: string): Promise<TechnologyDetail> {
+  return request<TechnologyDetail>(`/technologies/${technologyId}`);
+}
+
+export function listCases(): Promise<Paginated<AdoptionCase>> {
+  return request<Paginated<AdoptionCase>>("/adoption-cases?limit=200");
+}
+
+export function getCase(caseId: string): Promise<AdoptionCaseDetail> {
+  return request<AdoptionCaseDetail>(`/adoption-cases/${caseId}`);
+}
+
+export interface CaseCreateInput {
+  company_id: string;
+  title: string;
+  summary?: string | null;
+  claim_ids: string[];
+}
+
+export function createCase(input: CaseCreateInput): Promise<AdoptionCase> {
+  return request<AdoptionCase>("/adoption-cases", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export function publishCase(caseId: string): Promise<AdoptionCase> {
+  return request<AdoptionCase>(`/adoption-cases/${caseId}/publish`, {
+    method: "POST",
+  });
+}
+
+export function archiveCase(caseId: string): Promise<AdoptionCase> {
+  return request<AdoptionCase>(`/adoption-cases/${caseId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "archived" }),
+  });
+}

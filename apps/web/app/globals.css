@@ -544,6 +544,21 @@ a {
   font-size: 14px;
 }
 
+.horizon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+.facts-table th[scope="row"] {
+  width: 220px;
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
 .visually-hidden-input {
   position: absolute;
   width: 1px;

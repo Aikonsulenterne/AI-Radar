@@ -70,9 +70,11 @@ complete) i API og UI. AI-pipelinen er fixture-testet og kræver
 etableret: signaler med publiceringsflow (kun godkendte claims som
 faktagrundlag), dashboard/Overblik med KPI-optællinger, signal-detalje
 med fakta/analyse/anbefaling adskilt og fuld provenance, samt
-admin-signalbygger. Lokale implementeringsvalg står i
-`docs/03_Implementation_Notes.md`. Næste: Slice 4 (Adoption og
-Technology), se Technical Master §20.
+admin-signalbygger. Slice 4 er også etableret: company-/teknologiprofiler
+og adoption cases med afledte faktafelter ("Ikke dokumenteret" når
+kilden tier), publiceringsflow og admin-casebygger. Lokale
+implementeringsvalg står i `docs/03_Implementation_Notes.md`. Næste:
+Slice 5 (Opportunities), se Technical Master §20.
 UI-prototypen og `colors_and_type.css` er endnu ikke tilføjet repoet —
 web-shellen bruger midlertidige neutrale tokens, der skal erstattes af
 OK's tokens.

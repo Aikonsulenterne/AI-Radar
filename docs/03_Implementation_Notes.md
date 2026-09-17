@@ -98,3 +98,27 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **Dashboardet** viser kun optællinger (ingen beregnede scores) med
   definition på hvert KPI-kort, jf. "kompakte KPI'er med kilde eller
   definition".
+
+## Slice 4 (Adoption og Technology)
+
+- **Case-authoring-endpoints** (`POST/PATCH /adoption-cases`,
+  `/adoption-cases/{id}/publish`) supplerer masterens read-endpoints —
+  samme mønster som signaler. Publicering kræver mindst ét claim, alle
+  godkendte, og alle claims skal have casens virksomhed som subjekt.
+- **Casens faktafelter afledes** (capability, use case, stadie, vendor,
+  effekt) af de tilknyttede godkendte claims. Udokumenterede felter er
+  null og vises som "Ikke dokumenteret" hhv. "Ingen dokumenteret effekt
+  fundet" (Product Master §9). Casens `summary` er potentiel læring og
+  vises som analyse.
+- **Profiler viser kun reviewede fakta:** company-/teknologiprofiler
+  viser godkendte claims og publicerede cases; readers ser aldrig
+  kladder (404, ikke 403). Adoption på teknologiradaren er en optælling
+  af virksomheder med godkendte claims — ingen momentum-/modenhedsscore
+  uden evidens.
+- **Filtre i MVP:** country_code og navnesøgning på companies;
+  company_id/status på cases. Branche-/capability-/styrkefiltre udvides,
+  når felterne reelt kurateres.
+- **Admin-casebygger** på `/admin/cases` (supplerer masterens ruteliste
+  ligesom `/admin/signals`).
+- **Test-seed:** unit-testene seeder Agent Assist + alias i SQLite som
+  spejl af supabase/seed.sql.

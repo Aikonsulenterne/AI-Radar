@@ -54,7 +54,7 @@ Pull request og grøn CI kræves før merge til `main`.
 
 ## Status
 
-**Slice 0–3** er etableret:
+**Slice 0–4** er etableret:
 
 - Source Registry (API + admin-UI) med roller (Reader/Reviewer/Admin)
 - Manuel upload (txt/html/pdf) og web fetch af public kilder
@@ -69,6 +69,10 @@ Pull request og grøn CI kræves før merge til `main`.
   fakta/analyse/anbefaling adskilt, dokumentationsstyrke og provenance
 - Overblik med KPI-optællinger og seneste signaler; signalbygger under
   `/admin/signals`
+- Adoption: virksomheder og cases med afledte faktafelter — manglende
+  fakta vises som "Ikke dokumenteret"; casebygger under `/admin/cases`
+- Teknologiradar i NU/NÆSTE/HORIZON med dokumenteret adoption pr.
+  teknologi
 
 AI-kørsel kræver `AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` i API'ets miljø;
 pipelinen er fixture-testet uden netkald. Implementeringsrækkefølgen

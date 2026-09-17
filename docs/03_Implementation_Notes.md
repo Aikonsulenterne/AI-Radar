@@ -122,3 +122,19 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   ligesom `/admin/signals`).
 - **Test-seed:** unit-testene seeder Agent Assist + alias i SQLite som
   spejl af supabase/seed.sql.
+
+## Slice 5 (Opportunities)
+
+- **Godkendelsesflow:** en opportunity uden `approved_by_user_id` er en
+  kandidat. `POST /opportunities/{id}/approve` er den menneskelige
+  godkendelse, og status kan først rykkes forbi `identified`, når den er
+  givet (409 `not_approved` ellers). AI-genererede opportunity-forslag
+  er ikke wiret endnu — mennesker opretter kandidater; når AI-forslag
+  tilføjes, lander de som ugodkendte kandidater i samme flow.
+- **`GET /problems`** (taxonomi-listen) og approve-endpointet supplerer
+  masterens endpointliste.
+- **Relationer:** junctions til signaler og claims; teknologier afledes
+  af claims som i resten af produktet. Problem-taxonomien er seedet med
+  Product Master §10's startliste.
+- **Ejerfeltet** findes i API'et (PATCH owner_user_id), men UI'et sætter
+  det ikke endnu — brugeradministration kommer med auth-wiring.

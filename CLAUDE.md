@@ -72,9 +72,12 @@ faktagrundlag), dashboard/Overblik med KPI-optællinger, signal-detalje
 med fakta/analyse/anbefaling adskilt og fuld provenance, samt
 admin-signalbygger. Slice 4 er også etableret: company-/teknologiprofiler
 og adoption cases med afledte faktafelter ("Ikke dokumenteret" når
-kilden tier), publiceringsflow og admin-casebygger. Lokale
+kilden tier), publiceringsflow og admin-casebygger. Slice 5 er også etableret:
+problem-taxonomi (seedet med §10-startlisten), opportunity-kandidater
+koblet til signaler/claims, menneskeligt godkendelsesflow (status kan
+først rykkes efter godkendelse) og pipeline-UI. Lokale
 implementeringsvalg står i `docs/03_Implementation_Notes.md`. Næste:
-Slice 5 (Opportunities), se Technical Master §20.
+Slice 6 (Briefing og hardening), se Technical Master §20.
 UI-prototypen og `colors_and_type.css` er endnu ikke tilføjet repoet —
 web-shellen bruger midlertidige neutrale tokens, der skal erstattes af
 OK's tokens.

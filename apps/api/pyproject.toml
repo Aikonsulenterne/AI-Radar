@@ -6,6 +6,13 @@ requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
+    "sqlalchemy>=2.0",
+    "psycopg[binary]>=3.2",
+    "pydantic-settings>=2.8",
+    "httpx>=0.28",
+    "pyjwt>=2.10",
+    "pypdf>=5.4",
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]
@@ -22,6 +29,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI's dependency injection bruger kald i argument-defaults by design.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File", "fastapi.Form"]
 
 [tool.mypy]
 strict = true

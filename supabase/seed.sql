@@ -41,3 +41,17 @@ inserted as (
 insert into entity_aliases (entity_type, entity_id, alias, normalized_alias)
 select 'technology'::entity_type, id, name, lower(name) from inserted
 on conflict (entity_type, normalized_alias) do nothing;
+
+-- Problem-taxonomi for OK Kundecenter (Product Master §10) — startliste,
+-- der kan udvides gennem kuratering.
+insert into problem_taxonomy (name, description, area)
+values
+  ('Manuel QA', 'Kvalitetssikring af kundeinteraktioner foregår manuelt.', 'Kundecenter'),
+  ('Store mailmængder', 'Høj volumen af indgående mails belaster behandlingen.', 'Kundecenter'),
+  ('Knowledge gaps', 'Medarbejdere mangler hurtig adgang til korrekt viden.', 'Kundecenter'),
+  ('Efterbehandling', 'Tid brugt på opsummering og registrering efter kontakt.', 'Kundecenter'),
+  ('Genhenvendelser', 'Kunder vender tilbage, fordi første kontakt ikke løste problemet.', 'Kundecenter'),
+  ('Routing', 'Henvendelser lander i forkerte køer og kræver overdragelse.', 'Kundecenter'),
+  ('Onboarding', 'Oplæring af nye medarbejdere tager lang tid.', 'Kundecenter'),
+  ('Repetitive henvendelser', 'Samme simple henvendelsestyper gentages i stort antal.', 'Kundecenter')
+on conflict (name) do nothing;

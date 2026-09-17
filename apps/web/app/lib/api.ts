@@ -458,3 +458,89 @@ export function archiveCase(caseId: string): Promise<AdoptionCase> {
     body: JSON.stringify({ status: "archived" }),
   });
 }
+
+export type OpportunityStatus =
+  | "identified"
+  | "investigating"
+  | "business_case"
+  | "pilot"
+  | "scaling"
+  | "closed";
+
+export interface Problem {
+  id: string;
+  name: string;
+  description: string;
+  area: string;
+  active: boolean;
+}
+
+export interface Opportunity {
+  id: string;
+  title: string;
+  problem_id: string;
+  problem_name: string | null;
+  relevance_hypothesis: string;
+  evidence_gaps: string | null;
+  recommended_next_action: string;
+  status: OpportunityStatus;
+  owner_user_id: string | null;
+  approved: boolean;
+  created_at: string;
+  updated_at: string;
+  signal_count: number;
+  claim_count: number;
+}
+
+export interface OpportunityDetail extends Opportunity {
+  signals: { id: string; title: string; status: SignalStatus }[];
+  claims: Claim[];
+}
+
+export interface OpportunityCreateInput {
+  title: string;
+  problem_id: string;
+  relevance_hypothesis: string;
+  evidence_gaps?: string | null;
+  recommended_next_action: string;
+  signal_ids: string[];
+}
+
+export function listProblems(): Promise<Paginated<Problem>> {
+  return request<Paginated<Problem>>("/problems");
+}
+
+export function listOpportunities(): Promise<Paginated<Opportunity>> {
+  return request<Paginated<Opportunity>>("/opportunities?limit=200");
+}
+
+export function getOpportunity(id: string): Promise<OpportunityDetail> {
+  return request<OpportunityDetail>(`/opportunities/${id}`);
+}
+
+export function createOpportunity(
+  input: OpportunityCreateInput,
+): Promise<Opportunity> {
+  return request<Opportunity>("/opportunities", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
+export function approveOpportunity(id: string): Promise<Opportunity> {
+  return request<Opportunity>(`/opportunities/${id}/approve`, {
+    method: "POST",
+  });
+}
+
+export function setOpportunityStatus(
+  id: string,
+  status: OpportunityStatus,
+): Promise<Opportunity> {
+  return request<Opportunity>(`/opportunities/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+}

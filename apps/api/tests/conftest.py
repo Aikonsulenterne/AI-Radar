@@ -46,9 +46,10 @@ def db_session_factory() -> Generator[SessionFactory, None, None]:
 
 
 def _seed_technologies(factory: SessionFactory) -> None:
-    """Spejler supabase/seed.sql for de teknologier, testene bruger."""
+    """Spejler supabase/seed.sql for de teknologier og problemer, testene bruger."""
     from app.enums import EntityType, TechHorizon
     from app.models_claims import EntityAlias, Technology
+    from app.models_opportunities import ProblemTaxonomy
 
     with factory() as session:
         technology = Technology(
@@ -65,6 +66,13 @@ def _seed_technologies(factory: SessionFactory) -> None:
                 entity_id=technology.id,
                 alias="Agent Assist",
                 normalized_alias="agent assist",
+            )
+        )
+        session.add(
+            ProblemTaxonomy(
+                name="Store mailmængder",
+                description="Høj volumen af indgående mails belaster behandlingen.",
+                area="Kundecenter",
             )
         )
         session.commit()

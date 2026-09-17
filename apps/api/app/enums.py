@@ -168,3 +168,13 @@ class CaseStatus(StrEnum):
     draft = "draft"
     published = "published"
     archived = "archived"
+
+
+# --- Opportunities (Slice 5) ---
+class OpportunityStatus(StrEnum):
+    identified = "identified"
+    investigating = "investigating"
+    business_case = "business_case"
+    pilot = "pilot"
+    scaling = "scaling"
+    closed = "closed"

@@ -4,7 +4,12 @@ FastAPI-app med base path /api/v1 (Technical Master §11). OpenAPI er
 kontraktkilde. API og ingestion/AI-worker deler codebase og domænelag.
 """
 
-from fastapi import FastAPI
+import logging
+import time
+import uuid
+from collections.abc import Awaitable, Callable
+
+from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -13,6 +18,8 @@ from app.errors import register_exception_handlers
 from app.routes import catalog, documents, opportunities, signals, sources
 
 API_PREFIX = "/api/v1"
+
+logger = logging.getLogger("ai_radar.http")
 
 app = FastAPI(
     title="AI Radar API",
@@ -28,6 +35,32 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["Authorization", "Content-Type"],
 )
+
+
+@app.middleware("http")
+async def request_logging(
+    request: Request, call_next: Callable[[Request], Awaitable[Response]]
+) -> Response:
+    """Correlation id + operational log pr. request (Technical Master §18).
+
+    Logger aldrig tokens, headers eller request bodies — kun metode, sti,
+    status og varighed.
+    """
+    request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:16]
+    started = time.monotonic()
+    response = await call_next(request)
+    duration_ms = int((time.monotonic() - started) * 1000)
+    logger.info(
+        "http method=%s path=%s status=%d duration_ms=%d request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        duration_ms,
+        request_id,
+    )
+    response.headers["X-Request-ID"] = request_id
+    return response
+
 
 register_exception_handlers(app)
 app.include_router(sources.router, prefix=API_PREFIX)

@@ -1,0 +1,153 @@
+/*
+ * Midlertidige neutrale design tokens.
+ * Skal erstattes af OK's tokens fra `colors_and_type.css` (burgundy, rød,
+ * varm cream, OKfamily/Fellix), når prototypefilerne og fontlicenserne
+ * foreligger — se Product Master §12. Ingen gradients, ingen AI-glow.
+ */
+:root {
+  --color-bg: #faf7f2; /* varm cream-placeholder */
+  --color-surface: #ffffff;
+  --color-border: #e4ded4;
+  --color-ink: #2b2320;
+  --color-ink-secondary: #6b5f58;
+  --color-accent: #6d1f2c; /* burgundy-placeholder */
+  --color-accent-contrast: #ffffff;
+  --color-focus: #1f4f6d;
+
+  --font-sans: system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+
+  --sidenav-width: 240px;
+  --topbar-height: 56px;
+  --radius: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--color-accent);
+}
+
+/* Tydelig focus state (Product Master §12) */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+.app-shell {
+  display: grid;
+  grid-template-columns: var(--sidenav-width) 1fr;
+  min-height: 100vh;
+}
+
+.sidenav {
+  border-right: 1px solid var(--color-border);
+  background: var(--color-surface);
+  padding: 16px 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidenav-brand {
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--color-accent);
+  padding: 8px 10px 16px;
+}
+
+.sidenav-section {
+  margin-top: 16px;
+  padding: 0 10px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-secondary);
+}
+
+.sidenav-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--radius);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.sidenav-link:hover {
+  background: var(--color-bg);
+}
+
+.sidenav-link[aria-current="page"] {
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+}
+
+.main-column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: var(--topbar-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 24px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.topbar-title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.topbar-meta {
+  font-size: 13px;
+  color: var(--color-ink-secondary);
+}
+
+.page {
+  padding: 24px;
+  max-width: 1200px;
+}
+
+.page h1 {
+  font-size: 22px;
+  margin: 0 0 4px;
+}
+
+.page-lead {
+  color: var(--color-ink-secondary);
+  margin: 0 0 24px;
+}
+
+.empty-state {
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  padding: 32px;
+  color: var(--color-ink-secondary);
+}
+
+.empty-state strong {
+  color: var(--color-ink);
+}

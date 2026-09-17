@@ -138,3 +138,38 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   Product Master §10's startliste.
 - **Ejerfeltet** findes i API'et (PATCH owner_user_id), men UI'et sætter
   det ikke endnu — brugeradministration kommer med auth-wiring.
+
+## Slice 6 (Briefing og hardening)
+
+- **Briefingen** genereres i frontenden fra eksisterende endpoints
+  (signaler, cases, opportunities) — intet separat subsystem, jf.
+  Product Master §7. "Redigerbar visning" afventer en senere iteration.
+- **Worker-entrypointet** (`python -m app.worker --once|--interval N`)
+  kører fra samme image som API'et: henter forfaldne public
+  web_fetch-kilder (frekvensstyret via next_check_at) og AI-behandler
+  normaliserede dokumenter, når provider er konfigureret.
+- **Observability:** request-logging-middleware med correlation id
+  (X-Request-ID) og varighed; AI-kald logger prompt-id/version, model,
+  latency og tokenforbrug. Tokens, secrets og dokumenttekster logges
+  aldrig. Fuld OpenTelemetry-instrumentering er en senere hardening.
+- **Evaluering:** `app/evaluation.py` + JSONL-datasætformat i
+  `evaluation/`; metrikker for relevance/claim precision-recall og
+  excerpt correctness. Datasættet skal opbygges manuelt (100–200 docs
+  som modningsmål).
+- **Tilgængelighed:** skip-link, landmarks, labels, fokus-styles og
+  tekstlige statusser; fuld WCAG 2.1 AA-gennemgang udestår som
+  hardening-opgave.
+- **Deployment:** staging-/production-guide i `docs/04_Deployment.md`.
+
+## Udestående (kendte mangler mod masterne)
+
+- Supabase Auth-wiring i frontenden (login, session-token på API-kald);
+  API'et validerer allerede JWT + roller.
+- RSS-hentemetoden (409 not_implemented indtil videre).
+- OK's design tokens fra `colors_and_type.css` og UI-prototypen.
+- Route-baserede drawers og udvidede filtre (branche, capability,
+  dokumentationsstyrke) på adoption.
+- OpenTelemetry-eksport, audit-log-tabeller og RLS-/authorization-tests
+  mod rigtig PostgreSQL i CI (migrations valideres; adfærdstests kører
+  på SQLite).
+- AI-genererede opportunity-forslag (lander som ugodkendte kandidater).

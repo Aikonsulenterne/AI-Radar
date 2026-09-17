@@ -54,7 +54,7 @@ Pull request og grøn CI kræves før merge til `main`.
 
 ## Status
 
-**Slice 0–5** er etableret:
+**Slice 0–6** er etableret (MVP-kæden fungerer end-to-end):
 
 - Source Registry (API + admin-UI) med roller (Reader/Reviewer/Admin)
 - Manuel upload (txt/html/pdf) og web fetch af public kilder
@@ -75,6 +75,14 @@ Pull request og grøn CI kræves før merge til `main`.
   teknologi
 - Opportunities: problem-taxonomi, kandidater koblet til
   signaler/claims, menneskelig godkendelse før pipelinen kan rykkes
+- Briefing genereret af publiceret intelligence samt offentlig kildeside
+- Worker-entrypoint (`python -m app.worker`), request-logging med
+  correlation ids og evalueringsrunner (`python -m app.evaluation`)
+
+Kæden **Source → Document → Claim → Evidence → Human review → Published
+signal → Adoption/Technology → Opportunity** er implementeret; se
+`docs/04_Deployment.md` for staging-opsætning og
+`docs/03_Implementation_Notes.md` for valg og kendte udeståender.
 
 AI-kørsel kræver `AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` i API'ets miljø;
 pipelinen er fixture-testet uden netkald. Implementeringsrækkefølgen

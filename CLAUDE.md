@@ -59,12 +59,16 @@ Technical Build Master → designreferencer → ældre noter.
 
 ## Status
 
-Slice 0 (Foundation) og Slice 1 (Source → Document) er etableret:
-Source Registry-API med rollebaseret authorization, manuel upload +
-web fetch, storage-adapter (local/Supabase private bucket),
-normalisering med idempotency på (source_id, content_hash) samt admin-UI
-for kilder og dokumentliste. Lokale implementeringsvalg står i
-`docs/03_Implementation_Notes.md`. Næste: Slice 2 (Document → Claim →
-Review), se Technical Master §20. UI-prototypen og `colors_and_type.css`
-er endnu ikke tilføjet repoet — web-shellen bruger midlertidige neutrale
-tokens, der skal erstattes af OK's tokens.
+Slice 0–2 er etableret: Source Registry + upload/web fetch +
+normalisering (Slice 1) og Document → Claim → Review (Slice 2):
+provider-neutralt AI-lag (OpenAI-kompatibel adapter, versionerede
+prompts, én kontrolleret retry), relevansklassifikation, claim
+extraction med ordrette evidensuddrag, deterministisk entity resolution,
+duplicate-kandidater samt review-handlinger (approve/edit/reject/
+complete) i API og UI. AI-pipelinen er fixture-testet og kræver
+`AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` for liveskørsel. Lokale
+implementeringsvalg står i `docs/03_Implementation_Notes.md`. Næste:
+Slice 3 (Published signal og Overblik), se Technical Master §20.
+UI-prototypen og `colors_and_type.css` er endnu ikke tilføjet repoet —
+web-shellen bruger midlertidige neutrale tokens, der skal erstattes af
+OK's tokens.

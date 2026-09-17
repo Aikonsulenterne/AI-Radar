@@ -44,3 +44,35 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   og `supabase` (REST mod private bucket, service-role key kun
   server-side). Signerede URLs udstedes kortvarigt; lokal adapter
   returnerer null.
+
+## Slice 2 (Document → Claim → Review)
+
+- **AI-kørsel:** `POST /review/documents/{id}/process` kører relevans og
+  claim extraction synkront i API'et (endpointet supplerer masterens
+  liste). Uden konfigureret AI-provider svarer det 503
+  `ai_not_configured`. Planlagt/asynkron worker-kørsel kommer senere.
+- **Evidens håndhæves mekanisk:** et claim kasseres, hvis
+  `supporting_excerpt` ikke findes ordret i den normaliserede tekst;
+  offsets beregnes server-side. Prompten forbyder at følge instruktioner
+  i kildeteksten (untrusted data, Technical Master §9).
+- **Schemafejl:** højst én kontrolleret retry; derefter
+  `processing_status=failed` med `error_code=ai_schema_error` til manuel
+  opfølgning.
+- **Entity resolution er deterministisk:** kun exact/normaliseret
+  alias- eller navnematch. Et umatchet virksomhedsnavn opretter en ny
+  Company + alias (reviewer kan flette via duplicate-kandidater); et
+  umatchet objekt forbliver `object_text`. Ingen fuzzy/AI-matching.
+- **`companies.country_code` er nullable** (master siger not null):
+  entity resolution må ikke opfinde et land, kilden ikke nævner —
+  princippet "manglende data vises som manglende" vægtes over
+  kolonnekravet. Land udfyldes ved kuratering.
+- **Duplicate-kandidater** beregnes deterministisk (samme subjekt +
+  predicate + objekt) og vises i review; revieweren afgør relationen.
+  Automatisk konfliktafgørelse er fortsat ude af scope.
+- **Approve-semantik:** `POST .../approve` uden edits → `approved`; med
+  edits → `approved_with_edits`. `PATCH` retter et åbent claim uden at
+  afgøre det. `complete` sætter dokumentet til `reviewed`, eller
+  `partially_reviewed` hvis der stadig er `proposed` claims.
+- **Seed:** de 8 startteknologier (Product Master §6) ligger i
+  `supabase/seed.sql` med foreløbig horizon-kuratering, der skal
+  valideres af produktejeren.

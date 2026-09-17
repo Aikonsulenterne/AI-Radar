@@ -54,13 +54,19 @@ Pull request og grøn CI kræves før merge til `main`.
 
 ## Status
 
-**Slice 0 — Foundation** og **Slice 1 — Source → Document** er etableret:
+**Slice 0–2** er etableret:
 
 - Source Registry (API + admin-UI) med roller (Reader/Reviewer/Admin)
 - Manuel upload (txt/html/pdf) og web fetch af public kilder
 - Private storage via adapter (lokalt filsystem eller Supabase Storage)
 - Normalisering og idempotency på (source_id, content_hash)
-- Dokumentliste med behandlingsstatus under `/admin/review`
+- Provider-neutralt AI-lag (OpenAI-kompatibelt) med versionerede prompts
+- Relevansklassifikation og claim extraction med ordrette evidensuddrag
+- Deterministisk entity resolution og duplicate-kandidater
+- Review pr. dokument: godkend, ret og godkend, afvis, afslut —
+  inkl. batchgodkendelse i UI'et
 
-Implementeringsrækkefølgen (Slice 0–6) står i Technical Master §20;
-lokale implementeringsvalg i `docs/03_Implementation_Notes.md`.
+AI-kørsel kræver `AI_PROVIDER_BASE_URL`/`AI_MODEL_ID` i API'ets miljø;
+pipelinen er fixture-testet uden netkald. Implementeringsrækkefølgen
+(Slice 0–6) står i Technical Master §20; lokale implementeringsvalg i
+`docs/03_Implementation_Notes.md`.

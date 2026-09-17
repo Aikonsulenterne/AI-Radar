@@ -22,6 +22,10 @@ __pycache__/
 dist/
 *.egg-info/
 
+# Lokalt API-lager og dev-database (apps/api)
+.storage/
+.local.db
+
 # Supabase lokal udvikling
 supabase/.branches/
 supabase/.temp/

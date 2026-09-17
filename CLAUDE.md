@@ -59,7 +59,12 @@ Technical Build Master → designreferencer → ældre noter.
 
 ## Status
 
-Slice 0 (Foundation) er etableret. Næste: Slice 1 (Source → Document),
-se Technical Master §20 for rækkefølgen. UI-prototypen og
-`colors_and_type.css` er endnu ikke tilføjet repoet — web-shellen bruger
-midlertidige neutrale tokens, der skal erstattes af OK's tokens.
+Slice 0 (Foundation) og Slice 1 (Source → Document) er etableret:
+Source Registry-API med rollebaseret authorization, manuel upload +
+web fetch, storage-adapter (local/Supabase private bucket),
+normalisering med idempotency på (source_id, content_hash) samt admin-UI
+for kilder og dokumentliste. Lokale implementeringsvalg står i
+`docs/03_Implementation_Notes.md`. Næste: Slice 2 (Document → Claim →
+Review), se Technical Master §20. UI-prototypen og `colors_and_type.css`
+er endnu ikke tilføjet repoet — web-shellen bruger midlertidige neutrale
+tokens, der skal erstattes af OK's tokens.

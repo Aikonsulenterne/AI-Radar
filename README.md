@@ -54,6 +54,13 @@ Pull request og grøn CI kræves før merge til `main`.
 
 ## Status
 
-**Slice 0 — Foundation** er etableret: repo-struktur, Next.js-shell,
-FastAPI health endpoint, Supabase-migrationsbaseline, CI og Dockerfiles.
-Implementeringsrækkefølgen (Slice 0–6) står i Technical Master §20.
+**Slice 0 — Foundation** og **Slice 1 — Source → Document** er etableret:
+
+- Source Registry (API + admin-UI) med roller (Reader/Reviewer/Admin)
+- Manuel upload (txt/html/pdf) og web fetch af public kilder
+- Private storage via adapter (lokalt filsystem eller Supabase Storage)
+- Normalisering og idempotency på (source_id, content_hash)
+- Dokumentliste med behandlingsstatus under `/admin/review`
+
+Implementeringsrækkefølgen (Slice 0–6) står i Technical Master §20;
+lokale implementeringsvalg i `docs/03_Implementation_Notes.md`.

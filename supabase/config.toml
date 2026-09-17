@@ -1,0 +1,25 @@
+# Supabase CLI-konfiguration til lokal udvikling.
+# Separate Supabase-projekter bruges til staging og production (Technical
+# Master §4); deres keys og callback URLs konfigureres uden for Git.
+project_id = "ai-radar"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000"]
+
+[storage]
+enabled = true

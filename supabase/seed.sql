@@ -1,0 +1,4 @@
+-- Seed-data for lokal udvikling og staging.
+-- Regler (Product Master §14): al seed-/demodata markeres is_demo og må
+-- aldrig publiceres som production intelligence. Ingen production-data i tests.
+-- Tilføjes fra Slice 1, når domænetabellerne findes.

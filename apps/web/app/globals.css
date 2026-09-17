@@ -46,6 +46,22 @@ a {
   outline-offset: 2px;
 }
 
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--color-accent);
+  color: var(--color-accent-contrast);
+  padding: 8px 16px;
+  border-radius: var(--radius);
+}
+
+.skip-link:focus {
+  left: 8px;
+  top: 8px;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: var(--sidenav-width) 1fr;

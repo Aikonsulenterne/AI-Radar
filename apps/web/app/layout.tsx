@@ -14,6 +14,9 @@ export default function RootLayout({
   return (
     <html lang="da">
       <body>
+        <a className="skip-link" href="#main">
+          Spring til indhold
+        </a>
         <div className="app-shell">
           <SideNav />
           <div className="main-column">
@@ -23,7 +26,9 @@ export default function RootLayout({
                 Internt beslutningsprodukt — evidens før AI
               </span>
             </header>
-            <main className="page">{children}</main>
+            <main id="main" className="page">
+              {children}
+            </main>
           </div>
         </div>
       </body>

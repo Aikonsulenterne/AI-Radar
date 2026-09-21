@@ -31,9 +31,9 @@ services:
         value: https://vzopuffhiwrhpdibgaaw.supabase.co
       - key: CORS_ORIGINS
         value: http://localhost:3000
+      # JWT-validering sker via projektets JWKS (SUPABASE_URL) — ingen
+      # SUPABASE_JWT_SECRET nødvendig med moderne signing keys.
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
-      - key: SUPABASE_JWT_SECRET
         sync: false

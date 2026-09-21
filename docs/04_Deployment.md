@@ -21,9 +21,10 @@ Ingen production-data i tests; ingen demo-claims i production.
 ## 2a. Backend på Render (valgt til staging)
 
 `render.yaml` i repo-roden er en Render Blueprint: Dashboard → **New →
-Blueprint** → vælg AI-Radar-repoet → indtast de tre secrets
-(`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`) →
-Apply. Region Frankfurt, free tier, auto-deploy fra `main`,
+Blueprint** → vælg AI-Radar-repoet → indtast de to secrets
+(`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) → Apply. JWT-validering
+sker via projektets JWKS-endpoint (moderne Supabase signing keys), så
+ingen JWT-secret er nødvendig. Region Frankfurt, free tier, auto-deploy fra `main`,
 health check på `/api/v1/health`.
 
 Free tier-begrænsninger (bevidst accepteret for staging): servicen

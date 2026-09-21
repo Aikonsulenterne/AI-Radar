@@ -10,7 +10,7 @@ dependencies = [
     "psycopg[binary]>=3.2",
     "pydantic-settings>=2.8",
     "httpx>=0.28",
-    "pyjwt>=2.10",
+    "pyjwt[crypto]>=2.10",
     "pypdf>=5.4",
     "python-multipart>=0.0.20",
 ]

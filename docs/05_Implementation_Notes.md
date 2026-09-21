@@ -184,6 +184,19 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   two-pane review-layout, toasts, kompakt tablet-sidebar og
   `AI Radar.dc.html`-sammenligning (filen er ikke leveret).
 
+## Staging-opsætning (Supabase + Render)
+
+- Supabase-projektet `ai-radar-staging` (org OK, Frankfurt) kører alle
+  migrations + seed; privat `documents`-bucket oprettet.
+- **JWT-validering understøtter to veje:** ES256/RS256 via projektets
+  JWKS-endpoint (moderne Supabase signing keys — det aktive på
+  staging-projektet) og HS256 via `SUPABASE_JWT_SECRET` (legacy; bruges
+  af unit tests). Algoritmen aflæses af tokenets header; ukendte
+  algoritmer afvises.
+- Render free tier hoster API'et (blueprint i `render.yaml`); workeren
+  kører ikke på free tier — hentning/AI-behandling via admin-UI'ets
+  knapper indtil opgradering.
+
 ## Udestående (kendte mangler mod masterne)
 
 - Supabase Auth-wiring i frontenden (login, session-token på API-kald);

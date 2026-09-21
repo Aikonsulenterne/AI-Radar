@@ -13,6 +13,7 @@ os.environ["SUPABASE_JWT_SECRET"] = "test-secret-0123456789-abcdefghijklm"
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_ROOT"] = tempfile.mkdtemp(prefix="ai-radar-test-storage-")
 os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["SUPABASE_URL"] = "https://test-projekt.supabase.co"
 
 import time  # noqa: E402
 import uuid  # noqa: E402

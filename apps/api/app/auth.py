@@ -3,14 +3,23 @@
 Supabase Auth udsteder JWT'er; API'et validerer signatur og audience og
 slår rollen op i den kontrollerede profil-model. Tokens logges aldrig.
 Auth er isoleret her, så en anden OIDC-provider senere kan anvendes.
+
+To valideringsveje efter tokenets algoritme:
+- ES256/RS256 (moderne Supabase signing keys): offentlig nøgle hentes fra
+  projektets JWKS-endpoint (SUPABASE_URL) og caches.
+- HS256 (legacy JWT secret): delt secret fra SUPABASE_JWT_SECRET —
+  bruges også af unit tests.
 """
 
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import lru_cache
+from typing import Any
 
 import jwt
 from fastapi import Depends, Request
+from jwt import PyJWKClient
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
@@ -32,6 +41,48 @@ class CurrentUser:
     role: UserRole
 
 
+@lru_cache
+def _jwks_client(supabase_url: str) -> PyJWKClient:
+    return PyJWKClient(f"{supabase_url}/auth/v1/.well-known/jwks.json")
+
+
+def _jwks_signing_key(token: str) -> Any:
+    """Offentlig nøgle fra Supabase's JWKS — adskilt så tests kan erstatte den."""
+    settings = get_settings()
+    return _jwks_client(settings.supabase_url).get_signing_key_from_jwt(token).key
+
+
+def _decode_token(token: str) -> dict[str, Any]:
+    settings = get_settings()
+    try:
+        algorithm = jwt.get_unverified_header(token).get("alg")
+    except jwt.InvalidTokenError as exc:
+        raise ApiError(401, "unauthorized", "Ugyldigt token.") from exc
+
+    if algorithm == "HS256":
+        if not settings.supabase_jwt_secret:
+            raise ApiError(
+                503, "auth_not_configured", "Authentication er ikke konfigureret (JWT secret)."
+            )
+        key: Any = settings.supabase_jwt_secret
+    elif algorithm in ("ES256", "RS256"):
+        if not settings.supabase_url:
+            raise ApiError(
+                503, "auth_not_configured", "Authentication er ikke konfigureret (SUPABASE_URL)."
+            )
+        try:
+            key = _jwks_signing_key(token)
+        except jwt.PyJWKClientError as exc:
+            raise ApiError(401, "unauthorized", "Tokenets nøgle kunne ikke verificeres.") from exc
+    else:
+        raise ApiError(401, "unauthorized", "Ukendt token-algoritme.")
+
+    try:
+        return jwt.decode(token, key, algorithms=[algorithm], audience="authenticated")
+    except jwt.InvalidTokenError as exc:
+        raise ApiError(401, "unauthorized", "Ugyldigt eller udløbet token.") from exc
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> CurrentUser:
     settings = get_settings()
     header = request.headers.get("authorization")
@@ -44,18 +95,8 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Current
     scheme, _, token = header.partition(" ")
     if scheme.lower() != "bearer" or not token:
         raise ApiError(401, "unauthorized", "Ugyldig Authorization-header.")
-    if not settings.supabase_jwt_secret:
-        raise ApiError(503, "auth_not_configured", "Authentication er ikke konfigureret.")
 
-    try:
-        payload = jwt.decode(
-            token,
-            settings.supabase_jwt_secret,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
-    except jwt.InvalidTokenError as exc:
-        raise ApiError(401, "unauthorized", "Ugyldigt eller udløbet token.") from exc
+    payload = _decode_token(token)
 
     try:
         user_id = uuid.UUID(str(payload.get("sub")))

@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { UserMenu } from "../auth/user-menu";
 import { adminNav, isActive, primaryNav } from "./sidebar";
 
 function pageTitle(pathname: string): string {
@@ -12,6 +13,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith("/adoption/companies/")) return "Virksomhed";
   if (pathname.startsWith("/technologies/")) return "Teknologi";
   if (pathname.startsWith("/opportunities/")) return "Opportunity";
+  if (pathname === "/login") return "Log ind";
   return match?.label ?? "AI Radar";
 }
 
@@ -21,7 +23,7 @@ export function Topbar() {
   return (
     <header className="topbar">
       <span className="topbar-title">{pageTitle(pathname)}</span>
-      <span className="topbar-meta">AI Radar · internt, evidensbaseret</span>
+      <UserMenu />
     </header>
   );
 }

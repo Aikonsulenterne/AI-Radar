@@ -197,10 +197,22 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   kører ikke på free tier — hentning/AI-behandling via admin-UI'ets
   knapper indtil opgradering.
 
+## Frontend-auth (Supabase Auth)
+
+- Login (`/login`, e-mail/adgangskode via `signInWithPassword`), logout og
+  brugerstatus i topbaren. Session holdes i cookies via `@supabase/ssr`;
+  middleware refresher tokens.
+- API-laget har en token-provider pr. runtime: serveren læser sessionen
+  fra requestens cookies (registreret i `lib/register-server-auth.ts`),
+  browseren fra Supabase-klienten (`components/auth/auth-init.tsx`).
+  Alle eksisterende kald får dermed Authorization-header uden ændrede
+  call sites. Uden Supabase-env (lokal udvikling) sendes ingen header,
+  og API'ets dev-bypass gælder.
+- Brugere oprettes i Supabase Auth; roller styres i `profiles`-tabellen
+  (admin-bruger seedet i staging).
+
 ## Udestående (kendte mangler mod masterne)
 
-- Supabase Auth-wiring i frontenden (login, session-token på API-kald);
-  API'et validerer allerede JWT + roller.
 - RSS-hentemetoden (409 not_implemented indtil videre).
 - OK's design tokens fra `colors_and_type.css` og UI-prototypen.
 - Route-baserede drawers og udvidede filtre (branche, capability,

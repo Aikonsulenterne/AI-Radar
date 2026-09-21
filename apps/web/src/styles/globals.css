@@ -178,6 +178,16 @@ a {
   color: var(--fg-mute);
 }
 
+.user-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.login-form {
+  max-width: 420px;
+}
+
 /* --- Main --- */
 
 .page {

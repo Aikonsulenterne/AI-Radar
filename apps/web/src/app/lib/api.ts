@@ -9,6 +9,18 @@
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000/api/v1";
 
+// Token-provider registreres pr. runtime: serverens i
+// lib/register-server-auth.ts (cookies), browserens i
+// components/auth/auth-init.tsx (Supabase-session). Uden provider (lokal
+// udvikling uden Supabase) sendes ingen Authorization-header, og API'ets
+// dev-bypass gælder.
+type TokenProvider = () => Promise<string | null>;
+let tokenProvider: TokenProvider = async () => null;
+
+export function setTokenProvider(provider: TokenProvider): void {
+  tokenProvider = provider;
+}
+
 export type SourceType =
   | "primary"
   | "independent_analysis"
@@ -112,9 +124,19 @@ export class ApiClientError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  let token: string | null = null;
+  try {
+    token = await tokenProvider();
+  } catch {
+    token = null;
+  }
+  const headers = new Headers(init?.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
   const response = await fetch(`${API_BASE}${path}`, {
     cache: "no-store",
     ...init,
+    headers,
   });
   if (!response.ok) {
     let code = "http_error";

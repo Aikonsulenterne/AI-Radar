@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { AppShell } from "../components/layout/app-shell";
+import { AuthInit } from "../components/auth/auth-init";
+import "../lib/register-server-auth";
 import "../styles/globals.css";
 
 // Fonte: OKfamily (display) og Fellix (body) aktiveres med next/font/local,
@@ -19,6 +21,7 @@ export default function RootLayout({
   return (
     <html lang="da">
       <body>
+        <AuthInit />
         <AppShell>{children}</AppShell>
       </body>
     </html>

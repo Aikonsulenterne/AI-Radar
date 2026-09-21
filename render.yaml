@@ -1,0 +1,39 @@
+# Render Blueprint — staging-API på free tier.
+# Bruges via Render Dashboard → New → Blueprint → vælg dette repo.
+#
+# Free tier-begrænsninger (accepteret for staging, se docs/04_Deployment.md):
+# - Servicen sover efter inaktivitet; første kald tager ~30-50 sek.
+# - Ingen separat worker-proces: kildehentning og AI-behandling køres
+#   manuelt via knapperne i admin-UI'et, indtil der opgraderes.
+#
+# Secrets (sync: false) indtastes i Render-dashboardet — aldrig i Git.
+services:
+  - type: web
+    name: ai-radar-api
+    runtime: docker
+    rootDir: apps/api
+    dockerfilePath: ./Dockerfile
+    plan: free
+    region: frankfurt
+    branch: main
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    # Render tildeler PORT — bind uvicorn til den.
+    dockerCommand: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    envVars:
+      - key: ENVIRONMENT
+        value: staging
+      - key: STORAGE_BACKEND
+        value: supabase
+      - key: SUPABASE_STORAGE_BUCKET
+        value: documents
+      - key: SUPABASE_URL
+        value: https://vzopuffhiwrhpdibgaaw.supabase.co
+      - key: CORS_ORIGINS
+        value: http://localhost:3000
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false

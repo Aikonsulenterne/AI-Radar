@@ -18,7 +18,21 @@ Ingen production-data i tests; ingen demo-claims i production.
 6. Roller: indsæt rækker i `profiles` (user_id fra Auth, role
    reader/reviewer/admin). RLS er deny-all — al adgang går via API'et.
 
-## 2. Backend (containerhost)
+## 2a. Backend på Render (valgt til staging)
+
+`render.yaml` i repo-roden er en Render Blueprint: Dashboard → **New →
+Blueprint** → vælg AI-Radar-repoet → indtast de tre secrets
+(`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`) →
+Apply. Region Frankfurt, free tier, auto-deploy fra `main`,
+health check på `/api/v1/health`.
+
+Free tier-begrænsninger (bevidst accepteret for staging): servicen
+sover efter inaktivitet (~30-50 sek. opvågning), og worker-processen
+kører ikke — hentning/AI-behandling udføres via knapperne i admin-UI'et.
+Ved opgradering til betalt plan tilføjes workeren som separat service
+(`python -m app.worker --interval 300`).
+
+## 2. Backend (containerhost, generelt)
 
 1. Byg imaget: `docker build apps/api` (CI bygger det også).
 2. Kør API'et med miljøvariabler (se `apps/api/.env.example`):

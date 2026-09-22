@@ -29,6 +29,14 @@ sker via projektets JWKS-endpoint (moderne Supabase signing keys), så
 ingen JWT-secret er nødvendig. Region Frankfurt, free tier, auto-deploy fra `main`,
 health check på `/api/v1/health`.
 
+**Migrations kører ikke som en del af deployet.** Render autodeployer ved
+push til `main`, så en migration skal køres mod miljøets database *før*
+koden, der bruger den, rammer `main` — ellers svarer de berørte endpoints
+500 på en kolonne, der ikke findes endnu. Rækkefølgen er: kør de nye filer
+fra `supabase/migrations/` i rækkefølge mod miljøet, og push derefter.
+Additive ændringer (nye kolonner med default) kan køres før koden uden at
+bryde den kørende version.
+
 Free tier-begrænsninger (bevidst accepteret for staging): servicen
 sover efter inaktivitet (~30-50 sek. opvågning), og worker-processen
 kører ikke — hentning/AI-behandling udføres via knapperne i admin-UI'et.

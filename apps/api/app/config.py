@@ -42,8 +42,8 @@ class Settings(BaseSettings):
     def auth_dev_bypass(self) -> bool:
         """Kun lokal udvikling uden konfigureret auth: alle kald som Admin.
 
-        Aldrig aktiv uden for environment=local. Staging/production skal
-        sætte SUPABASE_JWT_SECRET.
+        Aldrig aktiv uden for environment=local. Staging/production sætter
+        environment til staging/production, hvilket slår bypasset fra.
         """
         return self.environment == "local" and not self.supabase_jwt_secret
 

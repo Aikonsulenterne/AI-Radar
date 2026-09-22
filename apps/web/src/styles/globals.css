@@ -687,6 +687,32 @@ a {
   margin: 0;
 }
 
+/* Links fra en kørsel, der ikke kunne hentes — vist som tekst, ikke kun farve. */
+.run-failures {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  font-size: var(--t-caption);
+}
+
+.run-failures li {
+  display: grid;
+  gap: 2px;
+  border-left: 2px solid var(--border-strong);
+  padding-left: var(--space-2);
+}
+
+.run-failure-url {
+  color: var(--fg-soft);
+  word-break: break-all;
+}
+
+.run-failure-message {
+  color: var(--fg-mute);
+}
+
 /* --- Handlingsgrupper --- */
 
 .source-actions {

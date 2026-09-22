@@ -6,32 +6,53 @@ import {
   ApiClientError,
   runSource,
   uploadDocument,
+  type RunFailure,
+  type RunResult,
   type Source,
 } from "../../lib/api";
+
+function documents(count: number): string {
+  return count === 1 ? "1 dokument" : `${count} dokumenter`;
+}
+
+function runSummary(result: RunResult): string {
+  const parts: string[] = [];
+  if (result.created_count > 0) {
+    parts.push(`${documents(result.created_count)} hentet`);
+  }
+  if (result.unchanged_count > 0) {
+    parts.push(`${documents(result.unchanged_count)} uændret`);
+  }
+  if (result.failures.length > 0) {
+    const links = result.failures.length === 1 ? "1 link" : `${result.failures.length} links`;
+    parts.push(`${links} kunne ikke hentes`);
+  }
+  return parts.length > 0 ? `${parts.join(", ")}.` : "Kørslen gav ingen dokumenter.";
+}
 
 export function SourceActions({ source }: { source: Source }) {
   const router = useRouter();
   const fileInput = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [failures, setFailures] = useState<RunFailure[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const canRun =
     source.active &&
-    source.retrieval_method === "web_fetch" &&
+    (source.retrieval_method === "web_fetch" ||
+      source.retrieval_method === "rss") &&
     source.access_class === "public";
 
   async function handleRun() {
     setBusy(true);
     setError(null);
     setMessage(null);
+    setFailures([]);
     try {
       const result = await runSource(source.id);
-      setMessage(
-        result.created
-          ? "Nyt dokument hentet."
-          : "Uændret indhold — kendt dokument.",
-      );
+      setMessage(runSummary(result));
+      setFailures(result.failures);
       router.refresh();
     } catch (err) {
       setError(
@@ -48,6 +69,7 @@ export function SourceActions({ source }: { source: Source }) {
     setBusy(true);
     setError(null);
     setMessage(null);
+    setFailures([]);
     try {
       const result = await uploadDocument(source.id, file);
       setMessage(
@@ -100,6 +122,16 @@ export function SourceActions({ source }: { source: Source }) {
         <p className="action-status" role="status">
           {message}
         </p>
+      ) : null}
+      {failures.length > 0 ? (
+        <ul className="run-failures">
+          {failures.map((failure, index) => (
+            <li key={`${failure.url}-${index}`}>
+              <span className="run-failure-url">{failure.url || "Entry uden link"}</span>
+              <span className="run-failure-message">{failure.message}</span>
+            </li>
+          ))}
+        </ul>
       ) : null}
       {error ? (
         <p className="alert-error" role="alert">

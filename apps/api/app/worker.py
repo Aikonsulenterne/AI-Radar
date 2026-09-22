@@ -3,7 +3,7 @@
 Kørsel: `uv run python -m app.worker --once` (eller `--interval 300` for
 loop). Én kørsel gør to ting:
 
-1. Henter forfaldne, aktive web_fetch-kilder med access_class=public
+1. Henter forfaldne, aktive rss- og web_fetch-kilder med access_class=public
    (next_check_at null eller passeret; frekvens manual springes over).
 2. Kører relevans + claim extraction på normaliserede dokumenter, hvis en
    AI-provider er konfigureret.
@@ -26,8 +26,7 @@ from app.config import get_settings
 from app.db import get_engine
 from app.enums import AccessClass, Frequency, ProcessingStatus, RetrievalMethod
 from app.errors import ApiError
-from app.ingestion.fetch import fetch_url
-from app.ingestion.service import ingest_bytes
+from app.ingestion.run import run_source_fetch
 from app.models import Document, Source
 from app.pipeline.process import process_document
 from app.storage import get_storage
@@ -55,7 +54,7 @@ def _due_sources(db: Session, now: datetime) -> list[Source]:
     rows = db.scalars(
         select(Source).where(
             Source.active.is_(True),
-            Source.retrieval_method == RetrievalMethod.web_fetch,
+            Source.retrieval_method.in_((RetrievalMethod.rss, RetrievalMethod.web_fetch)),
             Source.access_class == AccessClass.public,
             Source.frequency != Frequency.manual,
         )
@@ -67,25 +66,19 @@ def _check_source(db: Session, source: Source, result: WorkerRunResult) -> None:
     settings = get_settings()
     now = datetime.now(UTC)
     try:
-        if not source.endpoint_url:
-            raise ApiError(422, "validation_error", "Kilden mangler endpoint_url.")
-        fetched = fetch_url(
-            source.endpoint_url,
-            timeout_seconds=settings.fetch_timeout_seconds,
-            max_bytes=settings.fetch_max_bytes,
-        )
-        ingest = ingest_bytes(
+        outcome = run_source_fetch(
             db,
             get_storage(),
             source,
-            fetched.data,
-            fetched.content_type,
-            canonical_url=fetched.final_url,
+            timeout_seconds=settings.fetch_timeout_seconds,
+            max_bytes=settings.fetch_max_bytes,
+            max_items=settings.rss_max_items,
         )
-        if ingest.created:
-            result.documents_created += 1
-        else:
-            result.documents_unchanged += 1
+        result.documents_created += outcome.created_count
+        result.documents_unchanged += outcome.unchanged_count
+        result.fetch_failures += len(outcome.failures)
+        for failure in outcome.failures:
+            logger.warning("entry_fetch_failed source=%s code=%s", source.id, failure.code)
     except ApiError as exc:
         result.fetch_failures += 1
         logger.warning("source_check_failed source=%s code=%s", source.id, exc.code)

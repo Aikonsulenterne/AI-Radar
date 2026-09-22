@@ -67,33 +67,20 @@ def test_run_web_fetch_creates_document_and_is_idempotent(
         html = b"<html><head><title>Nyhed</title></head><body><p>Indhold</p></body></html>"
         return FetchResult(data=html, content_type="text/html", final_url=url)
 
-    monkeypatch.setattr("app.routes.sources.fetch_url", fake_fetch)
+    monkeypatch.setattr("app.ingestion.run.fetch_url", fake_fetch)
 
     first = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers)
     assert first.status_code == 200, first.text
-    assert first.json()["created"] is True
-    document = first.json()["document"]
+    assert first.json()["created_count"] == 1
+    document = first.json()["documents"][0]["document"]
     assert document["title"] == "Nyhed"
     assert document["canonical_url"] == "https://example.org/nyhed"
     assert document["processing_status"] == "normalized"
 
     second = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers)
     assert second.status_code == 200
-    assert second.json()["created"] is False
-
-
-def test_run_rss_source_is_not_implemented_yet(
-    client: TestClient, admin_headers: dict[str, str]
-) -> None:
-    source_id = _create_source(
-        client,
-        admin_headers,
-        retrieval_method="rss",
-        endpoint_url="https://example.org/feed.xml",
-    )
-    response = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers)
-    assert response.status_code == 409
-    assert response.json()["error"]["code"] == "not_implemented"
+    assert second.json()["created_count"] == 0
+    assert second.json()["unchanged_count"] == 1
 
 
 def test_run_non_public_source_is_rejected(

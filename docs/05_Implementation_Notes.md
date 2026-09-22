@@ -13,9 +13,22 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 
 ## Slice 1 (Source → Document)
 
-- **Fetch-metode:** `web_fetch` (simpel HTTP GET af `endpoint_url`) er den
-  ene simple fetch-metode. `rss` findes i datamodellen, men `run` svarer
-  409 `not_implemented`, indtil RSS-parsing tilføjes.
+- **Fetch-metoder:** `web_fetch` er en simpel HTTP GET af `endpoint_url`.
+  `rss` henter feedet, parser RSS 2.0 og Atom med stdlib (ingen ny
+  afhængighed) og henter hvert entrys artikellink som sit eget dokument;
+  entryets titel og `pubDate`/`published` bruges som dokumentets titel og
+  `published_at`. Andre feedformater afvises (`feed_invalid`) frem for at
+  gætte. `rss_max_items` (default 20) afgrænser én kørsel.
+- **Feedet er untrusted data:** et feed med DTD afvises før parsing
+  (entity-expansion mod stdlib-parseren), og hvert entry-link valideres med
+  `ensure_public_http_url` — kun http/https, og adresseliteraler i
+  loopback-/private/link-local-intervaller afvises, så en kilde ikke kan få
+  serveren til at hente interne adresser. Et DNS-navn, der peger på en
+  intern adresse, fanges ikke; det samme gælder redirects undervejs.
+- **Kørselsresultatet er en liste:** `RunResult` rummer flere dokumenter
+  (RSS) eller ét (web_fetch) plus `failures`. Fejl på feed-niveau afbryder
+  kørslen; fejl på et enkelt artikellink samles op, så resten af feedet
+  stadig hentes. `app/ingestion/run.py` deles af endpointet og workeren.
 - **Kørsel i API-processen:** `POST /sources/{id}/run` og manuel upload
   kører synkront i API'et. Masterens API/worker-split fra samme codebase
   tages i brug, når planlagt/asynkron ingestion kommer (frekvensstyret).
@@ -145,9 +158,10 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   (signaler, cases, opportunities) — intet separat subsystem, jf.
   Product Master §7. "Redigerbar visning" afventer en senere iteration.
 - **Worker-entrypointet** (`python -m app.worker --once|--interval N`)
-  kører fra samme image som API'et: henter forfaldne public
-  web_fetch-kilder (frekvensstyret via next_check_at) og AI-behandler
-  normaliserede dokumenter, når provider er konfigureret.
+  kører fra samme image som API'et: henter forfaldne public rss- og
+  web_fetch-kilder (frekvensstyret via next_check_at) gennem samme
+  `run_source_fetch` som API-endpointet og AI-behandler normaliserede
+  dokumenter, når provider er konfigureret.
 - **Observability:** request-logging-middleware med correlation id
   (X-Request-ID) og varighed; AI-kald logger prompt-id/version, model,
   latency og tokenforbrug. Tokens, secrets og dokumenttekster logges
@@ -213,7 +227,6 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 
 ## Udestående (kendte mangler mod masterne)
 
-- RSS-hentemetoden (409 not_implemented indtil videre).
 - OK's design tokens fra `colors_and_type.css` og UI-prototypen.
 - Route-baserede drawers og udvidede filtre (branche, capability,
   dokumentationsstyrke) på adoption.

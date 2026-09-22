@@ -101,10 +101,24 @@ export interface SourceCreateInput {
   active?: boolean;
 }
 
-export interface RunResult {
-  source_id: string;
+export interface RunDocument {
   document: DocumentRow;
   created: boolean;
+}
+
+export interface RunFailure {
+  url: string;
+  code: string;
+  message: string;
+}
+
+/** En kørsel giver flere dokumenter for RSS og ét for web_fetch. */
+export interface RunResult {
+  source_id: string;
+  documents: RunDocument[];
+  created_count: number;
+  unchanged_count: number;
+  failures: RunFailure[];
 }
 
 export interface IngestOutcome {

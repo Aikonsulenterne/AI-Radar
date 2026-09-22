@@ -91,3 +91,7 @@ OK-designsystemet fra UI Master er implementeret: tokens i
 evidens-/horizon-farver og fallback-fonte. OKfamily/Fellix-fontfilerne
 skal leveres fra OK's brandpakke (se `apps/web/public/fonts/README.md`)
 — pixel-fidelity accepteres først, når de er staged.
+RSS er nu den tredje hentemetode ved siden af web_fetch og manuel upload:
+feedet parses (RSS 2.0/Atom) og hvert entrys artikellink hentes som sit
+eget dokument via `app/ingestion/run.py`, som deles af API-endpointet og
+workeren.

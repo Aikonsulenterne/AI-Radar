@@ -16,13 +16,15 @@ from app.config import get_settings
 from app.db import get_db
 from app.enums import AccessClass, RetrievalMethod, UserRole
 from app.errors import ApiError
-from app.ingestion.fetch import fetch_url
+from app.ingestion.run import run_source_fetch
 from app.ingestion.service import ingest_bytes
 from app.models import Source
 from app.schemas import (
     DocumentOut,
     IngestOutcome,
     Paginated,
+    RunDocumentOut,
+    RunFailureOut,
     RunResult,
     SourceCreate,
     SourceOut,
@@ -117,42 +119,40 @@ def run_source(
         raise ApiError(409, "source_inactive", "Kilden er deaktiveret.")
     if source.retrieval_method == RetrievalMethod.manual_upload:
         raise ApiError(409, "manual_source", "Kilden bruger manuel upload — brug upload i stedet.")
-    if source.retrieval_method == RetrievalMethod.rss:
-        raise ApiError(409, "not_implemented", "RSS-hentning er ikke implementeret endnu.")
     if source.access_class != AccessClass.public:
         # Licensed/restricted: snapshot-lagring afventer afklaring af vilkår
         # (Technical Master §14). Håndteres manuelt indtil da.
         raise ApiError(
             409, "access_restricted", "Kun public kilder kan hentes automatisk i denne version."
         )
-    if not source.endpoint_url:
-        raise ApiError(422, "validation_error", "Kilden mangler endpoint_url.")
-
     try:
-        fetched = fetch_url(
-            source.endpoint_url,
+        outcome = run_source_fetch(
+            db,
+            get_storage(),
+            source,
             timeout_seconds=settings.fetch_timeout_seconds,
             max_bytes=settings.fetch_max_bytes,
+            max_items=settings.rss_max_items,
         )
     except ApiError:
         source.last_checked_at = datetime.now(UTC)
         db.commit()
         raise
 
-    result = ingest_bytes(
-        db,
-        get_storage(),
-        source,
-        fetched.data,
-        fetched.content_type,
-        canonical_url=fetched.final_url,
-    )
     source.last_checked_at = datetime.now(UTC)
     db.flush()
     return RunResult(
         source_id=source.id,
-        document=DocumentOut.model_validate(result.document),
-        created=result.created,
+        documents=[
+            RunDocumentOut(document=DocumentOut.model_validate(item.document), created=item.created)
+            for item in outcome.documents
+        ],
+        created_count=outcome.created_count,
+        unchanged_count=outcome.unchanged_count,
+        failures=[
+            RunFailureOut(url=failure.url, code=failure.code, message=failure.message)
+            for failure in outcome.failures
+        ],
     )
 
 

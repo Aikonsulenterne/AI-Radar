@@ -24,7 +24,7 @@ const SOURCE_TYPES: { value: SourceType; label: string }[] = [
 const RETRIEVAL_METHODS: { value: RetrievalMethod; label: string }[] = [
   { value: "manual_upload", label: "Manuel upload" },
   { value: "web_fetch", label: "Web fetch" },
-  { value: "rss", label: "RSS (senere)" },
+  { value: "rss", label: "RSS" },
 ];
 
 const ACCESS_CLASSES: { value: AccessClass; label: string }[] = [

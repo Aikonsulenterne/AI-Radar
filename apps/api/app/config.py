@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 20_000_000
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 5_000_000
+    # Artikler pr. RSS-kørsel — holder én kørsel afgrænset.
+    rss_max_items: int = 20
 
     @property
     def cors_origin_list(self) -> list[str]:

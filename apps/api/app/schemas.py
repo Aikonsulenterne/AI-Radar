@@ -102,7 +102,22 @@ class IngestOutcome(BaseModel):
     created: bool
 
 
-class RunResult(BaseModel):
-    source_id: uuid.UUID
+class RunDocumentOut(BaseModel):
     document: DocumentOut
     created: bool
+
+
+class RunFailureOut(BaseModel):
+    url: str
+    code: str
+    message: str
+
+
+class RunResult(BaseModel):
+    """En kørsel kan give flere dokumenter (RSS) eller ét (web_fetch)."""
+
+    source_id: uuid.UUID
+    documents: list[RunDocumentOut]
+    created_count: int
+    unchanged_count: int
+    failures: list[RunFailureOut]

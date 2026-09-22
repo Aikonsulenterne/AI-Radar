@@ -18,8 +18,9 @@ services:
     branch: main
     healthCheckPath: /api/v1/health
     autoDeploy: true
-    # Render tildeler PORT — bind uvicorn til den.
-    dockerCommand: sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    # Ingen dockerCommand: imagets CMD binder selv uvicorn til $PORT, som
+    # Render sætter. En dockerCommand med egen `sh -c "..."` bliver kørt
+    # gennem Renders shell igen og ender som ét kommando-ord (exit 127).
     envVars:
       - key: ENVIRONMENT
         value: staging

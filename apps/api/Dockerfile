@@ -11,4 +11,5 @@ USER apiuser
 EXPOSE 8000
 
 # Worker-entrypoint kører fra samme image med anden kommando (Technical Master §2).
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# PORT sættes af hostingplatformen (Render); lokalt falder den tilbage til 8000.
+CMD ["sh", "-c", "exec python -m uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

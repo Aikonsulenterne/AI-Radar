@@ -16,7 +16,8 @@ from app.enums import CaseStatus, EntityType, Predicate, ReviewStatus, UserRole
 from app.errors import ApiError
 from app.models_cases import AdoptionCase, AdoptionCaseClaim
 from app.models_claims import Claim, Company, Technology
-from app.routes.documents import _claim_out, _entity_name
+from app.pipeline.entities import entity_name
+from app.routes.documents import _claim_out
 from app.schemas import Paginated
 from app.schemas_catalog import (
     CaseCreate,
@@ -101,7 +102,7 @@ def _case_claims(db: Session, case_id: uuid.UUID) -> list[Claim]:
 
 
 def _object_display(db: Session, claim: Claim) -> str | None:
-    name = _entity_name(db, claim.object_entity_type, claim.object_entity_id)
+    name = entity_name(db, claim.object_entity_type, claim.object_entity_id)
     return name or claim.object_text
 
 
@@ -296,7 +297,7 @@ def get_case(
             name
             for claim in claims
             if claim.object_entity_type == EntityType.technology
-            and (name := _entity_name(db, claim.object_entity_type, claim.object_entity_id))
+            and (name := entity_name(db, claim.object_entity_type, claim.object_entity_id))
         }
     )
     base = _case_out(db, case)

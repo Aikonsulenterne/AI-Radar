@@ -92,3 +92,19 @@ def resolve_object_entity(db: Session, name: str) -> tuple[EntityType, uuid.UUID
         if normalize_alias(company.name) == normalized:
             return EntityType.company, company.id
     return None
+
+
+def entity_name(
+    db: Session, entity_type: EntityType | None, entity_id: uuid.UUID | None
+) -> str | None:
+    """Navnet på en entity, uanset type. Ukendt entity giver None."""
+    if entity_type is None or entity_id is None:
+        return None
+    if entity_type == EntityType.company:
+        company = db.get(Company, entity_id)
+        return company.name if company else None
+    if entity_type == EntityType.technology:
+        technology = db.get(Technology, entity_id)
+        return technology.name if technology else None
+    vendor = db.get(Vendor, entity_id)
+    return vendor.name if vendor else None

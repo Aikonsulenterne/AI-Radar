@@ -44,6 +44,9 @@ class Opportunity(TimestampMixin, Base):
     owner_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Provenance for AI-forslag: et forslag må aldrig fremstå som kurateret.
+    proposed_by_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    proposal_prompt_version: Mapped[str | None] = mapped_column(Text)
 
 
 class OpportunitySignal(Base):

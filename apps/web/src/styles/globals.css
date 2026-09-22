@@ -470,6 +470,30 @@ a {
   color: var(--fg-soft);
 }
 
+/* AI-forslag: aldrig præsenteret som kurateret arbejde. */
+.badge-ai {
+  color: var(--ok-blue);
+  background: var(--ok-blue-pale);
+  border-color: var(--ok-blue-light);
+}
+
+.ai-proposal-notice {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  border: 1px dashed var(--ok-blue-light);
+  background: var(--ok-blue-pale);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.ai-proposal-notice p {
+  margin: 0;
+  font-size: var(--t-caption);
+  color: var(--fg-soft);
+}
+
 .badge-doc-strong {
   color: var(--ok-green);
   background: var(--ok-green-light);

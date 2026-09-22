@@ -94,4 +94,6 @@ skal leveres fra OK's brandpakke (se `apps/web/public/fonts/README.md`)
 RSS er nu den tredje hentemetode ved siden af web_fetch og manuel upload:
 feedet parses (RSS 2.0/Atom) og hvert entrys artikellink hentes som sit
 eget dokument via `app/ingestion/run.py`, som deles af API-endpointet og
-workeren.
+workeren. AI kan foreslå opportunity-kandidater ud fra et publiceret
+signals godkendte claims (`POST /opportunities/propose`); forslaget lander
+ugodkendt og markeret som AI-forslag — mennesket godkender fortsat.

@@ -11,9 +11,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.ai.provider import AIProvider
 from app.auth import CurrentUser, require_role
 from app.db import get_db
-from app.enums import OpportunityStatus, UserRole
+from app.enums import OpportunityStatus, SignalStatus, UserRole
 from app.errors import ApiError
 from app.models_claims import Claim
 from app.models_opportunities import (
@@ -23,12 +24,14 @@ from app.models_opportunities import (
     ProblemTaxonomy,
 )
 from app.models_signals import Signal
-from app.routes.documents import _claim_out
+from app.pipeline.opportunities import propose_opportunity
+from app.routes.documents import _claim_out, ai_provider_dep
 from app.schemas import Paginated
 from app.schemas_opportunities import (
     OpportunityCreate,
     OpportunityDetailOut,
     OpportunityOut,
+    OpportunityProposeRequest,
     OpportunitySignalRef,
     OpportunityUpdate,
     ProblemOut,
@@ -199,6 +202,32 @@ def create_opportunity(
     db.add(opportunity)
     db.flush()
     _replace_links(db, opportunity, body.signal_ids, body.claim_ids)
+    return _opportunity_out(db, opportunity)
+
+
+@router.post("/opportunities/propose", response_model=OpportunityOut, status_code=201)
+def propose_opportunity_endpoint(
+    body: OpportunityProposeRequest,
+    db: Session = Depends(get_db),
+    provider: AIProvider = Depends(ai_provider_dep),
+    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+) -> OpportunityOut:
+    """AI foreslår en kandidat ud fra et publiceret signals godkendte claims.
+
+    Forslaget oprettes ugodkendt: created_by_user_id er tom, fordi intet
+    menneske har skrevet det, og status kan først rykkes efter godkendelse.
+    """
+    signal = db.get(Signal, body.signal_id)
+    if signal is None:
+        raise ApiError(404, "not_found", "Signalet findes ikke.")
+    if signal.status != SignalStatus.published:
+        raise ApiError(
+            409,
+            "invalid_status",
+            "Kun publicerede signaler kan danne grundlag for et forslag.",
+        )
+
+    opportunity = propose_opportunity(db, provider, signal)
     return _opportunity_out(db, opportunity)
 
 

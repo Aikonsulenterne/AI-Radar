@@ -6,6 +6,7 @@ import {
   ApiClientError,
   approveOpportunity,
   createOpportunity,
+  proposeOpportunity,
   setOpportunityStatus,
   type Opportunity,
   type OpportunityStatus,
@@ -186,6 +187,72 @@ export function CreateOpportunityForm({
         </button>
       </div>
     </form>
+  );
+}
+
+export function ProposeOpportunityForm({ signals }: { signals: Signal[] }) {
+  const router = useRouter();
+  const [signalId, setSignalId] = useState(signals[0]?.id ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  if (signals.length === 0) return null;
+
+  async function handlePropose() {
+    setError(null);
+    setBusy(true);
+    try {
+      await proposeOpportunity(signalId);
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "Forslaget kunne ikke dannes.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="card form-grid">
+      <h2 className="form-title">Lad AI foreslå en kandidat</h2>
+      <p className="cell-sub">
+        Forslaget bygger udelukkende på signalets godkendte claims. Det lander
+        som en ugodkendt kandidat, og hypotese og næste skridt er analyse — ikke
+        fakta. Et menneske godkender, før kandidaten kan rykke i pipelinen.
+      </p>
+      <div className="field field-narrow">
+        <label htmlFor="propose-signal">Publiceret signal</label>
+        <select
+          id="propose-signal"
+          value={signalId}
+          onChange={(e) => setSignalId(e.target.value)}
+        >
+          {signals.map((signal) => (
+            <option key={signal.id} value={signal.id}>
+              {signal.title}
+            </option>
+          ))}
+        </select>
+      </div>
+      {error ? (
+        <p className="alert-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+      <div>
+        <button
+          type="button"
+          className="btn btn-secondary"
+          onClick={handlePropose}
+          disabled={busy || !signalId}
+        >
+          {busy ? "Foreslår…" : "Foreslå kandidat"}
+        </button>
+      </div>
+    </section>
   );
 }
 

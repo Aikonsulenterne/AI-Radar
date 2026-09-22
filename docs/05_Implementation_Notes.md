@@ -141,9 +141,18 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **Godkendelsesflow:** en opportunity uden `approved_by_user_id` er en
   kandidat. `POST /opportunities/{id}/approve` er den menneskelige
   godkendelse, og status kan først rykkes forbi `identified`, når den er
-  givet (409 `not_approved` ellers). AI-genererede opportunity-forslag
-  er ikke wiret endnu — mennesker opretter kandidater; når AI-forslag
-  tilføjes, lander de som ugodkendte kandidater i samme flow.
+  givet (409 `not_approved` ellers).
+- **AI-forslag** (`POST /opportunities/propose`, prompt
+  `opportunity_proposal` 1.0.0) tager ét publiceret signal og bygger
+  udelukkende på dets godkendte claims — modellen får intet andet
+  faktagrundlag og må intet tilføje. Forslaget lander som en ugodkendt
+  kandidat i samme flow, med `proposed_by_ai` og `proposal_prompt_version`
+  som provenance og uden `created_by_user_id` (intet menneske skrev det).
+  Modellen må svare `{"proposal": null}` (409 `no_opportunity`) frem for at
+  presse et OK-problem ned over signalet, og et problemnavn uden for
+  taxonomien afvises (502 `unknown_problem`) i stedet for at oprette et nyt
+  — taxonomien er kurateret. UI'et markerer forslag med badge og en note om,
+  at hypotese og næste handling er analyse, ikke fakta.
 - **`GET /problems`** (taxonomi-listen) og approve-endpointet supplerer
   masterens endpointliste.
 - **Relationer:** junctions til signaler og claims; teknologier afledes
@@ -233,4 +242,5 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - OpenTelemetry-eksport, audit-log-tabeller og RLS-/authorization-tests
   mod rigtig PostgreSQL i CI (migrations valideres; adfærdstests kører
   på SQLite).
-- AI-genererede opportunity-forslag (lander som ugodkendte kandidater).
+- Evaluering af `opportunity_proposal`-prompten mod reference-datasættet,
+  når datasættet er bygget.

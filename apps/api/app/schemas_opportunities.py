@@ -39,6 +39,9 @@ class OpportunityOut(BaseModel):
     owner_user_id: uuid.UUID | None
     # Menneskelig godkendelse: null = kandidat/forslag.
     approved: bool = False
+    # Foreslået af AI — må aldrig fremstå som kurateret af et menneske.
+    proposed_by_ai: bool = False
+    proposal_prompt_version: str | None = None
     created_at: datetime
     updated_at: datetime
     signal_count: int = 0
@@ -70,3 +73,9 @@ class OpportunityUpdate(BaseModel):
     owner_user_id: uuid.UUID | None = None
     signal_ids: list[uuid.UUID] | None = Field(default=None, max_length=50)
     claim_ids: list[uuid.UUID] | None = Field(default=None, max_length=100)
+
+
+class OpportunityProposeRequest(BaseModel):
+    """AI-forslag tager udgangspunkt i ét signal med godkendte claims."""
+
+    signal_id: uuid.UUID

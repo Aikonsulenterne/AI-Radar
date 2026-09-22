@@ -10,6 +10,7 @@ import {
 import {
   CreateOpportunityForm,
   OpportunityActions,
+  ProposeOpportunityForm,
   STATUS_LABELS,
 } from "./OpportunityControls";
 
@@ -54,6 +55,7 @@ export default async function OpportunitiesPage() {
       </p>
 
       <CreateOpportunityForm problems={problems} signals={signals} />
+      <ProposeOpportunityForm signals={signals} />
 
       {opportunities.length === 0 ? (
         <div className="empty-state">
@@ -68,6 +70,7 @@ export default async function OpportunitiesPage() {
             <tr>
               <th scope="col">Titel</th>
               <th scope="col">OK-problem</th>
+              <th scope="col">Oprindelse</th>
               <th scope="col">Status</th>
               <th scope="col">Godkendt</th>
               <th scope="col">Evidens</th>
@@ -83,6 +86,13 @@ export default async function OpportunitiesPage() {
                   </Link>
                 </td>
                 <td>{opportunity.problem_name ?? "–"}</td>
+                <td>
+                  {opportunity.proposed_by_ai ? (
+                    <span className="badge badge-ai">AI-forslag</span>
+                  ) : (
+                    <span className="badge badge-muted">Menneskeskabt</span>
+                  )}
+                </td>
                 <td>
                   <span className="badge badge-muted">
                     {STATUS_LABELS[opportunity.status]}

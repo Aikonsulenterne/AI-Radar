@@ -17,14 +17,14 @@ from app.auth import CurrentUser, require_role
 from app.db import get_db
 from app.enums import (
     PREDICATES_BY_CLAIM_TYPE,
-    EntityType,
     ProcessingStatus,
     ReviewStatus,
     UserRole,
 )
 from app.errors import ApiError
 from app.models import Document
-from app.models_claims import Claim, ClaimEvidence, Company, Technology, Vendor
+from app.models_claims import Claim, ClaimEvidence
+from app.pipeline.entities import entity_name
 from app.pipeline.process import process_document
 from app.schemas import DocumentOut, Paginated
 from app.schemas_claims import (
@@ -53,21 +53,6 @@ def ai_provider_dep() -> AIProvider:
     return provider
 
 
-def _entity_name(
-    db: Session, entity_type: EntityType | None, entity_id: uuid.UUID | None
-) -> str | None:
-    if entity_type is None or entity_id is None:
-        return None
-    if entity_type == EntityType.company:
-        company = db.get(Company, entity_id)
-        return company.name if company else None
-    if entity_type == EntityType.technology:
-        technology = db.get(Technology, entity_id)
-        return technology.name if technology else None
-    vendor = db.get(Vendor, entity_id)
-    return vendor.name if vendor else None
-
-
 def _possible_duplicates(db: Session, claim: Claim) -> list[uuid.UUID]:
     stmt = select(Claim.id).where(
         Claim.id != claim.id,
@@ -92,8 +77,8 @@ def _claim_out(db: Session, claim: Claim) -> ClaimOut:
     out = ClaimOut.model_validate(claim)
     return out.model_copy(
         update={
-            "subject_name": _entity_name(db, claim.subject_entity_type, claim.subject_entity_id),
-            "object_name": _entity_name(db, claim.object_entity_type, claim.object_entity_id),
+            "subject_name": entity_name(db, claim.subject_entity_type, claim.subject_entity_id),
+            "object_name": entity_name(db, claim.object_entity_type, claim.object_entity_id),
             "evidence": [EvidenceOut.model_validate(row) for row in evidence_rows],
             "possible_duplicate_ids": _possible_duplicates(db, claim),
         }

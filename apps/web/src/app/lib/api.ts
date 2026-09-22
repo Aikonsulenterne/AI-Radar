@@ -522,6 +522,8 @@ export interface Opportunity {
   status: OpportunityStatus;
   owner_user_id: string | null;
   approved: boolean;
+  proposed_by_ai: boolean;
+  proposal_prompt_version: string | null;
   created_at: string;
   updated_at: string;
   signal_count: number;
@@ -561,6 +563,15 @@ export function createOpportunity(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(input),
+  });
+}
+
+/** AI foreslår en kandidat ud fra et publiceret signals godkendte claims. */
+export function proposeOpportunity(signalId: string): Promise<Opportunity> {
+  return request<Opportunity>("/opportunities/propose", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ signal_id: signalId }),
   });
 }
 

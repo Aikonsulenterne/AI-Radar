@@ -179,11 +179,14 @@ class FakeProvider:
         relevance: dict[str, Any] | None = None,
         extraction: dict[str, Any] | None = None,
         invalid_json: bool = False,
+        opportunity: dict[str, Any] | None = None,
     ) -> None:
         self.relevance = relevance or {"relevant": True, "reason": "AI-adoption omtalt"}
         self.extraction = extraction or EXTRACTION_RESPONSE
         self.invalid_json = invalid_json
+        self.opportunity = opportunity
         self.calls: list[str] = []
+        self.prompts: list[str] = []
 
     def complete_text(
         self,
@@ -195,10 +198,13 @@ class FakeProvider:
         document_id: uuid.UUID | None = None,
     ) -> str:
         self.calls.append(prompt_id)
+        self.prompts.append(user)
         if self.invalid_json:
             return "not json at all"
         if prompt_id == "relevance_classification":
             return json.dumps(self.relevance)
+        if prompt_id == "opportunity_proposal":
+            return json.dumps(self.opportunity or {"proposal": None, "reason": "intet match"})
         return json.dumps(self.extraction)
 
 

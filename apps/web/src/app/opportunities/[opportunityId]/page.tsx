@@ -43,6 +43,20 @@ export default async function OpportunityPage({
         {opportunity.approved ? "Godkendt" : "Kandidat — afventer godkendelse"}
       </p>
 
+      {opportunity.proposed_by_ai ? (
+        <div className="ai-proposal-notice" role="note">
+          <span className="badge badge-ai">AI-forslag</span>
+          <p>
+            Hypotese, evidenshuller og næste handling er foreslået af AI ud fra
+            de godkendte claims nedenfor — ikke skrevet af et menneske. Intet i
+            forslaget er nye fakta. Godkend først, når du har vurderet det.
+            {opportunity.proposal_prompt_version
+              ? ` Promptversion ${opportunity.proposal_prompt_version}.`
+              : ""}
+          </p>
+        </div>
+      ) : null}
+
       <OpportunityActions opportunity={opportunity} />
 
       <section className="signal-section signal-analysis" aria-label="Hypotese">

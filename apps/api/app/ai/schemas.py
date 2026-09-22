@@ -34,6 +34,21 @@ class ExtractionResult(BaseModel):
     claims: list[ExtractedClaim] = Field(max_length=100)
 
 
+class ProposedOpportunity(BaseModel):
+    title: str = Field(min_length=1, max_length=300)
+    problem_name: str = Field(min_length=1, max_length=200)
+    relevance_hypothesis: str = Field(min_length=1, max_length=2000)
+    evidence_gaps: str | None = Field(default=None, max_length=2000)
+    recommended_next_action: str = Field(min_length=1, max_length=2000)
+
+
+class OpportunityProposalResult(BaseModel):
+    """Modellen må afvise at foreslå noget — det er et gyldigt svar."""
+
+    proposal: ProposedOpportunity | None = None
+    reason: str = Field(default="", max_length=500)
+
+
 class AISchemaError(Exception):
     """AI-output kunne ikke valideres mod schema efter kontrolleret retry."""
 

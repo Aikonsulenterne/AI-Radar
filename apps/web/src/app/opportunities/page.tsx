@@ -13,11 +13,13 @@ import {
   ProposeOpportunityForm,
   STATUS_LABELS,
 } from "./OpportunityControls";
+import { ApiErrorAlert } from "../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpportunitiesPage() {
   let opportunities: Opportunity[] | null = null;
+  let loadError: unknown = null;
   let problems: Problem[] = [];
   let signals: Signal[] = [];
   try {
@@ -29,17 +31,16 @@ export default async function OpportunitiesPage() {
     opportunities = oppPage.items;
     problems = problemPage.items;
     signals = signalPage.items.filter((s) => s.status === "published");
-  } catch {
+  } catch (error) {
     opportunities = null;
+    loadError = error;
   }
 
   if (opportunities === null) {
     return (
       <>
         <h1>Opportunities</h1>
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       </>
     );
   }

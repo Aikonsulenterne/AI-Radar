@@ -1,4 +1,5 @@
 import { listSources, type Source } from "../lib/api";
+import { ApiErrorAlert } from "../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +20,12 @@ function formatDate(value: string | null): string {
 
 export default async function SourcesPage() {
   let sources: Source[] | null = null;
+  let loadError: unknown = null;
   try {
     sources = (await listSources()).items;
-  } catch {
+  } catch (error) {
     sources = null;
+    loadError = error;
   }
 
   return (
@@ -36,9 +39,7 @@ export default async function SourcesPage() {
       </p>
 
       {sources === null ? (
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       ) : sources.length === 0 ? (
         <div className="empty-state">
           <p>

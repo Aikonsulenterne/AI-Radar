@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listDocuments, type DocumentRow } from "../../lib/api";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -26,10 +27,12 @@ function formatDate(value: string): string {
 
 export default async function ReviewPage() {
   let documents: DocumentRow[] | null = null;
+  let loadError: unknown = null;
   try {
     documents = (await listDocuments()).items;
-  } catch {
+  } catch (error) {
     documents = null;
+    loadError = error;
   }
 
   return (
@@ -41,10 +44,7 @@ export default async function ReviewPage() {
       </p>
 
       {documents === null ? (
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås, eller din rolle giver ikke adgang til
-          review (kræver Reviewer eller Admin).
-        </div>
+        <ApiErrorAlert error={loadError} requiredRole="Reviewer eller Admin" />
       ) : documents.length === 0 ? (
         <div className="empty-state">
           <p>

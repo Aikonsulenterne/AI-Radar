@@ -5,6 +5,7 @@ import {
   documentationBadgeClass,
   formatDateTime,
 } from "./lib/labels";
+import { ApiErrorAlert } from "../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -28,19 +29,19 @@ function KpiCard({
 
 export default async function OverblikPage() {
   let dashboard: Dashboard | null = null;
+  let loadError: unknown = null;
   try {
     dashboard = await getDashboard();
-  } catch {
+  } catch (error) {
     dashboard = null;
+    loadError = error;
   }
 
   if (dashboard === null) {
     return (
       <>
         <h1>Overblik</h1>
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       </>
     );
   }

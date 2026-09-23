@@ -5,6 +5,7 @@ import {
   type AdoptionCase,
   type Company,
 } from "../lib/api";
+import { ApiErrorAlert } from "../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ function factLine(facts: AdoptionCase["facts"]): string {
 
 export default async function AdoptionPage() {
   let cases: AdoptionCase[] | null = null;
+  let loadError: unknown = null;
   let companies: Company[] = [];
   try {
     const [casePage, companyPage] = await Promise.all([
@@ -26,17 +28,16 @@ export default async function AdoptionPage() {
     ]);
     cases = casePage.items;
     companies = companyPage.items;
-  } catch {
+  } catch (error) {
     cases = null;
+    loadError = error;
   }
 
   if (cases === null) {
     return (
       <>
         <h1>AI-adoption</h1>
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       </>
     );
   }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { listTechnologies, type Technology } from "../lib/api";
+import { ApiErrorAlert } from "../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -27,19 +28,19 @@ const HORIZONS: {
 
 export default async function TechnologiesPage() {
   let technologies: Technology[] | null = null;
+  let loadError: unknown = null;
   try {
     technologies = (await listTechnologies()).items;
-  } catch {
+  } catch (error) {
     technologies = null;
+    loadError = error;
   }
 
   if (technologies === null) {
     return (
       <>
         <h1>Teknologiradar</h1>
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       </>
     );
   }

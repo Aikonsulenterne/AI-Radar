@@ -1,6 +1,7 @@
 import { listSources, type Source } from "../../lib/api";
 import { CreateSourceForm } from "./CreateSourceForm";
 import { SourceActions } from "./SourceActions";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,12 @@ function formatDate(value: string | null): string {
 
 export default async function AdminSourcesPage() {
   let sources: Source[] | null = null;
+  let loadError: unknown = null;
   try {
     sources = (await listSources()).items;
-  } catch {
+  } catch (error) {
     sources = null;
+    loadError = error;
   }
 
   return (
@@ -38,11 +41,7 @@ export default async function AdminSourcesPage() {
       <CreateSourceForm />
 
       {sources === null ? (
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden (
-          <code>uv run uvicorn app.main:app --port 8000</code>) og genindlæs
-          siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       ) : sources.length === 0 ? (
         <div className="empty-state">
           <p>

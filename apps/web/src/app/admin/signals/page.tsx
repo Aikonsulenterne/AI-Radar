@@ -11,11 +11,13 @@ import {
   formatDateTime,
 } from "../../lib/labels";
 import { CreateSignalForm, SignalRowActions } from "./SignalBuilder";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSignalsPage() {
   let signals: Signal[] | null = null;
+  let loadError: unknown = null;
   let approvedClaims: Claim[] = [];
   try {
     const [signalPage, claimPage] = await Promise.all([
@@ -24,8 +26,9 @@ export default async function AdminSignalsPage() {
     ]);
     signals = signalPage.items;
     approvedClaims = claimPage.items;
-  } catch {
+  } catch (error) {
     signals = null;
+    loadError = error;
   }
 
   return (
@@ -38,10 +41,7 @@ export default async function AdminSignalsPage() {
       </p>
 
       {signals === null ? (
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås, eller din rolle giver ikke adgang
-          (kræver Reviewer eller Admin).
-        </div>
+        <ApiErrorAlert error={loadError} requiredRole="Reviewer eller Admin" />
       ) : (
         <>
           <CreateSignalForm approvedClaims={approvedClaims} />

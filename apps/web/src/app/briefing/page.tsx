@@ -8,11 +8,13 @@ import {
   type Signal,
 } from "../lib/api";
 import { DOCUMENTATION_LABELS, formatDateTime } from "../lib/labels";
+import { ApiErrorAlert } from "../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
 export default async function BriefingPage() {
   let signals: Signal[] | null = null;
+  let loadError: unknown = null;
   let cases: AdoptionCase[] = [];
   let opportunities: Opportunity[] = [];
   try {
@@ -24,17 +26,16 @@ export default async function BriefingPage() {
     signals = signalPage.items.filter((s) => s.status === "published");
     cases = casePage.items;
     opportunities = oppPage.items;
-  } catch {
+  } catch (error) {
     signals = null;
+    loadError = error;
   }
 
   if (signals === null) {
     return (
       <>
         <h1>Briefing</h1>
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås. Start backenden og genindlæs siden.
-        </div>
+        <ApiErrorAlert error={loadError} />
       </>
     );
   }

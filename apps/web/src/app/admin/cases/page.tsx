@@ -9,6 +9,7 @@ import {
 } from "../../lib/api";
 import { formatDateTime } from "../../lib/labels";
 import { CaseRowActions, CreateCaseForm } from "./CaseBuilder";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ const STATUS_LABELS: Record<AdoptionCase["status"], string> = {
 
 export default async function AdminCasesPage() {
   let cases: AdoptionCase[] | null = null;
+  let loadError: unknown = null;
   let companies: Company[] = [];
   let approvedClaims: Claim[] = [];
   try {
@@ -31,8 +33,9 @@ export default async function AdminCasesPage() {
     cases = casePage.items;
     companies = companyPage.items;
     approvedClaims = claimPage.items;
-  } catch {
+  } catch (error) {
     cases = null;
+    loadError = error;
   }
 
   return (
@@ -44,10 +47,7 @@ export default async function AdminCasesPage() {
       </p>
 
       {cases === null ? (
-        <div className="alert-error" role="alert">
-          API&#8217;et kunne ikke nås, eller din rolle giver ikke adgang
-          (kræver Reviewer eller Admin).
-        </div>
+        <ApiErrorAlert error={loadError} requiredRole="Reviewer eller Admin" />
       ) : (
         <>
           <CreateCaseForm companies={companies} approvedClaims={approvedClaims} />

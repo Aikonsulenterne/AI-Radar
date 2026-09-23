@@ -37,6 +37,19 @@ fra `supabase/migrations/` i rækkefølge mod miljøet, og push derefter.
 Additive ændringer (nye kolonner med default) kan køres før koden uden at
 bryde den kørende version.
 
+**AI-provider.** Blueprintet sætter `AI_PROVIDER=anthropic` (Claude via
+Anthropics SDK). I dashboardet sættes `AI_PROVIDER_API_KEY` (nøglen fra
+console.anthropic.com) og `AI_MODEL_ID` — `claude-opus-5` som standard,
+`claude-sonnet-5` som det billigere alternativ. `AI_PROVIDER_BASE_URL`
+bruges ikke med Claude. Nøglen indtastes kun i Render — aldrig i Git,
+chat eller mail. Er nøgle, model eller kvote forkert, svarer "Kør
+AI-behandling" 502 `ai_provider_rejected` med en dansk forklaring, og
+dokumentet røres ikke, så det kan køres igen efter rettelsen.
+
+`CORS_ORIGINS`, `AI_MODEL_ID` og alle secrets er `sync: false` i
+blueprintet, så en blueprint-sync ved push aldrig overskriver det, der er
+sat i dashboardet.
+
 Free tier-begrænsninger (bevidst accepteret for staging): servicen
 sover efter inaktivitet (~30-50 sek. opvågning), og worker-processen
 kører ikke — hentning/AI-behandling udføres via knapperne i admin-UI'et.

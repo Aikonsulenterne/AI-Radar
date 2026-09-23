@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     supabase_service_role_key: str = ""
     supabase_storage_bucket: str = "documents"
 
-    # AI-provider (OpenAI-kompatibel adapter, Technical Master §10).
+    # AI-provider (Technical Master §10): "openai_compat" eller "anthropic".
+    ai_provider: str = "openai_compat"
     ai_provider_base_url: str = ""
     ai_provider_api_key: str = ""
     ai_model_id: str = ""

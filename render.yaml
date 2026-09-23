@@ -30,10 +30,20 @@ services:
         value: documents
       - key: SUPABASE_URL
         value: https://vzopuffhiwrhpdibgaaw.supabase.co
+      # Vercel-domænet sættes i dashboardet. sync: false, så en blueprint-sync
+      # ved push aldrig nulstiller det til en fast værdi og bryder frontenden.
       - key: CORS_ORIGINS
-        value: http://localhost:3000
+        sync: false
       # JWT-validering sker via projektets JWKS (SUPABASE_URL) — ingen
       # SUPABASE_JWT_SECRET nødvendig med moderne signing keys.
+      # Claude via Anthropics SDK. Model og nøgle sættes i dashboardet: modellen
+      # er et pris-/kvalitetsvalg, og nøglen ligger aldrig i Git.
+      - key: AI_PROVIDER
+        value: anthropic
+      - key: AI_MODEL_ID
+        sync: false
+      - key: AI_PROVIDER_API_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY

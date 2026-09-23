@@ -80,6 +80,24 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **Schemafejl:** højst én kontrolleret retry; derefter
   `processing_status=failed` med `error_code=ai_schema_error` til manuel
   opfølgning.
+- **To adaptere bag samme interface:** `OpenAICompatProvider` (ethvert
+  OpenAI-kompatibelt endpoint) og `AnthropicProvider` (Claude via
+  Anthropics officielle SDK), valgt med `AI_PROVIDER`. Pipeline, prompts og
+  schema-validering er fælles; adapteren returnerer kun tekst. Claude-
+  adapteren fjerner defensivt en ```json-indpakning, fordi promptene beder
+  om rå JSON, men valideringen og den ene retry er fortsat sikkerhedsnettet.
+  Claudes server-side refusal-fallbacks er ikke slået til: de kræver et
+  beta-endpoint, og modellen er konfigurerbar, så en beta-header, der kun
+  gælder bestemte modeller, ville være en skjult fejlkilde.
+- **Udbyderfejl har deres egen diagnose.** En 4xx fra udbyderen (ugyldig
+  nøgle, ukendt model, ingen adgang, opbrugt kvote) er en konfigurations-
+  fejl: den prøves ikke igen, dokumentet røres ikke, og endpointet svarer
+  502 `ai_provider_rejected` med en dansk forklaring, der peger på den
+  relevante miljøvariabel. Udbyderens egen fejltekst gengives ikke — den
+  kan indeholde en delvist maskeret nøgle. Workeren stopper behandlingen
+  ved samme fejl i stedet for at gentage den for hvert dokument. En
+  refusal fra modellen på et bestemt dokument sender dokumentet til manuel
+  opfølgning med `error_code=ai_refused`.
 - **Entity resolution er deterministisk:** kun exact/normaliseret
   alias- eller navnematch. Et umatchet virksomhedsnavn opretter en ny
   Company + alias (reviewer kan flette via duplicate-kandidater); et

@@ -107,7 +107,16 @@ def run_once() -> WorkerRunResult:
                 select(Document).where(Document.processing_status == ProcessingStatus.normalized)
             ).all()
             for document in pending:
-                process_document(db, provider, document)
+                try:
+                    process_document(db, provider, document)
+                except ApiError as exc:
+                    if exc.code != "ai_provider_rejected":
+                        raise
+                    # Nøgle/model/kvote er forkert: alle dokumenter vil fejle ens,
+                    # så kørslen stopper i stedet for at gentage fejlen pr. dokument.
+                    db.rollback()
+                    logger.error("ai_provider_rejected message=%s", exc.message)
+                    break
                 db.commit()
                 result.documents_processed += 1
 

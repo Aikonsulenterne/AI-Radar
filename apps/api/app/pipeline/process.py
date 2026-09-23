@@ -18,7 +18,7 @@ from app.ai.prompts import (
     RELEVANCE_PROMPT_VERSION,
     RELEVANCE_SYSTEM,
 )
-from app.ai.provider import AIProvider
+from app.ai.provider import AIProvider, AIProviderRejected, AIRefusal
 from app.ai.schemas import (
     AISchemaError,
     ExtractedClaim,
@@ -35,6 +35,7 @@ from app.enums import (
     Predicate,
     ProcessingStatus,
 )
+from app.errors import ApiError
 from app.models import Document, Source
 from app.models_claims import Claim, ClaimEvidence
 from app.pipeline.entities import resolve_company, resolve_object_entity
@@ -114,6 +115,22 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             user=prompt_text,
             result_model=ExtractionResult,
             document_id=document.id,
+        )
+    except AIProviderRejected as exc:
+        # Konfigurationsfejl (nøgle, model, kvote): dokumentet har intet gjort
+        # galt, så dets status røres ikke, og det kan køres igen efter rettelse.
+        raise ApiError(502, "ai_provider_rejected", str(exc)) from exc
+    except AIRefusal:
+        document.processing_status = ProcessingStatus.failed
+        document.error_code = "ai_refused"
+        document.error_message_safe = (
+            "Modellen afviste at behandle dokumentet; kræver manuel opfølgning."
+        )
+        db.flush()
+        return ProcessOutcome(
+            document_id=str(document.id),
+            status=ProcessingStatus.failed,
+            skipped_reasons=["ai_refused"],
         )
     except AISchemaError:
         document.processing_status = ProcessingStatus.failed

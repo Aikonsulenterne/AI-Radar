@@ -22,6 +22,46 @@ class AIProviderError(Exception):
     """Kald til AI-provider fejlede (transport eller ugyldigt svar)."""
 
 
+class AIProviderRejected(Exception):
+    """Udbyderen afviste kaldet (4xx): nøgle, model, adgang eller kvote.
+
+    Bevidst ikke en underklasse af AIProviderError: det er en konfigurations-
+    fejl, ikke et dårligt svar, så den må hverken prøves igen eller ende som
+    ai_schema_error på et dokument, der intet har gjort galt.
+    """
+
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+        super().__init__(_rejection_message(status_code))
+
+
+class AIRefusal(Exception):
+    """Modellen afviste at behandle netop dette dokument.
+
+    Ikke en schemafejl og ikke værd at prøve igen: dokumentet går til manuel
+    opfølgning med sin egen fejlkode.
+    """
+
+
+def _rejection_message(status_code: int) -> str:
+    # Udbyderens egen fejltekst gengives ikke: den kan indeholde en delvist
+    # maskeret nøgle, og den er ikke på dansk.
+    if status_code == 401:
+        return (
+            "AI-udbyderen afviste nøglen — den er ugyldig eller tilbagekaldt (AI_PROVIDER_API_KEY)."
+        )
+    if status_code == 403:
+        return "Nøglen har ikke adgang til den valgte model (AI_MODEL_ID)."
+    if status_code == 404:
+        return (
+            "Modellen eller endpointet findes ikke hos udbyderen — tjek AI_MODEL_ID "
+            "og AI_PROVIDER_BASE_URL."
+        )
+    if status_code == 429:
+        return "Udbyderen afviste kaldet: kreditten er brugt op, eller der er sendt for mange kald."
+    return f"AI-udbyderen afviste kaldet (HTTP {status_code})."
+
+
 class AIProvider(Protocol):
     def complete_text(
         self,
@@ -73,6 +113,11 @@ class OpenAICompatProvider:
                 timeout=120.0,
             )
             response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            if 400 <= status < 500:
+                raise AIProviderRejected(status) from exc
+            raise AIProviderError(f"AI-udbyderen svarede med HTTP {status}.") from exc
         except httpx.HTTPError as exc:
             raise AIProviderError(f"AI-kald fejlede ({exc.__class__.__name__}).") from exc
 
@@ -102,9 +147,25 @@ class OpenAICompatProvider:
 
 @lru_cache
 def get_ai_provider() -> AIProvider | None:
-    """None når AI ikke er konfigureret — kaldere skal håndtere det eksplicit."""
+    """None når AI ikke er konfigureret — kaldere skal håndtere det eksplicit.
+
+    AI_PROVIDER vælger adapteren: "openai_compat" (standard; kræver
+    AI_PROVIDER_BASE_URL) eller "anthropic" (Claude via Anthropics SDK).
+    """
     settings = get_settings()
-    if not settings.ai_provider_base_url or not settings.ai_model_id:
+    if not settings.ai_model_id:
+        return None
+
+    if settings.ai_provider == "anthropic":
+        if not settings.ai_provider_api_key:
+            return None
+        from app.ai.anthropic_provider import AnthropicProvider
+
+        return AnthropicProvider(
+            api_key=settings.ai_provider_api_key, model_id=settings.ai_model_id
+        )
+
+    if not settings.ai_provider_base_url:
         return None
     return OpenAICompatProvider(
         base_url=settings.ai_provider_base_url,

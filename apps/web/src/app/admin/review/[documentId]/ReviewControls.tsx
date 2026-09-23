@@ -6,6 +6,7 @@ import {
   ApiClientError,
   approveClaim,
   completeReview,
+  markClaimNeedsCorroboration,
   processDocument,
   rejectClaim,
   type Claim,
@@ -204,6 +205,21 @@ export function ClaimActions({ claim }: { claim: Claim }) {
           >
             Ret og godkend
           </button>
+          {claim.review_status === "proposed" ? (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy}
+              onClick={() =>
+                run(
+                  () => markClaimNeedsCorroboration(claim.id),
+                  "Markeringen fejlede.",
+                )
+              }
+            >
+              Kræver yderligere dokumentation
+            </button>
+          ) : null}
           <button
             type="button"
             className="btn btn-secondary btn-danger"

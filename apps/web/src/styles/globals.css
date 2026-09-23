@@ -844,6 +844,75 @@ a {
   margin: var(--space-3) 0 0;
 }
 
+/* --- Review: two-pane arbejdsbord (UI Master §15) --- */
+
+.review-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: start;
+  margin-top: var(--space-4);
+}
+
+/* Under desktopbredde stables panelerne: dokument først, så claims. */
+@media (max-width: 1100px) {
+  .review-panes {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.review-pane {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  min-width: 0;
+}
+
+/* Dokumentet scroller i sit eget panel, så claim-listen bliver stående. */
+.review-pane .document-text {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Evidensuddrag: understregningen bærer signalet sammen med farven, og det
+   valgte uddrag skifter både tykkelse og flade — ikke kun kulør. */
+.evidence-mark {
+  background: var(--ok-cream-warm);
+  color: var(--fg);
+  border-bottom: 1px solid var(--border-strong);
+  padding: 1px 0;
+}
+
+.evidence-mark-active {
+  background: var(--ok-red-tint);
+  border-bottom: 3px solid var(--ok-red);
+  box-shadow: 0 0 0 3px var(--ok-red-tint);
+}
+
+.claim-card-selected {
+  border-color: var(--ok-red-soft);
+  box-shadow: 0 0 0 2px var(--ok-red-pale);
+}
+
+.badge-warn {
+  color: var(--state-warn-text);
+  background: var(--state-warn-pale);
+  border-color: var(--state-warn-border);
+}
+
+.btn-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: var(--t-caption);
+  color: var(--fg-accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .visually-hidden-input {
   position: absolute;
   width: 1px;

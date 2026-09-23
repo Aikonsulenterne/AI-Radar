@@ -54,6 +54,10 @@
   --state-success: var(--ok-green);
   --state-info: var(--ok-blue);
   --state-warn: #D08A1F;
+  /* Afledte toner af --state-warn til badges; ingen nye brandfarver. */
+  --state-warn-text: #8A5A0F;
+  --state-warn-pale: #FDF4E3;
+  --state-warn-border: #EBD3A3;
   --state-danger: var(--ok-red-deep);
 
   --font-display: 'OKfamily', Georgia, 'Times New Roman', serif;

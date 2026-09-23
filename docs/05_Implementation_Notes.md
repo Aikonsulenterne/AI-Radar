@@ -215,11 +215,27 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   bygger med de godkendte fallbacks (Georgia-serif / Inter-sans) og
   `public/fonts/README.md` beskriver forventede filnavne. next/font/local
   aktiveres, når filerne staged. **Pixel-fidelity accepteres først da.**
+- **Review-arbejdsbordet (§15)** er two-pane: dokumentet med evidensuddrag
+  fremhævet til venstre, claims og reviewhandlinger til højre. Uddragene
+  placeres via de server-beregnede offsets; passer de ikke, findes uddraget
+  ordret, og kan det ikke placeres, fremhæves det ikke — det vises fortsat
+  på claim-kortet, så intet evidensuddrag går tabt. Overlappende uddrag
+  fremhæves kun én gang. Det valgte uddrag skifter både understregnings-
+  tykkelse og flade, så markeringen ikke kun er kulør. Under 1100px stables
+  panelerne med dokumentet først. §15's krav om at godkendelse ikke må ske
+  uden synligt evidensuddrag er håndhævet i UI'et: et claim uden evidens
+  viser ingen handlinger.
+- **Confidence vises ikke.** UI Master §15 nævner confidence som
+  sorteringshjælp, men feltet findes hverken i Technical Masters datamodel
+  eller i API'et. Ved konflikt vinder Technical Master, og en score må ikke
+  opfindes — feltet kan tilføjes, hvis modellen begynder at levere det.
 - **Udestående mod UI Master:** stakbaseret entity-drawer (detaljer er
   route-baserede sider, hvilket Technical Master §12 tillader),
   filterbar på adoption (land/branche/capability/status/styrke),
-  two-pane review-layout, toasts, kompakt tablet-sidebar og
-  `AI Radar.dc.html`-sammenligning (filen er ikke leveret).
+  "markér mulig dublet/konflikt" som eksplicitte handlinger (dubletter
+  vises, men relationen afgøres i dag ved godkendelse), toasts,
+  kompakt tablet-sidebar og `AI Radar.dc.html`-sammenligning (filen er
+  ikke leveret).
 
 ## Staging-opsætning (Supabase + Render)
 

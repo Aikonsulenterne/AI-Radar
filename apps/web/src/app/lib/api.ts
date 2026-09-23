@@ -301,6 +301,15 @@ export function rejectClaim(claimId: string): Promise<Claim> {
   });
 }
 
+/** Claimet forbliver åbent, men markeres som utilstrækkeligt dokumenteret. */
+export function markClaimNeedsCorroboration(claimId: string): Promise<Claim> {
+  return request<Claim>(`/review/claims/${claimId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ review_status: "needs_corroboration" }),
+  });
+}
+
 export function listApprovedClaims(): Promise<Paginated<Claim>> {
   return request<Paginated<Claim>>(
     "/review/claims?review_status=approved&limit=200",

@@ -88,6 +88,10 @@ shell, og en indlejret `sh -c "..."` ender som ét kommando-ord (exit 127).
    - `NEXT_PUBLIC_SUPABASE_URL=https://<projekt-ref>.supabase.co`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key>` — anon key er beregnet
      til browseren; service-role key må aldrig lægges i Vercel.
+   Variablerne bages ind ved build-tid: tilføjes eller rettes de, skal
+   der redeployes. Mangler en af dem på Vercel, fejler buildet med en
+   besked om hvilken (se `apps/web/next.config.ts`), og den forrige
+   deployment forbliver live.
 3. Når Vercel-domænet kendes: tilføj det til `CORS_ORIGINS` på API'et
    (kommasepareret) og redeploy API'et. Uden det afvises browserkaldene.
 4. Supabase → Authentication → URL Configuration: sæt Site URL til

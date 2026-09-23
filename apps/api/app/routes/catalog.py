@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, get_current_user, require_role
 from app.db import get_db
 from app.enums import CaseStatus, EntityType, Predicate, ReviewStatus, UserRole
@@ -393,7 +394,7 @@ def update_case(
 def publish_case(
     case_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> CaseOut:
     case = db.get(AdoptionCase, case_id)
     if case is None:
@@ -412,4 +413,12 @@ def publish_case(
             )
     case.status = CaseStatus.published
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.adoption_case,
+        entity_id=case.id,
+        action=AuditAction.published,
+        actor_user_id=user.user_id,
+        changes={"claims": len(claims)},
+    )
     return _case_out(db, case)

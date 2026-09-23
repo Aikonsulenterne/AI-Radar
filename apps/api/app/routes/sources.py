@@ -11,7 +11,8 @@ from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.auth import require_role
+from app.audit import AuditAction, AuditEntity, field_changes, record
+from app.auth import CurrentUser, require_role
 from app.config import get_settings
 from app.db import get_db
 from app.enums import AccessClass, RetrievalMethod, UserRole
@@ -69,7 +70,7 @@ def list_sources(
 def create_source(
     body: SourceCreate,
     db: Session = Depends(get_db),
-    _user: object = Depends(require_role(UserRole.admin)),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
 ) -> SourceOut:
     source = Source(
         name=body.name,
@@ -85,6 +86,14 @@ def create_source(
     )
     db.add(source)
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.source,
+        entity_id=source.id,
+        action=AuditAction.created,
+        actor_user_id=user.user_id,
+        changes={"name": source.name, "retrieval_method": source.retrieval_method.value},
+    )
     return SourceOut.model_validate(source)
 
 
@@ -93,16 +102,27 @@ def update_source(
     source_id: uuid.UUID,
     body: SourceUpdate,
     db: Session = Depends(get_db),
-    _user: object = Depends(require_role(UserRole.admin)),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
 ) -> SourceOut:
     source = _get_source_or_404(db, source_id)
     updates = body.model_dump(exclude_unset=True)
+    before = {field: getattr(source, field) for field in updates}
     for field, value in updates.items():
         setattr(source, field, value)
     if source.retrieval_method in (RetrievalMethod.rss, RetrievalMethod.web_fetch):
         if not source.endpoint_url:
             raise ApiError(422, "validation_error", "endpoint_url er påkrævet for rss/web_fetch.")
     db.flush()
+    changed = field_changes(before, updates)
+    if changed:
+        record(
+            db,
+            entity_type=AuditEntity.source,
+            entity_id=source.id,
+            action=AuditAction.updated,
+            actor_user_id=user.user_id,
+            changes=changed,
+        )
     return SourceOut.model_validate(source)
 
 
@@ -110,7 +130,7 @@ def update_source(
 def run_source(
     source_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _user: object = Depends(require_role(UserRole.admin)),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
 ) -> RunResult:
     settings = get_settings()
     source = _get_source_or_404(db, source_id)
@@ -141,6 +161,18 @@ def run_source(
 
     source.last_checked_at = datetime.now(UTC)
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.source,
+        entity_id=source.id,
+        action=AuditAction.fetched,
+        actor_user_id=user.user_id,
+        changes={
+            "nye_dokumenter": outcome.created_count,
+            "uændrede": outcome.unchanged_count,
+            "fejlede_links": len(outcome.failures),
+        },
+    )
     return RunResult(
         source_id=source.id,
         documents=[

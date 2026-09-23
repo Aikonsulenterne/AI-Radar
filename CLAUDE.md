@@ -97,3 +97,6 @@ eget dokument via `app/ingestion/run.py`, som deles af API-endpointet og
 workeren. AI kan foreslå opportunity-kandidater ud fra et publiceret
 signals godkendte claims (`POST /opportunities/propose`); forslaget lander
 ugodkendt og markeret som AI-forslag — mennesket godkender fortsat.
+Beslutninger i review, kilder, opportunities og publicering skrives til en
+append-only audit-log (`GET /audit`, kun Admin) med aktør, før/efter og
+correlation id.

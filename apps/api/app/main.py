@@ -14,8 +14,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.context import request_id_var
 from app.errors import register_exception_handlers
-from app.routes import catalog, documents, opportunities, signals, sources
+from app.routes import audit, catalog, documents, opportunities, signals, sources
 
 API_PREFIX = "/api/v1"
 
@@ -47,8 +48,12 @@ async def request_logging(
     status og varighed.
     """
     request_id = request.headers.get("x-request-id") or uuid.uuid4().hex[:16]
+    token = request_id_var.set(request_id)
     started = time.monotonic()
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    finally:
+        request_id_var.reset(token)
     duration_ms = int((time.monotonic() - started) * 1000)
     logger.info(
         "http method=%s path=%s status=%d duration_ms=%d request_id=%s",
@@ -68,6 +73,7 @@ app.include_router(documents.router, prefix=API_PREFIX)
 app.include_router(signals.router, prefix=API_PREFIX)
 app.include_router(catalog.router, prefix=API_PREFIX)
 app.include_router(opportunities.router, prefix=API_PREFIX)
+app.include_router(audit.router, prefix=API_PREFIX)
 
 
 class HealthResponse(BaseModel):

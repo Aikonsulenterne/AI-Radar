@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, get_current_user, require_role
 from app.db import get_db
 from app.enums import (
@@ -176,7 +177,7 @@ def update_signal(
     signal_id: uuid.UUID,
     body: SignalUpdate,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> SignalOut:
     signal = _get_signal_or_404(db, signal_id)
     updates = body.model_dump(exclude_unset=True)
@@ -190,6 +191,13 @@ def update_signal(
                 "Kun 'archived' kan sættes via PATCH; publicér via /publish.",
             )
         signal.status = SignalStatus.archived
+        record(
+            db,
+            entity_type=AuditEntity.signal,
+            entity_id=signal.id,
+            action=AuditAction.archived,
+            actor_user_id=user.user_id,
+        )
 
     claim_ids = updates.pop("claim_ids", None)
     if claim_ids is not None:
@@ -211,7 +219,7 @@ def update_signal(
 def publish_signal(
     signal_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> SignalOut:
     signal = _get_signal_or_404(db, signal_id)
     if signal.status != SignalStatus.draft:
@@ -234,6 +242,14 @@ def publish_signal(
     signal.status = SignalStatus.published
     signal.published_at = datetime.now(UTC)
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.signal,
+        entity_id=signal.id,
+        action=AuditAction.published,
+        actor_user_id=user.user_id,
+        changes={"claims": len(claim_ids)},
+    )
     return _signal_out(db, signal)
 
 

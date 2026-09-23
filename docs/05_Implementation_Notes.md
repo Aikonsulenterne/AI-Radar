@@ -175,6 +175,20 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   (X-Request-ID) og varighed; AI-kald logger prompt-id/version, model,
   latency og tokenforbrug. Tokens, secrets og dokumenttekster logges
   aldrig. Fuld OpenTelemetry-instrumentering er en senere hardening.
+- **Audit-log** (`audit_log`, `GET /audit`, kun Admin) dækker §18's
+  "ændringer i review, sources og opportunities" samt publicering af
+  signaler og cases, fordi publicering er det, der gør fakta offentlige.
+  Rækkerne er append-only og rummer aktør, handling, entity og før/efter
+  for de ændrede felter — hver værdi afkortet ved 500 tegn, så loggen er et
+  spor og ikke en kopi af indholdet. `request_id` kobler rækken til
+  requesten via en ContextVar sat i middlewaren, så endpoints ikke skal
+  bære et ekstra argument. `entity_type` og `action` er text frem for
+  PostgreSQL-enums, så nye handlinger ikke kræver en migration.
+  Tabellens `id` er en stigende sekvens, ikke en uuid: `occurred_at` er
+  transaktionens starttidspunkt og er ens for flere rækker fra samme
+  request, så id'et bærer rækkefølgen. Produktets aktivitetsfeed er
+  bevidst uden for MVP (Product Master §13), så loggen har ingen
+  brugerflade.
 - **Evaluering:** `app/evaluation.py` + JSONL-datasætformat i
   `evaluation/`; metrikker for relevance/claim precision-recall og
   excerpt correctness. Datasættet skal opbygges manuelt (100–200 docs
@@ -239,8 +253,7 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - OK's design tokens fra `colors_and_type.css` og UI-prototypen.
 - Route-baserede drawers og udvidede filtre (branche, capability,
   dokumentationsstyrke) på adoption.
-- OpenTelemetry-eksport, audit-log-tabeller og RLS-/authorization-tests
-  mod rigtig PostgreSQL i CI (migrations valideres; adfærdstests kører
-  på SQLite).
+- OpenTelemetry-eksport og RLS-/authorization-tests mod rigtig PostgreSQL
+  i CI (migrations valideres; adfærdstests kører på SQLite).
 - Evaluering af `opportunity_proposal`-prompten mod reference-datasættet,
   når datasættet er bygget.

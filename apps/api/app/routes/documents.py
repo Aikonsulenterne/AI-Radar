@@ -7,12 +7,14 @@ publiceres som fakta.
 
 import uuid
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.provider import AIProvider, get_ai_provider
+from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, require_role
 from app.db import get_db
 from app.enums import (
@@ -92,8 +94,8 @@ def _get_claim_or_404(db: Session, claim_id: uuid.UUID) -> Claim:
     return claim
 
 
-def _apply_edits(db: Session, claim: Claim, edits: ClaimEdit) -> bool:
-    """Anvend reviewer-rettelser; returnér om noget blev ændret."""
+def _apply_edits(db: Session, claim: Claim, edits: ClaimEdit) -> dict[str, Any]:
+    """Anvend reviewer-rettelser; returnér før/efter for de ændrede felter."""
     updates = edits.model_dump(exclude_unset=True)
     status_update = updates.pop("review_status", None)
     if status_update is not None:
@@ -105,11 +107,12 @@ def _apply_edits(db: Session, claim: Claim, edits: ClaimEdit) -> bool:
             )
         claim.review_status = status_update
 
-    changed = False
+    changed: dict[str, Any] = {}
     for field_name, value in updates.items():
-        if getattr(claim, field_name) != value:
+        previous = getattr(claim, field_name)
+        if previous != value:
+            changed[field_name] = {"fra": previous, "til": value}
             setattr(claim, field_name, value)
-            changed = True
 
     if claim.predicate not in PREDICATES_BY_CLAIM_TYPE[claim.claim_type]:
         raise ApiError(
@@ -196,7 +199,7 @@ def process_document_endpoint(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
     provider: AIProvider = Depends(ai_provider_dep),
-    _user: object = Depends(require_role(UserRole.admin)),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
 ) -> ProcessResult:
     """Kør relevans + claim extraction for et normaliseret dokument.
 
@@ -219,6 +222,18 @@ def process_document_endpoint(
         )
 
     outcome = process_document(db, provider, document)
+    record(
+        db,
+        entity_type=AuditEntity.document,
+        entity_id=document.id,
+        action=AuditAction.processed,
+        actor_user_id=user.user_id,
+        changes={
+            "status": outcome.status.value,
+            "claims_oprettet": outcome.claims_created,
+            "claims_kasseret": outcome.claims_skipped,
+        },
+    )
     return ProcessResult(
         document_id=document.id,
         status=outcome.status,
@@ -232,7 +247,7 @@ def process_document_endpoint(
 def complete_document_review(
     document_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _user: object = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> DocumentOut:
     document = db.get(Document, document_id)
     if document is None:
@@ -256,6 +271,14 @@ def complete_document_review(
         ProcessingStatus.partially_reviewed if open_claims else ProcessingStatus.reviewed
     )
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.document,
+        entity_id=document.id,
+        action=AuditAction.review_completed,
+        actor_user_id=user.user_id,
+        changes={"status": document.processing_status.value, "åbne_claims": open_claims or 0},
+    )
     return DocumentOut.model_validate(document)
 
 
@@ -264,12 +287,21 @@ def edit_claim(
     claim_id: uuid.UUID,
     body: ClaimEdit,
     db: Session = Depends(get_db),
-    _user: object = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> ClaimOut:
     claim = _get_claim_or_404(db, claim_id)
     if claim.review_status not in _PATCHABLE_REVIEW_STATUSES:
         raise ApiError(409, "invalid_status", "Kun åbne claims kan rettes.")
-    _apply_edits(db, claim, body)
+    changed = _apply_edits(db, claim, body)
+    if changed:
+        record(
+            db,
+            entity_type=AuditEntity.claim,
+            entity_id=claim.id,
+            action=AuditAction.updated,
+            actor_user_id=user.user_id,
+            changes=changed,
+        )
     return _claim_out(db, claim)
 
 
@@ -286,11 +318,11 @@ def approve_claim(
     if claim.review_status not in _PATCHABLE_REVIEW_STATUSES:
         raise ApiError(409, "invalid_status", "Claimet er allerede afgjort.")
 
-    edited = False
+    edits: dict[str, Any] = {}
     if body is not None and body.edits is not None:
-        edited = _apply_edits(db, claim, body.edits)
+        edits = _apply_edits(db, claim, body.edits)
 
-    claim.review_status = ReviewStatus.approved_with_edits if edited else ReviewStatus.approved
+    claim.review_status = ReviewStatus.approved_with_edits if edits else ReviewStatus.approved
     claim.reviewed_by_user_id = user.user_id
     claim.reviewed_at = datetime.now(UTC)
     for evidence in db.scalars(
@@ -298,6 +330,15 @@ def approve_claim(
     ).all():
         evidence.review_status = claim.review_status
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.claim,
+        entity_id=claim.id,
+        action=AuditAction.approved,
+        actor_user_id=user.user_id,
+        # Rettelser før godkendelse er et produktkvalitetsmål (§18).
+        changes={"status": claim.review_status.value, "rettelser": edits or None},
+    )
     return _claim_out(db, claim)
 
 
@@ -318,4 +359,11 @@ def reject_claim(
     ).all():
         evidence.review_status = ReviewStatus.rejected
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.claim,
+        entity_id=claim.id,
+        action=AuditAction.rejected,
+        actor_user_id=user.user_id,
+    )
     return _claim_out(db, claim)

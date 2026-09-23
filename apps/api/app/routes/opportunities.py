@@ -12,6 +12,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.provider import AIProvider
+from app.audit import AuditAction, AuditEntity, field_changes, record
 from app.auth import CurrentUser, require_role
 from app.db import get_db
 from app.enums import OpportunityStatus, SignalStatus, UserRole
@@ -202,6 +203,14 @@ def create_opportunity(
     db.add(opportunity)
     db.flush()
     _replace_links(db, opportunity, body.signal_ids, body.claim_ids)
+    record(
+        db,
+        entity_type=AuditEntity.opportunity,
+        entity_id=opportunity.id,
+        action=AuditAction.created,
+        actor_user_id=user.user_id,
+        changes={"title": opportunity.title, "problem": problem.name},
+    )
     return _opportunity_out(db, opportunity)
 
 
@@ -210,7 +219,7 @@ def propose_opportunity_endpoint(
     body: OpportunityProposeRequest,
     db: Session = Depends(get_db),
     provider: AIProvider = Depends(ai_provider_dep),
-    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> OpportunityOut:
     """AI foreslår en kandidat ud fra et publiceret signals godkendte claims.
 
@@ -228,6 +237,17 @@ def propose_opportunity_endpoint(
         )
 
     opportunity = propose_opportunity(db, provider, signal)
+    record(
+        db,
+        entity_type=AuditEntity.opportunity,
+        entity_id=opportunity.id,
+        action=AuditAction.ai_proposed,
+        actor_user_id=user.user_id,
+        changes={
+            "signal_id": signal.id,
+            "promptversion": opportunity.proposal_prompt_version,
+        },
+    )
     return _opportunity_out(db, opportunity)
 
 
@@ -236,10 +256,14 @@ def update_opportunity(
     opportunity_id: uuid.UUID,
     body: OpportunityUpdate,
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
 ) -> OpportunityOut:
     opportunity = _get_opportunity_or_404(db, opportunity_id)
     updates = body.model_dump(exclude_unset=True)
+    audited = {
+        field: value for field, value in updates.items() if field not in ("signal_ids", "claim_ids")
+    }
+    before = {field: getattr(opportunity, field) for field in audited}
 
     status_update = updates.pop("status", None)
     if status_update is not None:
@@ -272,6 +296,16 @@ def update_opportunity(
     for field_name, value in updates.items():
         setattr(opportunity, field_name, value)
     db.flush()
+    changed = field_changes(before, audited)
+    if changed:
+        record(
+            db,
+            entity_type=AuditEntity.opportunity,
+            entity_id=opportunity.id,
+            action=AuditAction.updated,
+            actor_user_id=user.user_id,
+            changes=changed,
+        )
     return _opportunity_out(db, opportunity)
 
 
@@ -287,4 +321,12 @@ def approve_opportunity(
         raise ApiError(409, "invalid_status", "Opportunity'en er allerede godkendt.")
     opportunity.approved_by_user_id = user.user_id
     db.flush()
+    record(
+        db,
+        entity_type=AuditEntity.opportunity,
+        entity_id=opportunity.id,
+        action=AuditAction.approved,
+        actor_user_id=user.user_id,
+        changes={"foreslået_af_ai": opportunity.proposed_by_ai},
+    )
     return _opportunity_out(db, opportunity)

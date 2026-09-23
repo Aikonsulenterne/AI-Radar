@@ -1,18 +1,32 @@
 """Testopsætning.
 
 Miljøet sættes FØR app-moduler importeres: rigtig JWT-validering (test-secret),
-lokal storage i temp-mappe og SQLite in-memory som unit-test-database.
-Migrations valideres mod rigtig PostgreSQL i CI (migrations-jobbet).
+lokal storage i temp-mappe og SQLite in-memory som standard-testdatabase.
+
+Med TEST_DATABASE_URL kører samme testsuite mod PostgreSQL, hvor skemaet
+kommer fra supabase/migrations i stedet for ORM'ens create_all. Det er den
+kørsel, der fanger uoverensstemmelser mellem ORM-modeller og migrations —
+dem kan SQLite ikke se, fordi SQLite-skemaet bygges af modellerne selv.
 """
 
 import os
 import tempfile
+from urllib.parse import urlsplit
+
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
+# Suiten truncater alle tabeller før hver test. Et fejlagtigt peg på staging
+# eller production ville slette alt, så kun lokale databaser accepteres.
+if TEST_DATABASE_URL and urlsplit(TEST_DATABASE_URL).hostname not in ("localhost", "127.0.0.1"):
+    raise RuntimeError(
+        "TEST_DATABASE_URL skal pege på en lokal database — testsuiten sletter alle data."
+    )
 
 os.environ["ENVIRONMENT"] = "test"
 os.environ["SUPABASE_JWT_SECRET"] = "test-secret-0123456789-abcdefghijklm"
 os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_ROOT"] = tempfile.mkdtemp(prefix="ai-radar-test-storage-")
-os.environ["DATABASE_URL"] = "sqlite://"
+os.environ["DATABASE_URL"] = TEST_DATABASE_URL or "sqlite://"
 os.environ["SUPABASE_URL"] = "https://test-projekt.supabase.co"
 
 import time  # noqa: E402
@@ -22,7 +36,7 @@ from collections.abc import Generator  # noqa: E402
 import jwt  # noqa: E402
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
+from sqlalchemy import Engine, create_engine, text  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
@@ -34,12 +48,28 @@ from app.models import Profile  # noqa: E402
 SessionFactory = sessionmaker[Session]
 
 
+def _truncate_all(engine: Engine) -> None:
+    """Tøm alle tabeller i det migrerede skema, så hver test starter ens."""
+    with engine.begin() as connection:
+        tables = connection.execute(
+            text("select tablename from pg_tables where schemaname = 'public'")
+        ).scalars()
+        names = ", ".join(f'"{name}"' for name in tables)
+        if names:
+            connection.execute(text(f"truncate {names} restart identity cascade"))
+
+
 @pytest.fixture()
 def db_session_factory() -> Generator[SessionFactory, None, None]:
-    engine = create_engine(
-        "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
-    )
-    Base.metadata.create_all(engine)
+    if TEST_DATABASE_URL:
+        # Skemaet ejes af migrations (kørt før pytest); create_all bruges ikke.
+        engine = create_engine(TEST_DATABASE_URL)
+        _truncate_all(engine)
+    else:
+        engine = create_engine(
+            "sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool
+        )
+        Base.metadata.create_all(engine)
     factory = sessionmaker(bind=engine)
     _seed_technologies(factory)
     yield factory

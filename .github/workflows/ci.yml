@@ -41,8 +41,12 @@ jobs:
       - run: uv run mypy
       - run: uv run pytest
 
+  # Migrations køres mod rigtig PostgreSQL, og derefter kører hele API-
+  # testsuiten mod det migrerede skema. Det fanger uoverensstemmelser mellem
+  # ORM-modeller og migrations, som SQLite-kørslen ikke kan se, fordi dens
+  # skema bygges af modellerne selv.
   migrations:
-    name: Database migrations (PostgreSQL)
+    name: Database (migrations + API-tests mod PostgreSQL)
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -64,6 +68,16 @@ jobs:
             echo "Applying $f"
             psql "postgresql://postgres:postgres@localhost:5432/postgres" -v ON_ERROR_STOP=1 -f "$f"
           done
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.11"
+      - name: API tests against the migrated schema
+        working-directory: apps/api
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/postgres
+        run: |
+          uv sync
+          uv run pytest
 
   containers:
     name: Container builds

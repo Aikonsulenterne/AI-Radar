@@ -49,10 +49,19 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **RLS:** aktiveret uden policies (deny-all) på profiles/sources/documents.
   Al adgang går gennem API'et, som håndhæver roller eksplicit; policies
   tilføjes, hvis direkte klientadgang nogensinde indføres.
-- **Tests:** unit-/API-tests kører på SQLite in-memory (hurtige, ingen
-  services); migrations valideres mod rigtig PostgreSQL 15 i CI's
-  migrations-job. Integrationstests mod PostgreSQL/Storage-adapter udvides
-  i takt med slices.
+- **Tests kører mod to databaser.** Lokalt og i API-jobbet kører suiten på
+  SQLite in-memory (hurtig, ingen services). CI's database-job kører
+  derefter migrations mod PostgreSQL 15 og hele suiten igen mod det
+  migrerede skema via `TEST_DATABASE_URL` — hver test starter med en
+  truncate af alle tabeller. Den kørsel er nødvendig, fordi SQLite-skemaet
+  bygges af ORM-modellerne selv og derfor aldrig kan afsløre, at en
+  model og en migration er uenige. `test_schema_drift.py` sammenligner
+  desuden hver ORM-tabel og -kolonne (eksistens og nullable) med det
+  migrerede skema, så også stier uden egne tests er dækket; den springes
+  over på SQLite.
+- **Lokal PostgreSQL-kørsel:** kør migrations mod en tom database og
+  `TEST_DATABASE_URL=postgresql+psycopg://…/postgres uv run pytest`.
+  Suiten truncater alle tabeller, så brug aldrig et miljø med rigtige data.
 - **Storage:** adapter-interface med `local` (filsystem, udvikling/test)
   og `supabase` (REST mod private bucket, service-role key kun
   server-side). Signerede URLs udstedes kortvarigt; lokal adapter
@@ -275,7 +284,8 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - OK's design tokens fra `colors_and_type.css` og UI-prototypen.
 - Route-baserede drawers og udvidede filtre (branche, capability,
   dokumentationsstyrke) på adoption.
-- OpenTelemetry-eksport og RLS-/authorization-tests mod rigtig PostgreSQL
-  i CI (migrations valideres; adfærdstests kører på SQLite).
+- OpenTelemetry-eksport og RLS-tests (RLS er deny-all, og al adgang går
+  via API'et, hvis rolletjek er dækket af API-testene — nu også mod
+  PostgreSQL).
 - Evaluering af `opportunity_proposal`-prompten mod reference-datasættet,
   når datasættet er bygget.

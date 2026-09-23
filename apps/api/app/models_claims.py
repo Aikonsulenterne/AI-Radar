@@ -7,7 +7,19 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from sqlalchemy import JSON, Boolean, Date, DateTime, Enum, ForeignKey, Text, Uuid
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Integer,
+    Text,
+    Uuid,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -15,6 +27,7 @@ from app.db import Base
 from app.enums import (
     ClaimCreatedBy,
     ClaimLifecycle,
+    ClaimRelation,
     ClaimType,
     EntityType,
     EvidenceRelationship,
@@ -149,4 +162,28 @@ class ClaimEvidence(TimestampMixin, Base):
         Enum(ReviewStatus, name="review_status"),
         nullable=False,
         default=ReviewStatus.proposed,
+    )
+
+
+class ClaimRelationLink(Base):
+    """Reviewerens relation mellem to claims. Begge claims består — et
+    gammelt claim overskrives aldrig (Technical Master §15)."""
+
+    __tablename__ = "claim_relations"
+
+    id: Mapped[int] = mapped_column(
+        BigInteger().with_variant(Integer, "sqlite"), primary_key=True, autoincrement=True
+    )
+    claim_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("claims.id"), nullable=False, index=True
+    )
+    related_claim_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("claims.id"), nullable=False, index=True
+    )
+    relation: Mapped[ClaimRelation] = mapped_column(
+        Enum(ClaimRelation, name="claim_relation"), nullable=False
+    )
+    created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
     )

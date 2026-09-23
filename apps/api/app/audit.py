@@ -40,6 +40,7 @@ class AuditAction(StrEnum):
     processed = "processed"
     review_completed = "review_completed"
     ai_proposed = "ai_proposed"
+    related = "related"
 
 
 def _truncate(value: Any) -> Any:

@@ -80,8 +80,16 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   princippet "manglende data vises som manglende" vægtes over
   kolonnekravet. Land udfyldes ved kuratering.
 - **Duplicate-kandidater** beregnes deterministisk (samme subjekt +
-  predicate + objekt) og vises i review; revieweren afgør relationen.
-  Automatisk konfliktafgørelse er fortsat ude af scope.
+  predicate + objekt) og vises i review med indhold, så relationen kan
+  vurderes uden et ekstra opslag. Revieweren sætter den endelige relation
+  via `POST /review/claims/{id}/relate` (supports/contradicts/supersedes),
+  som gemmes i `claim_relations` med aktør og tidspunkt. Ingen af de to
+  claims slettes eller overskrives (Technical Master §15): "supersedes"
+  markerer det relaterede claim `superseded`, og "contradicts" markerer
+  begge `contradicted` uden at afgøre hvilket der er rigtigt. Automatisk
+  konfliktafgørelse er fortsat ude af scope. `lifecycle_status` er indtil
+  videre informativ — publicering filtrerer på `review_status`, så en
+  markering fjerner ikke i sig selv et claim fra et publiceret signal.
 - **Approve-semantik:** `POST .../approve` uden edits → `approved`; med
   edits → `approved_with_edits`. `PATCH` retter et åbent claim uden at
   afgøre det. `complete` sætter dokumentet til `reviewed`, eller
@@ -231,9 +239,7 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   opfindes — feltet kan tilføjes, hvis modellen begynder at levere det.
 - **Udestående mod UI Master:** stakbaseret entity-drawer (detaljer er
   route-baserede sider, hvilket Technical Master §12 tillader),
-  filterbar på adoption (land/branche/capability/status/styrke),
-  "markér mulig dublet/konflikt" som eksplicitte handlinger (dubletter
-  vises, men relationen afgøres i dag ved godkendelse), toasts,
+  filterbar på adoption (land/branche/capability/status/styrke), toasts,
   kompakt tablet-sidebar og `AI Radar.dc.html`-sammenligning (filen er
   ikke leveret).
 

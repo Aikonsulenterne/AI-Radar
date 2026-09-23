@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from app.enums import (
     ClaimCreatedBy,
     ClaimLifecycle,
+    ClaimRelation,
     ClaimType,
     EntityType,
     EvidenceRelationship,
@@ -30,6 +31,30 @@ class EvidenceOut(BaseModel):
     relationship: EvidenceRelationship
     source_type_snapshot: SourceType | None
     review_status: ReviewStatus
+
+
+class ClaimSummaryOut(BaseModel):
+    """Nok til at vurdere en dublet-/konfliktkandidat uden et ekstra opslag."""
+
+    id: uuid.UUID
+    subject_name: str | None
+    predicate: Predicate
+    object_display: str | None
+    review_status: ReviewStatus
+    lifecycle_status: ClaimLifecycle
+
+
+class ClaimRelationOut(BaseModel):
+    related_claim_id: uuid.UUID
+    relation: ClaimRelation
+    created_at: datetime
+
+
+class ClaimRelateRequest(BaseModel):
+    """Reviewerens endelige relation mellem to claims (Technical Master §15)."""
+
+    related_claim_id: uuid.UUID
+    relation: ClaimRelation
 
 
 class ClaimOut(BaseModel):
@@ -56,8 +81,10 @@ class ClaimOut(BaseModel):
     reviewed_at: datetime | None
     evidence: list[EvidenceOut] = Field(default_factory=list)
     # Deterministisk fundne kandidater (samme subjekt+predicate+objekt) —
-    # reviewer afgør relationen (Technical Master §15).
-    possible_duplicate_ids: list[uuid.UUID] = Field(default_factory=list)
+    # reviewer afgør relationen (Technical Master §15). Kandidaterne vises
+    # med indhold, så relationen kan vurderes uden at slå dem op.
+    possible_duplicates: list["ClaimSummaryOut"] = Field(default_factory=list)
+    relations: list["ClaimRelationOut"] = Field(default_factory=list)
 
 
 class ClaimEdit(BaseModel):

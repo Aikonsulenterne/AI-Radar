@@ -250,7 +250,26 @@ export interface Claim {
   created_by: "ai" | "human";
   reviewed_at: string | null;
   evidence: Evidence[];
-  possible_duplicate_ids: string[];
+  possible_duplicates: ClaimSummary[];
+  relations: ClaimRelationLink[];
+}
+
+/** Nok til at vurdere en dublet-/konfliktkandidat uden et ekstra opslag. */
+export interface ClaimSummary {
+  id: string;
+  subject_name: string | null;
+  predicate: string;
+  object_display: string | null;
+  review_status: ReviewStatus;
+  lifecycle_status: Claim["lifecycle_status"];
+}
+
+export type ClaimRelation = "supports" | "contradicts" | "supersedes";
+
+export interface ClaimRelationLink {
+  related_claim_id: string;
+  relation: ClaimRelation;
+  created_at: string;
 }
 
 export interface DocumentReview extends DocumentRow {
@@ -298,6 +317,23 @@ export function approveClaim(
 export function rejectClaim(claimId: string): Promise<Claim> {
   return request<Claim>(`/review/claims/${claimId}/reject`, {
     method: "POST",
+  });
+}
+
+/**
+ * Reviewerens endelige relation mellem to claims. Intet claim slettes:
+ * "supersedes" markerer det relaterede claim som afløst, "contradicts"
+ * markerer begge som modstridende uden at afgøre hvilket der er rigtigt.
+ */
+export function relateClaim(
+  claimId: string,
+  relatedClaimId: string,
+  relation: ClaimRelation,
+): Promise<Claim> {
+  return request<Claim>(`/review/claims/${claimId}/relate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ related_claim_id: relatedClaimId, relation }),
   });
 }
 

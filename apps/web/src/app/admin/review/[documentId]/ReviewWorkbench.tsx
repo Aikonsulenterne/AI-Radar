@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Claim, DocumentReview, Evidence } from "../../../lib/api";
-import { ClaimActions } from "./ReviewControls";
+import { ClaimActions, DuplicateCandidates } from "./ReviewControls";
 
 const REVIEW_STATUS_LABELS: Record<Claim["review_status"], string> = {
   proposed: "Foreslået",
@@ -20,6 +20,12 @@ const CLAIM_TYPE_LABELS: Record<Claim["claim_type"], string> = {
   effect: "Effekt",
   negative: "Barriere/negativt",
   organization: "Organisation",
+};
+
+const RELATION_LABELS: Record<Claim["relations"][number]["relation"], string> = {
+  supports: "understøtter et andet claim",
+  contradicts: "modstrider et andet claim",
+  supersedes: "afløser et andet claim",
 };
 
 const ENTITY_LABELS: Record<"company" | "technology" | "vendor", string> = {
@@ -178,12 +184,17 @@ function ClaimCard({
         </p>
       )}
 
-      {claim.possible_duplicate_ids.length > 0 ? (
+      {claim.relations.length > 0 ? (
         <p className="cell-sub">
-          Mulig dublet af {claim.possible_duplicate_ids.length} andet/andre claim(s) — vurdér
-          relationen ved godkendelse.
+          Relation sat:{" "}
+          {claim.relations
+            .map((relation) => RELATION_LABELS[relation.relation])
+            .join(", ")}
+          .
         </p>
       ) : null}
+
+      <DuplicateCandidates claim={claim} />
 
       {hasEvidence ? <ClaimActions claim={claim} /> : null}
     </article>

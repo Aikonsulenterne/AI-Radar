@@ -143,6 +143,14 @@ class EvidenceRelationship(StrEnum):
     supersedes = "supersedes"
 
 
+class ClaimRelation(StrEnum):
+    """Reviewerens endelige relation mellem to claims (Technical Master §15)."""
+
+    supports = "supports"
+    contradicts = "contradicts"
+    supersedes = "supersedes"
+
+
 class TechHorizon(StrEnum):
     now = "now"
     next = "next"

@@ -890,6 +890,21 @@ a {
   box-shadow: 0 0 0 3px var(--ok-red-tint);
 }
 
+/* Dublet-/konfliktkandidater: indrykket, så de ikke forveksles med claimet. */
+.duplicate-candidates {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-3);
+}
+
+.duplicate-candidate {
+  display: grid;
+  gap: var(--space-2);
+  border-left: 2px dashed var(--border-strong);
+  padding-left: var(--space-3);
+}
+
 .claim-card-selected {
   border-color: var(--ok-red-soft);
   box-shadow: 0 0 0 2px var(--ok-red-pale);

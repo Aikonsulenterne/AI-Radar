@@ -19,13 +19,15 @@ from app.auth import CurrentUser, require_role
 from app.db import get_db
 from app.enums import (
     PREDICATES_BY_CLAIM_TYPE,
+    ClaimLifecycle,
+    ClaimRelation,
     ProcessingStatus,
     ReviewStatus,
     UserRole,
 )
 from app.errors import ApiError
 from app.models import Document
-from app.models_claims import Claim, ClaimEvidence
+from app.models_claims import Claim, ClaimEvidence, ClaimRelationLink
 from app.pipeline.entities import entity_name
 from app.pipeline.process import process_document
 from app.schemas import DocumentOut, Paginated
@@ -33,6 +35,9 @@ from app.schemas_claims import (
     ApproveRequest,
     ClaimEdit,
     ClaimOut,
+    ClaimRelateRequest,
+    ClaimRelationOut,
+    ClaimSummaryOut,
     DocumentReviewOut,
     EvidenceOut,
     ProcessResult,
@@ -55,8 +60,20 @@ def ai_provider_dep() -> AIProvider:
     return provider
 
 
-def _possible_duplicates(db: Session, claim: Claim) -> list[uuid.UUID]:
-    stmt = select(Claim.id).where(
+def _claim_summary(db: Session, claim: Claim) -> ClaimSummaryOut:
+    name = entity_name(db, claim.object_entity_type, claim.object_entity_id)
+    return ClaimSummaryOut(
+        id=claim.id,
+        subject_name=entity_name(db, claim.subject_entity_type, claim.subject_entity_id),
+        predicate=claim.predicate,
+        object_display=name or claim.object_text,
+        review_status=claim.review_status,
+        lifecycle_status=claim.lifecycle_status,
+    )
+
+
+def _possible_duplicates(db: Session, claim: Claim) -> list[ClaimSummaryOut]:
+    stmt = select(Claim).where(
         Claim.id != claim.id,
         Claim.subject_entity_type == claim.subject_entity_type,
         Claim.subject_entity_id == claim.subject_entity_id,
@@ -69,7 +86,19 @@ def _possible_duplicates(db: Session, claim: Claim) -> list[uuid.UUID]:
         stmt = stmt.where(func.lower(Claim.object_text) == claim.object_text.casefold())
     else:
         return []
-    return list(db.scalars(stmt).all())
+    return [_claim_summary(db, row) for row in db.scalars(stmt).all()]
+
+
+def _relations(db: Session, claim: Claim) -> list[ClaimRelationOut]:
+    rows = db.scalars(select(ClaimRelationLink).where(ClaimRelationLink.claim_id == claim.id)).all()
+    return [
+        ClaimRelationOut(
+            related_claim_id=row.related_claim_id,
+            relation=row.relation,
+            created_at=row.created_at,
+        )
+        for row in rows
+    ]
 
 
 def _claim_out(db: Session, claim: Claim) -> ClaimOut:
@@ -82,7 +111,8 @@ def _claim_out(db: Session, claim: Claim) -> ClaimOut:
             "subject_name": entity_name(db, claim.subject_entity_type, claim.subject_entity_id),
             "object_name": entity_name(db, claim.object_entity_type, claim.object_entity_id),
             "evidence": [EvidenceOut.model_validate(row) for row in evidence_rows],
-            "possible_duplicate_ids": _possible_duplicates(db, claim),
+            "possible_duplicates": _possible_duplicates(db, claim),
+            "relations": _relations(db, claim),
         }
     )
 
@@ -338,6 +368,62 @@ def approve_claim(
         actor_user_id=user.user_id,
         # Rettelser før godkendelse er et produktkvalitetsmål (§18).
         changes={"status": claim.review_status.value, "rettelser": edits or None},
+    )
+    return _claim_out(db, claim)
+
+
+@router.post("/claims/{claim_id}/relate", response_model=ClaimOut)
+def relate_claim(
+    claim_id: uuid.UUID,
+    body: ClaimRelateRequest,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_role(UserRole.reviewer)),
+) -> ClaimOut:
+    """Reviewerens endelige relation mellem to claims (Technical Master §15).
+
+    Begge claims består: en dublet slettes ikke, men markeres superseded af
+    det claim, der beholdes. En konflikt markerer begge som contradicted —
+    MVP afgør ikke selv, hvilket claim der er rigtigt.
+    """
+    claim = _get_claim_or_404(db, claim_id)
+    if body.related_claim_id == claim_id:
+        raise ApiError(422, "validation_error", "Et claim kan ikke relateres til sig selv.")
+    related = db.get(Claim, body.related_claim_id)
+    if related is None:
+        raise ApiError(404, "not_found", "Det relaterede claim findes ikke.")
+
+    existing = db.scalar(
+        select(ClaimRelationLink).where(
+            ClaimRelationLink.claim_id == claim.id,
+            ClaimRelationLink.related_claim_id == related.id,
+        )
+    )
+    if existing is not None:
+        raise ApiError(409, "already_related", "Relationen findes allerede.")
+
+    db.add(
+        ClaimRelationLink(
+            claim_id=claim.id,
+            related_claim_id=related.id,
+            relation=body.relation,
+            created_by_user_id=user.user_id,
+        )
+    )
+
+    if body.relation == ClaimRelation.supersedes:
+        related.lifecycle_status = ClaimLifecycle.superseded
+    elif body.relation == ClaimRelation.contradicts:
+        claim.lifecycle_status = ClaimLifecycle.contradicted
+        related.lifecycle_status = ClaimLifecycle.contradicted
+    db.flush()
+
+    record(
+        db,
+        entity_type=AuditEntity.claim,
+        entity_id=claim.id,
+        action=AuditAction.related,
+        actor_user_id=user.user_id,
+        changes={"relation": body.relation.value, "related_claim_id": related.id},
     )
     return _claim_out(db, claim)
 

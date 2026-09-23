@@ -113,7 +113,11 @@ def test_entity_resolution_reuses_company_across_documents(
     assert first_claims and second_claims
     assert first_claims[0]["subject_entity_id"] == second_claims[0]["subject_entity_id"]
     # Samme udsagn i to dokumenter → duplicate-kandidat til review.
-    assert first_claims[0]["id"] in second_claims[0]["possible_duplicate_ids"]
+    candidates = second_claims[0]["possible_duplicates"]
+    assert first_claims[0]["id"] in [candidate["id"] for candidate in candidates]
+    # Kandidaten vises med indhold, så relationen kan vurderes direkte.
+    assert candidates[0]["subject_name"]
+    assert candidates[0]["review_status"]
 
 
 def test_review_actions_approve_edit_reject_complete(

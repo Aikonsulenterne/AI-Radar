@@ -140,3 +140,64 @@ def test_refusal_sends_document_to_manual_follow_up(
     assert response.json()["status"] == "failed"
     document = client.get(f"/api/v1/review/documents/{document_id}", headers=admin_headers).json()
     assert document["error_code"] == "ai_refused"
+
+
+@pytest.fixture
+def ai_env(monkeypatch: pytest.MonkeyPatch) -> Any:
+    """Sæt AI-variabler som på Render og nulstil settings-cachen før og efter."""
+    from app.ai.provider import get_ai_provider
+    from app.config import get_settings
+
+    def apply(**env: str) -> None:
+        for key in ("AI_PROVIDER", "AI_MODEL_ID", "AI_PROVIDER_API_KEY", "AI_PROVIDER_BASE_URL"):
+            monkeypatch.delenv(key, raising=False)
+        for key, value in env.items():
+            monkeypatch.setenv(key, value)
+        get_settings.cache_clear()
+        get_ai_provider.cache_clear()
+
+    yield apply
+    get_settings.cache_clear()
+    get_ai_provider.cache_clear()
+
+
+@pytest.mark.parametrize(
+    ("env", "missing"),
+    [
+        ({"AI_PROVIDER": "anthropic", "AI_PROVIDER_API_KEY": "k"}, "AI_MODEL_ID"),
+        ({"AI_PROVIDER": "anthropic", "AI_MODEL_ID": "claude-opus-5"}, "AI_PROVIDER_API_KEY"),
+        ({"AI_MODEL_ID": "claude-opus-5", "AI_PROVIDER_API_KEY": "k"}, "AI_PROVIDER_BASE_URL"),
+        ({"AI_PROVIDER": "claude", "AI_MODEL_ID": "m", "AI_PROVIDER_API_KEY": "k"}, "AI_PROVIDER"),
+    ],
+)
+def test_config_problem_names_the_missing_variable(
+    ai_env: Any, env: dict[str, str], missing: str
+) -> None:
+    from app.ai.provider import ai_config_problem, get_ai_provider
+
+    ai_env(**env)
+    problem = ai_config_problem()
+    assert problem is not None and missing in problem
+    assert get_ai_provider() is None
+    # Nøglens værdi må aldrig stå i en fejlbesked.
+    assert "'k'" not in problem
+
+
+def test_whitespace_and_case_from_copy_paste_do_not_disable_ai(ai_env: Any) -> None:
+    from app.ai.provider import ai_config_problem, get_ai_provider
+
+    ai_env(AI_PROVIDER=" Anthropic ", AI_MODEL_ID=" claude-opus-5\n", AI_PROVIDER_API_KEY=" k ")
+    assert ai_config_problem() is None
+    provider = get_ai_provider()
+    assert isinstance(provider, AnthropicProvider)
+    assert provider._model_id == "claude-opus-5"
+
+
+def test_process_error_names_the_missing_variable(
+    client: TestClient, admin_headers: dict[str, str], ai_env: Any
+) -> None:
+    ai_env(AI_PROVIDER="anthropic", AI_MODEL_ID="claude-opus-5")
+    document_id = _upload_document(client, admin_headers)
+    response = client.post(f"/api/v1/review/documents/{document_id}/process", headers=admin_headers)
+    assert response.status_code == 503
+    assert "AI_PROVIDER_API_KEY" in response.json()["error"]["message"]

@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.ai.provider import AIProvider, get_ai_provider
+from app.ai.provider import AIProvider, ai_config_problem, get_ai_provider
 from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, require_role
 from app.db import get_db
@@ -55,7 +55,7 @@ def ai_provider_dep() -> AIProvider:
         raise ApiError(
             503,
             "ai_not_configured",
-            "AI-provider er ikke konfigureret (AI_PROVIDER_BASE_URL/AI_MODEL_ID).",
+            f"AI-provider er ikke konfigureret: {ai_config_problem()}",
         )
     return provider
 

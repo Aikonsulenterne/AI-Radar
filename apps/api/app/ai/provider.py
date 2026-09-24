@@ -145,30 +145,56 @@ class OpenAICompatProvider:
         return content
 
 
+_PROVIDERS = ("openai_compat", "anthropic")
+
+
+def ai_config_problem() -> str | None:
+    """Hvad der mangler i AI-konfigurationen, eller None når den er komplet.
+
+    Navngiver variablen, så fejlen kan rettes uden at gætte. Hemmelige
+    værdier nævnes aldrig — kun hvilken variabel der mangler.
+    """
+    settings = get_settings()
+    provider = settings.ai_provider.strip().lower()
+    if provider not in _PROVIDERS:
+        return (
+            f"AI_PROVIDER har den ukendte værdi {settings.ai_provider!r} — "
+            "brug 'anthropic' (Claude) eller 'openai_compat'."
+        )
+    if not settings.ai_model_id.strip():
+        return "AI_MODEL_ID mangler (fx claude-opus-5)."
+    if provider == "anthropic" and not settings.ai_provider_api_key.strip():
+        return "AI_PROVIDER_API_KEY mangler (kræves med AI_PROVIDER=anthropic)."
+    if provider == "openai_compat" and not settings.ai_provider_base_url.strip():
+        return (
+            "AI_PROVIDER_BASE_URL mangler (kræves med AI_PROVIDER=openai_compat). "
+            "Til Claude sættes AI_PROVIDER=anthropic."
+        )
+    return None
+
+
 @lru_cache
 def get_ai_provider() -> AIProvider | None:
-    """None når AI ikke er konfigureret — kaldere skal håndtere det eksplicit.
+    """None når AI ikke er konfigureret — kaldere skal håndtere det eksplicit
+    og kan vise årsagen fra ai_config_problem().
 
     AI_PROVIDER vælger adapteren: "openai_compat" (standard; kræver
     AI_PROVIDER_BASE_URL) eller "anthropic" (Claude via Anthropics SDK).
+    Værdier trimmes, så et mellemrum fra copy-paste ikke slår AI fra.
     """
-    settings = get_settings()
-    if not settings.ai_model_id:
+    if ai_config_problem() is not None:
         return None
+    settings = get_settings()
+    model_id = settings.ai_model_id.strip()
+    api_key = settings.ai_provider_api_key.strip()
 
-    if settings.ai_provider == "anthropic":
-        if not settings.ai_provider_api_key:
-            return None
+    if settings.ai_provider.strip().lower() == "anthropic":
         from app.ai.anthropic_provider import AnthropicProvider
 
-        return AnthropicProvider(
-            api_key=settings.ai_provider_api_key, model_id=settings.ai_model_id
-        )
+        return AnthropicProvider(api_key=api_key, model_id=model_id)
 
-    if not settings.ai_provider_base_url:
-        return None
     return OpenAICompatProvider(
-        base_url=settings.ai_provider_base_url,
-        api_key=settings.ai_provider_api_key,
-        model_id=settings.ai_model_id,
+        base_url=settings.ai_provider_base_url.strip(),
+        api_key=api_key,
+        model_id=model_id,
     )

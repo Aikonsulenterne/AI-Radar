@@ -26,7 +26,7 @@ from app.ai.prompts import (
     RELEVANCE_PROMPT_VERSION,
     RELEVANCE_SYSTEM,
 )
-from app.ai.provider import AIProvider, get_ai_provider
+from app.ai.provider import AIProvider, ai_config_problem, get_ai_provider
 from app.ai.schemas import (
     AISchemaError,
     ExtractionResult,
@@ -161,7 +161,7 @@ def main() -> None:
 
     provider = get_ai_provider()
     if provider is None:
-        raise SystemExit("AI-provider er ikke konfigureret (AI_PROVIDER_BASE_URL/AI_MODEL_ID).")
+        raise SystemExit(f"AI-provider er ikke konfigureret: {ai_config_problem()}")
 
     records = load_dataset(args.dataset)
     report = evaluate(provider, records)

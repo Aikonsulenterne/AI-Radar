@@ -29,7 +29,7 @@ from app.errors import ApiError
 from app.models import Document
 from app.models_claims import Claim, ClaimEvidence, ClaimRelationLink
 from app.pipeline.entities import entity_name
-from app.pipeline.process import process_document
+from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.schemas import DocumentOut, Paginated
 from app.schemas_claims import (
     ApproveRequest,
@@ -236,22 +236,12 @@ def process_document_endpoint(
     Lokalt implementeringsvalg: synkron kørsel i API'et; planlagt/asynkron
     behandling via worker kommer senere (docs/05_Implementation_Notes.md).
     """
-    document = db.get(Document, document_id)
-    if document is None:
-        raise ApiError(404, "not_found", "Dokumentet findes ikke.")
-    allowed = {
-        ProcessingStatus.normalized,
-        ProcessingStatus.classified_relevant,
-        ProcessingStatus.failed,
-    }
-    if document.processing_status not in allowed:
-        raise ApiError(
-            409,
-            "invalid_status",
-            f"Dokumentet kan ikke behandles i status '{document.processing_status}'.",
-        )
-
-    outcome = process_document(db, provider, document)
+    document, previous = begin_processing(db, document_id)
+    try:
+        outcome = process_document(db, provider, document)
+    except Exception:
+        abort_processing(db, document, previous)
+        raise
     record(
         db,
         entity_type=AuditEntity.document,

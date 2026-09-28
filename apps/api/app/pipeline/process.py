@@ -7,6 +7,7 @@ retry går dokumentet til manuel opfølgning (processing_status=failed).
 
 import uuid
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy.orm import Session
 
@@ -42,6 +43,65 @@ from app.pipeline.entities import resolve_company, resolve_object_entity
 
 # Dokumenter afkortes til denne længde i prompten; fulde tekster ligger i DB.
 _MAX_PROMPT_CHARS = 60_000
+
+# Statusser et dokument kan (gen)behandles fra.
+PROCESSABLE_STATUSES = frozenset(
+    {ProcessingStatus.normalized, ProcessingStatus.classified_relevant, ProcessingStatus.failed}
+)
+# En kørsel, der dør midtvejs (fx genstart af serveren), efterlader
+# extraction_pending. Efter dette tidsrum må dokumentet køres igen.
+STALE_PROCESSING_AFTER = timedelta(minutes=15)
+
+
+def _processing_is_stale(document: Document) -> bool:
+    updated = document.updated_at
+    if updated.tzinfo is None:  # SQLite gemmer uden tidszone
+        updated = updated.replace(tzinfo=UTC)
+    return datetime.now(UTC) - updated > STALE_PROCESSING_AFTER
+
+
+def begin_processing(db: Session, document_id: uuid.UUID) -> tuple[Document, ProcessingStatus]:
+    """Markér dokumentet som under behandling og commit, før AI kaldes.
+
+    Rækkelåsen (FOR UPDATE) serialiserer samtidige kald: det andet venter,
+    ser extraction_pending og afvises med 409. Så behandles samme dokument
+    aldrig to gange (dobbelte claims og dobbelt AI-forbrug). Returnerer den
+    status, der skal genskabes, hvis kørslen afbrydes.
+    """
+    document = db.get(Document, document_id, with_for_update=True)
+    if document is None:
+        raise ApiError(404, "not_found", "Dokumentet findes ikke.")
+    status = document.processing_status
+    if status == ProcessingStatus.extraction_pending:
+        if not _processing_is_stale(document):
+            raise ApiError(
+                409,
+                "already_processing",
+                "Dokumentet er allerede under AI-behandling. Vent, til kørslen er færdig.",
+            )
+        status = ProcessingStatus.normalized
+    elif status not in PROCESSABLE_STATUSES:
+        raise ApiError(
+            409,
+            "invalid_status",
+            f"Dokumentet kan ikke behandles i status '{status}'.",
+        )
+    if not document.normalized_text:
+        raise ApiError(
+            409,
+            "no_text",
+            "Dokumentet har ingen normaliseret tekst, så der kan ikke udtrækkes claims.",
+        )
+    document.processing_status = ProcessingStatus.extraction_pending
+    db.commit()
+    return document, status
+
+
+def abort_processing(db: Session, document: Document, previous: ProcessingStatus) -> None:
+    """Rul en afbrudt kørsel tilbage, så dokumentet kan køres igen."""
+    db.rollback()
+    document.processing_status = previous
+    db.commit()
 
 
 @dataclass

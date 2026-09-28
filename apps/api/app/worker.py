@@ -28,7 +28,7 @@ from app.enums import AccessClass, Frequency, ProcessingStatus, RetrievalMethod
 from app.errors import ApiError
 from app.ingestion.run import run_source_fetch
 from app.models import Document, Source
-from app.pipeline.process import process_document
+from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.storage import get_storage
 
 logger = logging.getLogger("ai_radar.worker")
@@ -106,15 +106,21 @@ def run_once() -> WorkerRunResult:
             pending = db.scalars(
                 select(Document).where(Document.processing_status == ProcessingStatus.normalized)
             ).all()
-            for document in pending:
+            for document_id in [document.id for document in pending]:
+                try:
+                    document, previous = begin_processing(db, document_id)
+                except ApiError:
+                    # Behandles allerede fra admin-UI'et, eller status er ændret.
+                    db.rollback()
+                    continue
                 try:
                     process_document(db, provider, document)
                 except ApiError as exc:
+                    abort_processing(db, document, previous)
                     if exc.code != "ai_provider_rejected":
                         raise
                     # Nøgle/model/kvote er forkert: alle dokumenter vil fejle ens,
                     # så kørslen stopper i stedet for at gentage fejlen pr. dokument.
-                    db.rollback()
                     logger.error("ai_provider_rejected message=%s", exc.message)
                     break
                 db.commit()

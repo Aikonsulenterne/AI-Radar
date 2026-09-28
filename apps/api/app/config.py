@@ -37,6 +37,10 @@ class Settings(BaseSettings):
     # Artikler pr. RSS-kørsel — holder én kørsel afgrænset.
     rss_max_items: int = 20
 
+    # Delt hemmelighed, som den planlagte udløser (GitHub Actions) sender i
+    # X-Worker-Token for at starte en kørsel. Tom = kun Admin-login kan.
+    worker_trigger_token: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

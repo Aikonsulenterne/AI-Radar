@@ -51,10 +51,32 @@ blueprintet, så en blueprint-sync ved push aldrig overskriver det, der er
 sat i dashboardet.
 
 Free tier-begrænsninger (bevidst accepteret for staging): servicen
-sover efter inaktivitet (~30-50 sek. opvågning), og worker-processen
-kører ikke — hentning/AI-behandling udføres via knapperne i admin-UI'et.
-Ved opgradering til betalt plan tilføjes workeren som separat service
+sover efter inaktivitet (~30-50 sek. opvågning), og der er ingen separat
+worker-proces. Kørsler udføres derfor i API-processen via
+`POST /api/v1/runs` (se "Automatisk kørsel" nedenfor). Ved opgradering til
+betalt plan kan workeren i stedet køre som separat service
 (`python -m app.worker --interval 300`).
+
+**Automatisk kørsel.** En kørsel henter aktive, offentlige RSS- og
+web_fetch-kilder fra Source Registry og AI-behandler nye dokumenter. Claims
+lander som forslag i Review — intet publiceres automatisk. Hver kørsel
+logges i `worker_runs` og vises under Admin → Sources.
+
+- *Ugentligt:* `.github/workflows/weekly-run.yml` kalder endpointet mandag
+  05:00 UTC med `force_all=false`, så kun kilder med forfalden frekvens
+  (daglig/ugentlig/månedlig) hentes. Kilder med frekvens "manuel" springes
+  over.
+- *On demand:* "Kør nu" i Admin → Sources (kræver Admin) henter alle aktive
+  kilder, også manuelle, uanset næste kontrol. Workflowet kan også startes
+  manuelt under Actions → Ugentlig kørsel → Run workflow.
+- *Opsætning:* generér et langt tilfældigt token (fx `openssl rand -hex 32`),
+  sæt det som `WORKER_TRIGGER_TOKEN` på Render og som repository secret
+  `WORKER_TRIGGER_TOKEN` i GitHub, og sæt `AI_RADAR_API_URL` (API-URL'en
+  inkl. `/api/v1`) som repository secret. Uden token på Render kan kun
+  Admin-login starte kørsler.
+- Kun én kørsel ad gangen (409 `run_in_progress`); en kørsel, der stadig
+  står som `running` efter 2 timer, betragtes som død og blokerer ikke.
+- GitHub kører kun planlagte workflows fra repositoriets default branch.
 
 ## 2. Backend (containerhost, generelt)
 

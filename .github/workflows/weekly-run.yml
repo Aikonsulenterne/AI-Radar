@@ -1,0 +1,66 @@
+# Ugentlig kørsel af AI Radar: hent kuraterede kilder og AI-behandl nye
+# dokumenter. Selve arbejdet sker i API'et på Render (POST /api/v1/runs);
+# workflowet er kun udløseren, så AI-nøgler og database-secrets bliver på
+# Render. Kan også startes manuelt: Actions → Ugentlig kørsel → Run workflow.
+#
+# Kræver to repository secrets (Settings → Secrets and variables → Actions):
+#   AI_RADAR_API_URL      fx https://ai-radar-api-efk5.onrender.com/api/v1
+#   WORKER_TRIGGER_TOKEN  samme værdi som WORKER_TRIGGER_TOKEN på Render
+name: Ugentlig kørsel
+
+on:
+  schedule:
+    # Mandag 05:00 UTC = 07:00 dansk sommertid / 06:00 vintertid.
+    - cron: "0 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: weekly-run
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Start kørsel og vent på resultatet
+        env:
+          API_URL: ${{ secrets.AI_RADAR_API_URL }}
+          TOKEN: ${{ secrets.WORKER_TRIGGER_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${API_URL}" ] || [ -z "${TOKEN}" ]; then
+            echo "::error::AI_RADAR_API_URL og WORKER_TRIGGER_TOKEN skal sættes som repository secrets."
+            exit 1
+          fi
+
+          # Render free tier sover: første kald vækker servicen (op til ~1 min),
+          # og --retry dækker de 502/503-svar, der kan komme imens.
+          curl --silent --show-error --fail-with-body \
+            --retry 6 --retry-delay 20 --retry-connrefused --max-time 90 \
+            -X POST "${API_URL}/runs" \
+            -H "X-Worker-Token: ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d '{"force_all": false}' > run.json
+          run_id=$(jq -r .id run.json)
+          echo "Kørsel startet: ${run_id}"
+
+          # Polling holder også servicen vågen, mens kørslen arbejder.
+          status=running
+          for _ in $(seq 1 110); do
+            sleep 30
+            if curl --silent --show-error --fail --max-time 60 \
+              "${API_URL}/runs/${run_id}" -H "X-Worker-Token: ${TOKEN}" > latest.json; then
+              status=$(jq -r .status latest.json)
+              [ "${status}" != "running" ] && break
+            fi
+          done
+
+          jq '{status, sources_checked, documents_created, documents_processed, fetch_failures, error_message_safe}' latest.json
+          if [ "${status}" != "succeeded" ]; then
+            echo "::error::Kørslen endte med status ${status}."
+            exit 1
+          fi

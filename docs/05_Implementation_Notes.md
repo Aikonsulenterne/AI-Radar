@@ -72,7 +72,7 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **AI-kørsel:** `POST /review/documents/{id}/process` kører relevans og
   claim extraction synkront i API'et (endpointet supplerer masterens
   liste). Uden konfigureret AI-provider svarer det 503
-  `ai_not_configured`. Planlagt/asynkron worker-kørsel kommer senere.
+  `ai_not_configured`. Planlagte kørsler: se "Automatiske kørsler".
 - **Evidens håndhæves mekanisk:** et claim kasseres, hvis
   `supporting_excerpt` ikke findes ordret i den normaliserede tekst;
   offsets beregnes server-side. Prompten forbyder at følge instruktioner
@@ -279,9 +279,39 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   staging-projektet) og HS256 via `SUPABASE_JWT_SECRET` (legacy; bruges
   af unit tests). Algoritmen aflæses af tokenets header; ukendte
   algoritmer afvises.
-- Render free tier hoster API'et (blueprint i `render.yaml`); workeren
-  kører ikke på free tier — hentning/AI-behandling via admin-UI'ets
-  knapper indtil opgradering.
+- Render free tier hoster API'et (blueprint i `render.yaml`). Der er ingen
+  separat worker-proces på free tier, så workerens kørsel udløses via
+  `POST /api/v1/runs` og udføres som baggrundsopgave i API-processen efter
+  svaret (se "Automatiske kørsler" nedenfor).
+
+## Automatiske kørsler
+
+- **Behov:** radaren skal hente fra kuraterede kilder ugentligt og on
+  demand uden manuelle klik pr. kilde. Kilder kurateres fortsat af
+  mennesker i Source Registry; kørslen opdager ikke nye kilder selv.
+- **Udløser:** GitHub Actions (`weekly-run.yml`, mandag 05:00 UTC) — ingen
+  ny tjeneste, CI'en findes allerede. Workflowet er kun en udløser: det
+  kalder API'et med `X-Worker-Token`, så AI-nøgle og database-secrets
+  forbliver på Render. "Kør nu" i admin bruger samme endpoint med
+  Admin-login.
+- **Planlagt vs. on demand:** planlagt kørsel henter kun kilder med
+  forfalden frekvens; "Kør nu" (`force_all`) henter alle aktive kilder,
+  også dem med frekvens "manuel" — et menneske har bedt om det.
+- **Kørselslog:** `worker_runs` (én række pr. kørsel: udløser, status,
+  tællinger, sikker fejltekst). Kun én kørsel ad gangen; en kørsel, der har
+  stået som `running` i over 2 timer, markeres som afbrudt.
+- **Samtidighed med manuel AI-behandling:** begge veje går gennem
+  `begin_processing`, der låser dokumentrækken og sætter
+  `extraction_pending` før AI-kaldet, så et dokument aldrig behandles to
+  gange (dobbeltklikket på Deepvis-dokumentet gav dobbelte claims).
+- **Afgrænsning:** en afvist AI-nøgle stopper kørslen (status `failed` med
+  årsag) i stedet for at gentage fejlen pr. dokument. Human-in-the-loop er
+  uændret: kørslen foreslår claims; godkendelse og publicering er
+  menneskelige handlinger.
+- **Kendt begrænsning (free tier):** Render kan lukke en inaktiv instans;
+  workflowet poller status hvert 30. sekund, hvilket også holder den vågen.
+  Afbrydes en kørsel alligevel, samler næste kørsel de resterende
+  normaliserede dokumenter op.
 
 ## Frontend-auth (Supabase Auth)
 

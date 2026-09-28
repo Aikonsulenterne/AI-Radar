@@ -185,6 +185,39 @@ export function runSource(sourceId: string): Promise<RunResult> {
   return request<RunResult>(`/sources/${sourceId}/run`, { method: "POST" });
 }
 
+export type RunTrigger = "schedule" | "manual" | "cli";
+export type RunStatus = "running" | "succeeded" | "failed";
+
+/** Én kørsel af ingestion/AI-workeren (ugentlig eller "Kør nu"). */
+export interface WorkerRun {
+  id: string;
+  trigger: RunTrigger;
+  force_all: boolean;
+  status: RunStatus;
+  started_at: string;
+  finished_at: string | null;
+  started_by_user_id: string | null;
+  sources_checked: number;
+  documents_created: number;
+  documents_unchanged: number;
+  fetch_failures: number;
+  documents_processed: number;
+  processing_skipped_no_ai: boolean;
+  error_message_safe: string | null;
+}
+
+export function listRuns(limit = 5): Promise<WorkerRun[]> {
+  return request<WorkerRun[]>(`/runs?limit=${limit}`);
+}
+
+export function startRun(): Promise<WorkerRun> {
+  return request<WorkerRun>("/runs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ force_all: true }),
+  });
+}
+
 export function uploadDocument(
   sourceId: string,
   file: File,

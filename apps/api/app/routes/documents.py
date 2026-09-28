@@ -208,8 +208,13 @@ def get_document(
     if document is None:
         raise ApiError(404, "not_found", "Dokumentet findes ikke.")
 
+    # Læserækkefølge: claims i den orden, deres evidens står i dokumentet.
+    # Uden ORDER BY er rækkefølgen tilfældig i PostgreSQL.
     claim_ids = db.scalars(
-        select(ClaimEvidence.claim_id).where(ClaimEvidence.document_id == document.id).distinct()
+        select(ClaimEvidence.claim_id)
+        .where(ClaimEvidence.document_id == document.id)
+        .group_by(ClaimEvidence.claim_id)
+        .order_by(func.min(ClaimEvidence.excerpt_start), ClaimEvidence.claim_id)
     ).all()
     claims = [
         _claim_out(db, claim)

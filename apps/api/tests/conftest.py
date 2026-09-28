@@ -40,7 +40,7 @@ from sqlalchemy import Engine, create_engine, text  # noqa: E402
 from sqlalchemy.orm import Session, sessionmaker  # noqa: E402
 from sqlalchemy.pool import StaticPool  # noqa: E402
 
-from app.db import Base, get_db  # noqa: E402
+from app.db import Base, get_db, get_session_factory  # noqa: E402
 from app.enums import UserRole  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Profile  # noqa: E402
@@ -123,6 +123,8 @@ def client(db_session_factory: SessionFactory) -> Generator[TestClient, None, No
             session.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    # Baggrundskørsler (POST /runs) bruger samme testdatabase.
+    app.dependency_overrides[get_session_factory] = lambda: db_session_factory
     yield TestClient(app)
     app.dependency_overrides.clear()
 

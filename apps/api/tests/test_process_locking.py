@@ -6,9 +6,10 @@ kaldes, og et samtidigt kald afvises med 409.
 """
 
 import uuid
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.enums import ProcessingStatus
@@ -16,16 +17,11 @@ from app.models import Document
 from tests.conftest import SessionFactory, _upload_document
 
 
-def _set_status(
-    factory: SessionFactory, document_id: str, status: ProcessingStatus, age: timedelta
-) -> None:
+def _set_status(factory: SessionFactory, document_id: str, status: ProcessingStatus) -> None:
     with factory() as session:
         document = session.get(Document, uuid.UUID(document_id))
         assert document is not None
         document.processing_status = status
-        session.flush()
-        # updated_at sættes eksplicit, så onupdate ikke overskriver alderen.
-        document.updated_at = datetime.now(UTC) - age
         session.commit()
 
 
@@ -40,7 +36,7 @@ def test_document_under_processing_is_not_processed_again(
     db_session_factory: SessionFactory,
 ) -> None:
     document_id = _upload_document(client, admin_headers)
-    _set_status(db_session_factory, document_id, ProcessingStatus.extraction_pending, timedelta())
+    _set_status(db_session_factory, document_id, ProcessingStatus.extraction_pending)
 
     response = _process(client, admin_headers, document_id)
 
@@ -54,11 +50,13 @@ def test_stale_processing_can_be_restarted(
     admin_headers: dict[str, str],
     fake_provider: Any,
     db_session_factory: SessionFactory,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     document_id = _upload_document(client, admin_headers)
-    _set_status(
-        db_session_factory, document_id, ProcessingStatus.extraction_pending, timedelta(hours=1)
-    )
+    _set_status(db_session_factory, document_id, ProcessingStatus.extraction_pending)
+    # updated_at sættes af en databasetrigger i PostgreSQL og kan ikke
+    # bagdateres; i stedet regnes enhver igangværende kørsel som død.
+    monkeypatch.setattr("app.pipeline.process.STALE_PROCESSING_AFTER", timedelta(seconds=-1))
 
     response = _process(client, admin_headers, document_id)
 

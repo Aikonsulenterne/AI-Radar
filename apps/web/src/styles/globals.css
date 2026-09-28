@@ -975,3 +975,27 @@ a {
     overflow-x: auto;
   }
 }
+
+/* --- Automatisk kørsel (admin/sources) --- */
+
+.run-latest {
+  margin-top: var(--space-4);
+}
+
+.run-latest p {
+  margin: 0 0 var(--space-1);
+}
+
+.run-history {
+  margin-top: var(--space-3);
+  font-size: 13px;
+}
+
+.run-history ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-4);
+}
+
+.run-history li {
+  margin-bottom: var(--space-1);
+}

@@ -3,8 +3,9 @@
 #
 # Free tier-begrænsninger (accepteret for staging, se docs/04_Deployment.md):
 # - Servicen sover efter inaktivitet; første kald tager ~30-50 sek.
-# - Ingen separat worker-proces: kildehentning og AI-behandling køres
-#   manuelt via knapperne i admin-UI'et, indtil der opgraderes.
+# - Ingen separat worker-proces: kørsler udløses via POST /api/v1/runs —
+#   ugentligt fra GitHub Actions (.github/workflows/weekly-run.yml) og on
+#   demand med "Kør nu" i admin — og udføres i API-processen.
 #
 # Secrets (sync: false) indtastes i Render-dashboardet — aldrig i Git.
 services:
@@ -43,6 +44,10 @@ services:
       - key: AI_MODEL_ID
         sync: false
       - key: AI_PROVIDER_API_KEY
+        sync: false
+      # Delt hemmelighed til den ugentlige udløser (GitHub Actions). Samme værdi
+      # sættes som repository secret WORKER_TRIGGER_TOKEN.
+      - key: WORKER_TRIGGER_TOKEN
         sync: false
       - key: DATABASE_URL
         sync: false

@@ -22,6 +22,11 @@ def get_engine() -> Engine:
     return create_engine(get_settings().database_url)
 
 
+def get_session_factory() -> sessionmaker[Session]:
+    """Til arbejde uden for requestens session (baggrundskørsler)."""
+    return sessionmaker(bind=get_engine())
+
+
 def get_db() -> Generator[Session, None, None]:
     factory = sessionmaker(bind=get_engine())
     session = factory()

@@ -1,5 +1,6 @@
 import { listSources, type Source } from "../../lib/api";
 import { CreateSourceForm } from "./CreateSourceForm";
+import { RunPanel } from "./RunPanel";
 import { SourceActions } from "./SourceActions";
 import { ApiErrorAlert } from "../../../components/states/api-error";
 
@@ -9,6 +10,13 @@ const RETRIEVAL_LABELS: Record<Source["retrieval_method"], string> = {
   rss: "RSS",
   web_fetch: "Web fetch",
   manual_upload: "Manuel upload",
+};
+
+const FREQUENCY_LABELS: Record<Source["frequency"], string> = {
+  manual: "Manuel",
+  daily: "Dagligt",
+  weekly: "Ugentligt",
+  monthly: "Månedligt",
 };
 
 function formatDate(value: string | null): string {
@@ -38,6 +46,8 @@ export default async function AdminSourcesPage() {
         kontrol. Hver observation skal kunne spores tilbage hertil.
       </p>
 
+      <RunPanel />
+
       <CreateSourceForm />
 
       {sources === null ? (
@@ -58,6 +68,7 @@ export default async function AdminSourcesPage() {
               <th scope="col">Hentemetode</th>
               <th scope="col">Access</th>
               <th scope="col">Status</th>
+              <th scope="col">Frekvens</th>
               <th scope="col">Senest kontrolleret</th>
               <th scope="col">Handlinger</th>
             </tr>
@@ -82,6 +93,14 @@ export default async function AdminSourcesPage() {
                   >
                     {source.active ? "Aktiv" : "Deaktiveret"}
                   </span>
+                </td>
+                <td>
+                  {FREQUENCY_LABELS[source.frequency]}
+                  {source.frequency !== "manual" && source.next_check_at ? (
+                    <span className="cell-sub">
+                      Næste: {formatDate(source.next_check_at)}
+                    </span>
+                  ) : null}
                 </td>
                 <td>{formatDate(source.last_checked_at)}</td>
                 <td>

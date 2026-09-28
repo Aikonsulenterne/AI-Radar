@@ -186,3 +186,15 @@ class OpportunityStatus(StrEnum):
     pilot = "pilot"
     scaling = "scaling"
     closed = "closed"
+
+
+class RunTrigger(StrEnum):
+    schedule = "schedule"  # ugentlig udløser (GitHub Actions)
+    manual = "manual"  # "Kør nu" i admin
+    cli = "cli"  # python -m app.worker
+
+
+class RunStatus(StrEnum):
+    running = "running"
+    succeeded = "succeeded"
+    failed = "failed"

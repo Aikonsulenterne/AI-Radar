@@ -88,6 +88,9 @@ class DocumentOut(BaseModel):
     is_demo: bool
     error_code: str | None
     created_at: datetime
+    # Claims der venter på en menneskelig beslutning (foreslået eller kræver
+    # yderligere dokumentation). Udfyldes af dokumentlisten; ellers 0.
+    open_claims: int = 0
 
 
 class DocumentDetailOut(DocumentOut):

@@ -79,6 +79,8 @@ export interface DocumentRow {
   is_demo: boolean;
   error_code: string | null;
   created_at: string;
+  /** Claims der venter på godkendelse (kun udfyldt i dokumentlisten). */
+  open_claims: number;
 }
 
 export interface Paginated<T> {

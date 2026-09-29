@@ -39,8 +39,9 @@ export default async function ReviewPage() {
     <>
       <h1>Review</h1>
       <p className="page-lead">
-        Dokumenter i pipelinen. Åbn et dokument for at køre AI-behandling og
-        reviewe foreslåede claims med evidensuddrag.
+        Dokumenter i pipelinen. Klik på et dokument for at se Claudes
+        foreslåede claims med evidensuddrag og godkende, rette eller afvise
+        dem. Kun godkendte claims kan bruges i cases og signaler.
       </p>
 
       {documents === null ? (
@@ -61,6 +62,7 @@ export default async function ReviewPage() {
             <tr>
               <th scope="col">Titel</th>
               <th scope="col">Status</th>
+              <th scope="col">Claims til review</th>
               <th scope="col">MIME</th>
               <th scope="col">Hentet</th>
               <th scope="col">Demo</th>
@@ -81,6 +83,17 @@ export default async function ReviewPage() {
                   <span className="badge badge-muted">
                     {STATUS_LABELS[doc.processing_status]}
                   </span>
+                </td>
+                <td>
+                  {doc.open_claims > 0 ? (
+                    <Link href={`/admin/review/${doc.id}`} className="badge badge-warn">
+                      {doc.open_claims === 1
+                        ? "1 venter"
+                        : `${doc.open_claims} venter`}
+                    </Link>
+                  ) : (
+                    <span className="cell-sub">Ingen</span>
+                  )}
                 </td>
                 <td>{doc.mime_type ?? "–"}</td>
                 <td>{formatDate(doc.retrieved_at)}</td>

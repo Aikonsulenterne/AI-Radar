@@ -169,3 +169,26 @@ def test_review_actions_approve_edit_reject_complete(
     )
     assert complete.status_code == 200
     assert complete.json()["processing_status"] == "reviewed"
+
+
+def test_document_list_counts_claims_awaiting_review(
+    client: TestClient, admin_headers: dict[str, str], fake_provider: FakeProvider
+) -> None:
+    document_id = _upload_document(client, admin_headers)
+    processed = client.post(
+        f"/api/v1/review/documents/{document_id}/process", headers=admin_headers
+    ).json()
+    created = processed["claims_created"]
+    assert created >= 2
+
+    def listed() -> int:
+        rows = client.get("/api/v1/review/documents", headers=admin_headers).json()["items"]
+        count: int = next(row for row in rows if row["id"] == document_id)["open_claims"]
+        return count
+
+    assert listed() == created
+    claim_id = client.get(f"/api/v1/review/documents/{document_id}", headers=admin_headers).json()[
+        "claims"
+    ][0]["id"]
+    client.post(f"/api/v1/review/claims/{claim_id}/approve", headers=admin_headers)
+    assert listed() == created - 1

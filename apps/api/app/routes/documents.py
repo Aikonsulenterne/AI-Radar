@@ -168,8 +168,26 @@ def list_documents(
         stmt = stmt.where(Document.processing_status == processing_status)
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
+    open_counts: dict[uuid.UUID, int] = dict(
+        db.execute(
+            select(ClaimEvidence.document_id, func.count(func.distinct(Claim.id)))
+            .join(Claim, Claim.id == ClaimEvidence.claim_id)
+            .where(
+                ClaimEvidence.document_id.in_([row.id for row in rows]),
+                Claim.review_status.in_(_PATCHABLE_REVIEW_STATUSES),
+            )
+            .group_by(ClaimEvidence.document_id)
+        )
+        .tuples()
+        .all()
+    )
     return Paginated[DocumentOut](
-        items=[DocumentOut.model_validate(row) for row in rows],
+        items=[
+            DocumentOut.model_validate(row).model_copy(
+                update={"open_claims": open_counts.get(row.id, 0)}
+            )
+            for row in rows
+        ],
         total=total,
         limit=limit,
         offset=offset,

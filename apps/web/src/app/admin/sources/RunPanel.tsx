@@ -40,7 +40,8 @@ function summary(run: WorkerRun): string {
   if (
     run.status === "succeeded" &&
     run.sources_checked === 0 &&
-    run.documents_processed === 0
+    run.documents_processed === 0 &&
+    run.documents_published === 0
   ) {
     return "Intet at gøre: ingen aktive RSS- eller web-kilder at hente fra og ingen nye dokumenter at AI-behandle.";
   }
@@ -49,6 +50,7 @@ function summary(run: WorkerRun): string {
     `${run.documents_created} nye dokumenter`,
     `${run.documents_processed} AI-behandlet`,
   ];
+  if (run.documents_published > 0) parts.push(`${run.documents_published} publiceret automatisk`);
   if (run.fetch_failures > 0) parts.push(`${run.fetch_failures} hentefejl`);
   if (run.processing_skipped_no_ai) parts.push("AI ikke konfigureret");
   return parts.join(" · ");
@@ -124,9 +126,9 @@ export function RunPanel() {
       <p className="page-lead">
         Henter RSS- og web-kilder og AI-behandler nye dokumenter. Kører
         automatisk hver mandag morgen for kilder, hvis frekvens er forfalden;
-        &#8220;Kør nu&#8221; henter alle aktive kilder med det samme. Claims
-        lander som forslag i Review — intet publiceres uden menneskelig
-        godkendelse.
+        &#8220;Kør nu&#8221; henter alle aktive kilder med det samme. Med
+        automatisk publicering godkender og publicerer AI selv claims, cases
+        og signaler — alt sådant indhold er mærket &#8220;AI-publiceret&#8221;.
       </p>
 
       <button

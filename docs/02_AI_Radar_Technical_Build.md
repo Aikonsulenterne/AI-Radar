@@ -344,6 +344,8 @@ Claim lifecycle:
 
 “Approved” betyder, at en reviewer har vurderet claimet som korrekt gengivelse af evidensuddraget. Det betyder ikke automatisk uafhængigt bevist sandhed.
 
+**Automatisk godkendelse (besluttet 2026-09-29):** Med `AUTO_PUBLISH=true` sætter pipelinen selv claims til `approved` (`claims.auto_approved = true`, ingen reviewer) og publicerer en adoption case pr. virksomhed og et signal pr. dokument (`auto_published = true`). Signalets titel, resumé, analyse og anbefaling skrives af prompten `signal_draft`; resuméet må kun gengive claims. Dokumentationsniveauet sættes deterministisk: leverandør- og early-signal-kilder giver `early`, øvrige enkeltkilder `limited` — aldrig `strong`. Handlingerne auditeres med `actor_user_id = null` og `automatisk: true`. Se `docs/05_Implementation_Notes.md`.
+
 Gentagelser af samme oprindelige kilde tæller ikke som uafhængig corroboration.
 
 ## 7. Supabase

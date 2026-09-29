@@ -39,6 +39,7 @@ from app.errors import ApiError
 from app.ingestion.run import run_source_fetch
 from app.models import Document, Source
 from app.models_runs import WorkerRun
+from app.pipeline.autopublish import autopublish_document
 from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.storage import get_storage
 
@@ -58,6 +59,8 @@ class WorkerRunResult:
     documents_unchanged: int = 0
     fetch_failures: int = 0
     documents_processed: int = 0
+    # Dokumenter publiceret automatisk (AUTO_PUBLISH), inkl. ventende backlog.
+    documents_published: int = 0
     processing_skipped_no_ai: bool = False
 
 
@@ -161,6 +164,9 @@ def run_once(
                 db.commit()
                 result.documents_processed += 1
 
+            if get_settings().auto_publish:
+                _publish_backlog(db, provider, result)
+
     logger.info(
         "worker_run sources=%d created=%d unchanged=%d failures=%d processed=%d",
         result.sources_checked,
@@ -170,6 +176,26 @@ def run_once(
         result.documents_processed,
     )
     return result
+
+
+def _publish_backlog(db: Session, provider: AIProvider, result: WorkerRunResult) -> None:
+    """Med AUTO_PUBLISH: publicér dokumenter, hvis claims venter på review —
+    fx dem, der blev behandlet, før automatisk publicering blev slået til."""
+    waiting = db.scalars(
+        select(Document.id).where(
+            Document.processing_status.in_(
+                (ProcessingStatus.review_pending, ProcessingStatus.partially_reviewed)
+            )
+        )
+    ).all()
+    for document_id in waiting:
+        document = db.get(Document, document_id)
+        if document is None:
+            continue
+        outcome = autopublish_document(db, provider, document)
+        db.commit()
+        if outcome.claims_approved:
+            result.documents_published += 1
 
 
 # En kørsel, der stadig står som running efter dette, er død undervejs
@@ -251,6 +277,7 @@ def execute_run(
         run.documents_unchanged = result.documents_unchanged
         run.fetch_failures = result.fetch_failures
         run.documents_processed = result.documents_processed
+        run.documents_published = result.documents_published
         run.processing_skipped_no_ai = result.processing_skipped_no_ai
         db.commit()
 

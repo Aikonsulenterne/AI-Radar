@@ -79,6 +79,8 @@ class ClaimOut(BaseModel):
     lifecycle_status: ClaimLifecycle
     created_by: ClaimCreatedBy
     reviewed_at: datetime | None
+    # Godkendt af AI uden menneskelig kontrol (AUTO_PUBLISH).
+    auto_approved: bool = False
     evidence: list[EvidenceOut] = Field(default_factory=list)
     # Deterministisk fundne kandidater (samme subjekt+predicate+objekt) —
     # reviewer afgør relationen (Technical Master §15). Kandidaterne vises

@@ -204,6 +204,7 @@ export interface WorkerRun {
   documents_unchanged: number;
   fetch_failures: number;
   documents_processed: number;
+  documents_published: number;
   processing_skipped_no_ai: boolean;
   error_message_safe: string | null;
 }
@@ -284,6 +285,8 @@ export interface Claim {
   lifecycle_status: "current" | "contradicted" | "superseded" | "expired";
   created_by: "ai" | "human";
   reviewed_at: string | null;
+  /** Godkendt af AI uden menneskelig kontrol (AUTO_PUBLISH). */
+  auto_approved: boolean;
   evidence: Evidence[];
   possible_duplicates: ClaimSummary[];
   relations: ClaimRelationLink[];
@@ -402,6 +405,8 @@ export interface Signal {
   created_at: string;
   updated_at: string;
   claim_count: number;
+  /** Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH). */
+  auto_published: boolean;
 }
 
 export interface SignalDetail extends Signal {
@@ -504,6 +509,8 @@ export interface AdoptionCase {
   created_at: string;
   updated_at: string;
   claim_count: number;
+  /** Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH). */
+  auto_published: boolean;
   facts: CaseFacts;
 }
 

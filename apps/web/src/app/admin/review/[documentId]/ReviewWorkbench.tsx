@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Claim, DocumentReview, Evidence } from "../../../lib/api";
 import { ClaimActions, DuplicateCandidates } from "./ReviewControls";
+import { AiPublishedBadge } from "../../../../components/states/ai-badge";
 
 const REVIEW_STATUS_LABELS: Record<Claim["review_status"], string> = {
   proposed: "Foreslået",
@@ -150,6 +151,9 @@ function ClaimCard({
         <span className="cell-sub">
           {claim.created_by === "ai" ? "Foreslået af AI" : "Oprettet af menneske"}
         </span>
+        {claim.auto_approved ? (
+          <AiPublishedBadge label="Automatisk godkendt af AI" />
+        ) : null}
       </header>
 
       <p className="claim-statement">

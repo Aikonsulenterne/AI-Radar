@@ -45,6 +45,8 @@ class SignalOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     claim_count: int = 0
+    # Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH).
+    auto_published: bool = False
 
 
 class RelatedEntityOut(BaseModel):

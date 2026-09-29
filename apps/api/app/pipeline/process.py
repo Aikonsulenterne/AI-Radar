@@ -27,6 +27,7 @@ from app.ai.schemas import (
     RelevanceResult,
     call_with_schema,
 )
+from app.config import get_settings
 from app.enums import (
     ADOPTION_STAGES,
     PREDICATES_BY_CLAIM_TYPE,
@@ -262,6 +263,11 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
         ProcessingStatus.review_pending if created > 0 else ProcessingStatus.classified_relevant
     )
     db.flush()
+    if created > 0 and get_settings().auto_publish:
+        # Fuldt automatisk: AI godkender og publicerer (pipeline/autopublish.py).
+        from app.pipeline.autopublish import autopublish_document
+
+        autopublish_document(db, provider, document)
     return ProcessOutcome(
         document_id=str(document.id),
         status=document.processing_status,

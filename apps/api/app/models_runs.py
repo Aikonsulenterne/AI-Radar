@@ -30,5 +30,6 @@ class WorkerRun(Base):
     documents_unchanged: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fetch_failures: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     documents_processed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    documents_published: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     processing_skipped_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_message_safe: Mapped[str | None] = mapped_column(Text)

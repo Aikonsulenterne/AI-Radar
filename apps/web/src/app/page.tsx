@@ -6,6 +6,7 @@ import {
   formatDateTime,
 } from "./lib/labels";
 import { ApiErrorAlert } from "../components/states/api-error";
+import { AiPublishedBadge } from "../components/states/ai-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,7 @@ export default async function OverblikPage() {
                   >
                     {DOCUMENTATION_LABELS[signal.documentation_level]}
                   </span>
+                  {signal.auto_published ? <AiPublishedBadge /> : null}
                   <span className="cell-sub">
                     Publiceret {formatDateTime(signal.published_at)} ·{" "}
                     {signal.claim_count} claims

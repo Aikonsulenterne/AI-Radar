@@ -49,6 +49,13 @@ class OpportunityProposalResult(BaseModel):
     reason: str = Field(default="", max_length=500)
 
 
+class SignalDraft(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    summary: str = Field(min_length=1, max_length=1500)
+    analysis: str = Field(default="", max_length=2000)
+    recommendation: str = Field(default="", max_length=1500)
+
+
 class AISchemaError(Exception):
     """AI-output kunne ikke valideres mod schema efter kontrolleret retry."""
 

@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     # X-Worker-Token for at starte en kørsel. Tom = kun Admin-login kan.
     worker_trigger_token: str = ""
 
+    # Fuldt automatisk publicering: AI godkender sine egne claims og
+    # publicerer case og signal uden menneskelig kontrol. Alt markeres som
+    # AI-publiceret. False = human-in-the-loop som i masterfilerne.
+    auto_publish: bool = False
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

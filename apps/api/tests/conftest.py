@@ -59,6 +59,15 @@ def _truncate_all(engine: Engine) -> None:
             connection.execute(text(f"truncate {names} restart identity cascade"))
 
 
+@pytest.fixture(autouse=True)
+def _fresh_settings() -> Generator[None, None, None]:
+    """Tests, der ændrer miljøvariabler, må ikke efterlade cachede settings."""
+    from app.config import get_settings
+
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture()
 def db_session_factory() -> Generator[SessionFactory, None, None]:
     if TEST_DATABASE_URL:
@@ -203,6 +212,14 @@ EXTRACTION_RESPONSE = {
 }
 
 
+SIGNAL_RESPONSE = {
+    "title": "Danske Bank bruger Agent Assist i kundeservice",
+    "summary": "Danske Bank bruger Agent Assist og rapporterer lavere efterbehandlingstid.",
+    "analysis": "Agent Assist ser ud til at være i drift i en stor nordisk bank.",
+    "recommendation": "Undersøg, om Agent Assist kan afprøves i OK's kundeservice.",
+}
+
+
 class FakeProvider:
     """Returnerer faste svar pr. prompt-id; kan fejle med ugyldig JSON."""
 
@@ -237,6 +254,8 @@ class FakeProvider:
             return json.dumps(self.relevance)
         if prompt_id == "opportunity_proposal":
             return json.dumps(self.opportunity or {"proposal": None, "reason": "intet match"})
+        if prompt_id == "signal_draft":
+            return json.dumps(SIGNAL_RESPONSE)
         return json.dumps(self.extraction)
 
 

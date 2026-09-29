@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Text, Uuid, func
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -30,6 +30,8 @@ class Signal(TimestampMixin, Base):
     )
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
+    # Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH).
+    auto_published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class SignalClaim(Base):

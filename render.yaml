@@ -43,6 +43,10 @@ services:
         value: anthropic
       - key: AI_MODEL_ID
         sync: false
+      # Fuldt automatisk publicering (besluttet 2026-09-29): AI godkender og
+      # publicerer selv; alt mærkes AI-publiceret. false = menneskeligt review.
+      - key: AUTO_PUBLISH
+        value: "true"
       - key: AI_PROVIDER_API_KEY
         sync: false
       # Delt hemmelighed til den ugentlige udløser (GitHub Actions). Samme værdi

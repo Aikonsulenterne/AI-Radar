@@ -5,6 +5,7 @@ import {
   documentationBadgeClass,
   formatDateTime,
 } from "../../lib/labels";
+import { AiPublishedBadge } from "../../../components/states/ai-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,11 @@ export default async function SignalPage({
         <span className={documentationBadgeClass(signal.documentation_level)}>
           {DOCUMENTATION_LABELS[signal.documentation_level]}
         </span>{" "}
+        {signal.auto_published ? (
+          <>
+            <AiPublishedBadge />{" "}
+          </>
+        ) : null}
         Publiceret {formatDateTime(signal.published_at)} ·{" "}
         {signal.claim_count} godkendte claims som faktagrundlag
       </p>

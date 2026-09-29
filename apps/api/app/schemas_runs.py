@@ -28,5 +28,6 @@ class WorkerRunOut(BaseModel):
     documents_unchanged: int
     fetch_failures: int
     documents_processed: int
+    documents_published: int
     processing_skipped_no_ai: bool
     error_message_safe: str | None

@@ -6,6 +6,7 @@ import {
   type Company,
 } from "../lib/api";
 import { ApiErrorAlert } from "../../components/states/api-error";
+import { AiPublishedBadge } from "../../components/states/ai-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,7 @@ export default async function AdoptionPage() {
                   <span className="badge badge-muted">
                     {adoptionCase.company_name ?? "Ukendt virksomhed"}
                   </span>
+                  {adoptionCase.auto_published ? <AiPublishedBadge /> : null}
                   <span className="cell-sub">
                     {adoptionCase.claim_count} godkendte claims
                   </span>

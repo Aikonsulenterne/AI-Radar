@@ -47,6 +47,8 @@ Produktet starter med problemer, use cases og capabilities. Leverandører vises 
 
 AI må foreslå, udtrække, klassificere, matche og sammenfatte. AI må ikke alene godkende væsentlige claims, investeringer, business cases eller implementeringer.
 
+**Ændret beslutning (2026-09-29, produktejer):** Claims, adoption cases og signaler kan publiceres fuldt automatisk (indstillingen `AUTO_PUBLISH`). AI godkender da sine egne claims og publicerer case og signal uden menneskelig kontrol. Alt sådant indhold markeres synligt som *AI-publiceret* / *Automatisk godkendt af AI*, og evidensreglerne gælder fortsat: kun claims med ordret evidensuddrag, og signalets faktaafsnit må kun gengive claims. Opportunities, investeringer, business cases og implementeringer kræver fortsat menneskelig godkendelse. Med `AUTO_PUBLISH` slået fra gælder det oprindelige review-flow.
+
 ### Open source og portabilitet
 
 Applikationsstacken skal så vidt muligt bygges med open source-komponenter og åbne standarder. Centrale komponenter skal kunne self-hostes eller udskiftes uden redesign af domænemodellen.

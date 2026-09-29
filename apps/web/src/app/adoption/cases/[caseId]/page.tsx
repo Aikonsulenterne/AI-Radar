@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCase, type AdoptionCaseDetail } from "../../../lib/api";
+import { AiPublishedBadge } from "../../../../components/states/ai-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,11 @@ export default async function CasePage({
       </p>
       <h1>{adoptionCase.title}</h1>
       <p className="page-lead">
+        {adoptionCase.auto_published ? (
+          <>
+            <AiPublishedBadge />{" "}
+          </>
+        ) : null}
         {adoptionCase.company_name ? (
           <Link href={`/adoption/companies/${adoptionCase.company_id}`}>
             {adoptionCase.company_name}

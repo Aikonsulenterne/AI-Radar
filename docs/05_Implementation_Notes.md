@@ -337,3 +337,27 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   PostgreSQL).
 - Evaluering af `opportunity_proposal`-prompten mod reference-datasættet,
   når datasættet er bygget.
+
+## Fuldt automatisk publicering (AUTO_PUBLISH)
+
+- **Beslutning:** produktejeren valgte 2026-09-29 fuld automatik frem for
+  AI-kontrol med stikprøver og frem for menneskelig godkendelse. Radaren
+  skal selv hente, vurdere og publicere.
+- **Flow:** efter claim extraction (`pipeline/process.py`) kalder
+  `pipeline/autopublish.py` — kun når `AUTO_PUBLISH=true` — godkendelse af
+  dokumentets åbne claims, én publiceret adoption case pr. virksomhed og ét
+  publiceret signal (prompt `signal_draft` v1.0.0). Dokumentet får status
+  `reviewed`. Fejler signal-prompten, publiceres claims og cases alligevel.
+- **Backlog:** hver kørsel (`POST /runs`) publicerer også dokumenter, der
+  står i `review_pending`/`partially_reviewed` — fx dem, der blev behandlet,
+  før flaget blev slået til. Idempotent: afgjorte claims røres ikke.
+- **Mærkning:** `claims.auto_approved`, `signals.auto_published` og
+  `adoption_cases.auto_published`; UI'et viser "AI-publiceret" /
+  "Automatisk godkendt af AI". Auditspor med `actor_user_id = null`.
+- **Kvalitet uden menneske:** claim extraction bumpet til v1.1.0 — skelner
+  leverandør fra bruger og udelader generiske produktbeskrivelser (fejlen
+  fra Deepvis-dokumentet: "Deepvis bruger Vision AI").
+- **Uændret:** opportunities kræver fortsat menneskelig godkendelse;
+  evidensuddrag skal fortsat stå ordret i dokumentet; kendt risiko er, at
+  forkerte fortolkninger nu publiceres uden kontrol. Afvist indhold kan
+  stadig trækkes tilbage manuelt (arkivering af signal/case).

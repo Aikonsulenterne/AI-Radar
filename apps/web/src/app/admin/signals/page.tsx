@@ -12,6 +12,7 @@ import {
 } from "../../lib/labels";
 import { CreateSignalForm, SignalRowActions } from "./SignalBuilder";
 import { ApiErrorAlert } from "../../../components/states/api-error";
+import { AiPublishedBadge } from "../../../components/states/ai-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -80,7 +81,8 @@ export default async function AdminSignalsPage() {
                         }
                       >
                         {SIGNAL_STATUS_LABELS[signal.status]}
-                      </span>
+                      </span>{" "}
+                      {signal.auto_published ? <AiPublishedBadge /> : null}
                     </td>
                     <td>{DOCUMENTATION_LABELS[signal.documentation_level]}</td>
                     <td>{signal.claim_count}</td>

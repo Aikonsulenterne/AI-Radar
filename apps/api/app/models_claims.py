@@ -131,6 +131,8 @@ class Claim(TimestampMixin, Base):
     )
     reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # Godkendt af AI uden menneskelig kontrol (AUTO_PUBLISH).
+    auto_approved: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class ClaimEvidence(TimestampMixin, Base):

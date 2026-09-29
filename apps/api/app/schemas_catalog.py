@@ -63,6 +63,8 @@ class CaseOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     claim_count: int = 0
+    # Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH).
+    auto_published: bool = False
     facts: CaseFacts = Field(default_factory=CaseFacts)
 
 

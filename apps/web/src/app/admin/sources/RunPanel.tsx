@@ -37,6 +37,13 @@ function formatDate(value: string | null): string {
 }
 
 function summary(run: WorkerRun): string {
+  if (
+    run.status === "succeeded" &&
+    run.sources_checked === 0 &&
+    run.documents_processed === 0
+  ) {
+    return "Intet at gøre: ingen aktive RSS- eller web-kilder at hente fra og ingen nye dokumenter at AI-behandle.";
+  }
   const parts = [
     `${run.sources_checked} kilder kontrolleret`,
     `${run.documents_created} nye dokumenter`,

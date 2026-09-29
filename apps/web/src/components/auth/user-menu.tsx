@@ -16,8 +16,10 @@ export function UserMenu() {
       setReady(true);
       return;
     }
-    supabase.auth.getUser().then(({ data }) => {
-      setEmail(data.user?.email ?? null);
+    // Lokal session frem for et netværkskald: et kortvarigt netværksudfald
+    // må ikke få topbaren til at vise brugeren som logget ud.
+    supabase.auth.getSession().then(({ data }) => {
+      setEmail(data.session?.user.email ?? null);
       setReady(true);
     });
     const { data: listener } = supabase.auth.onAuthStateChange(

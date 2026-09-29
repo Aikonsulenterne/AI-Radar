@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { ApiClientError } from "../../app/lib/api";
+import { SessionRecovery } from "../auth/session-recovery";
 
 /**
  * Fejlstatus for en side, der ikke kunne hente sine data. Skelner mellem
@@ -14,12 +14,7 @@ export function ApiErrorAlert({
   requiredRole?: "Reviewer eller Admin";
 }) {
   if (error instanceof ApiClientError && error.status === 401) {
-    return (
-      <div className="alert-error" role="alert">
-        Du er ikke logget ind. <Link href="/login">Log ind</Link> for at se
-        indholdet.
-      </div>
-    );
+    return <SessionRecovery />;
   }
   if (error instanceof ApiClientError && error.status === 403) {
     return (

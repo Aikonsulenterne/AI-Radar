@@ -117,7 +117,10 @@ shell, og en indlejret `sh -c "..."` ender som ét kommando-ord (exit 127).
 3. Når Vercel-domænet kendes: tilføj det til `CORS_ORIGINS` på API'et
    (kommasepareret) og redeploy API'et. Uden det afvises browserkaldene.
 4. Supabase → Authentication → URL Configuration: sæt Site URL til
-   Vercel-domænet.
+   Vercel-domænet. Selvregistrering er slået fra (brugere oprettes af en
+   admin), og adgangsbilletten (JWT expiry) er 8 timer på staging, så en
+   arbejdsdag ikke afbrydes af fornyelser. Får en side alligevel 401,
+   fornyer browseren sessionen og genindlæser siden (SessionRecovery).
 5. Preview deployments på PR; production deployes fra `main` efter grøn CI.
 6. Rollback: Vercel's deployment-historik.
 7. Frontend-portabilitet: `docker build apps/web` giver et standalone-image.

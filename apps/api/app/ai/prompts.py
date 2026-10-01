@@ -29,7 +29,8 @@ EXTRACTION_PROMPT_ID = "claim_extraction"
 # 1.1.0: skelner leverandør fra bruger og udelader generiske
 # produktbeskrivelser — nødvendigt, når claims publiceres uden menneskelig
 # kontrol (AUTO_PUBLISH).
-EXTRACTION_PROMPT_VERSION = "1.1.0"
+# 1.2.0: subjektet skal være en organisation, aldrig en person.
+EXTRACTION_PROMPT_VERSION = "1.2.0"
 
 EXTRACTION_SYSTEM = """\
 You extract atomic claims about AI adoption from a document, for later human
@@ -44,7 +45,11 @@ Rules:
   character-for-character from the document that supports the claim on its
   own. No paraphrasing, no ellipses.
 - subject_name is the company the claim is about, exactly as named in the
-  text. Skip claims without a clear company subject.
+  text. Skip claims without a clear company subject. The subject must be an
+  organization (company, public authority, university) — never a person. When
+  a person speaks for an organization, the organization is the subject; if
+  the organization is not named, skip the claim. Use the organization's full
+  name as written (e.g. "Bain & Company", not "Bain").
 - Distinguish vendors from adopters. A company that SELLS or BUILDS an AI
   product is not adopting it: never write "<vendor> USES_CAPABILITY <its own
   product>". When a named customer uses the product, the customer is the

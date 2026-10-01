@@ -363,3 +363,21 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   evidensuddrag skal fortsat stå ordret i dokumentet; kendt risiko er, at
   forkerte fortolkninger nu publiceres uden kontrol. Afvist indhold kan
   stadig trækkes tilbage manuelt (arkivering af signal/case).
+
+## Erfaringer fra første rigtige kørsel (2026-10-01)
+
+- **Blokerede artikelsider:** Industry Dive (Utility, Retail, CX Dive)
+  svarer 403 på artikelsider fra servere, selvom feeds'ene er åbne. Når en
+  artikelside ikke kan hentes, gemmes entryets egen tekst fra feedet
+  (`content:encoded`/`description`, Atom `content`/`summary`), hvis den er
+  mindst 200 tegn — udgiverens offentliggjorte tekst, ingen omgåelse af
+  adgangskontrol. CX Today svarede 429 (rate limit) på feedet selv.
+- **Opbrugt AI-kredit:** Anthropic svarer 400 med "credit balance is too
+  low". Det mappes til en afvisning med den danske besked "Kreditten hos
+  AI-udbyderen er brugt op …", der stopper kørslen; ubehandlede dokumenter
+  samles op af næste kørsel. Øvrige 400-svar gælder kun det enkelte
+  dokument (`ai_request_rejected`), og kørslen fortsætter.
+- **Entity-kvalitet:** claim extraction 1.2.0 kræver en organisation som
+  subjekt (en person blev oprettet som virksomhed) og det fulde navn.
+- **Tempo og omfang:** ca. 2–4 dokumenter pr. minut med Claude Opus;
+  `RSS_MAX_ITEMS` er 10 pr. kilde pr. kørsel.

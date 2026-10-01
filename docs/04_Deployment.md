@@ -62,10 +62,16 @@ web_fetch-kilder fra Source Registry og AI-behandler nye dokumenter. Claims
 lander som forslag i Review — intet publiceres automatisk. Hver kørsel
 logges i `worker_runs` og vises under Admin → Sources.
 
-- *Ugentligt:* `.github/workflows/weekly-run.yml` kalder endpointet mandag
-  05:00 UTC med `force_all=false`, så kun kilder med forfalden frekvens
-  (daglig/ugentlig/månedlig) hentes. Kilder med frekvens "manuel" springes
-  over.
+- *Ugentligt:* pg_cron i Supabase kalder endpointet mandag 05:00 UTC med
+  `force_all=false` (opsætning: `supabase/ops/weekly_trigger.sql`, køres
+  manuelt pr. miljø), så kun kilder med forfalden frekvens hentes. Et ping
+  kl. 04:55 vækker free tier-instansen, og et nyt forsøg kl. 05:20 fanger
+  en fejlet opvågning. Nøglen ligger i Supabase Vault; API'et kender kun
+  dens hash (`worker_trigger_keys`). Kilder med frekvens "manuel" springes
+  over. `.github/workflows/weekly-run.yml` er et manuelt alternativ.
+- *Under kørslen* pinger API'et sig selv via `RENDER_EXTERNAL_URL` hvert
+  4. minut, så free tier ikke går i dvale, og tællingerne i kørselsloggen
+  opdateres løbende. Højst `RSS_MAX_ITEMS` (standard 10) artikler pr. kilde.
 - *On demand:* "Kør nu" i Admin → Sources (kræver Admin) henter alle aktive
   kilder, også manuelle, uanset næste kontrol. Workflowet kan også startes
   manuelt under Actions → Ugentlig kørsel → Run workflow.
@@ -75,8 +81,9 @@ logges i `worker_runs` og vises under Admin → Sources.
   inkl. `/api/v1`) som repository secret. Uden token på Render kan kun
   Admin-login starte kørsler.
 - Kun én kørsel ad gangen (409 `run_in_progress`); en kørsel, der stadig
-  står som `running` efter 2 timer, betragtes som død og blokerer ikke.
-- GitHub kører kun planlagte workflows fra repositoriets default branch.
+  står som `running` efter 6 timer, betragtes som død og blokerer ikke.
+- Uden `WORKER_TRIGGER_TOKEN` på Render kan kørsler stadig startes med en
+  nøgle registreret i `worker_trigger_keys` eller med Admin-login.
 
 ## 2. Backend (containerhost, generelt)
 

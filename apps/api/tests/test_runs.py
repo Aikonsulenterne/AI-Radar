@@ -148,7 +148,7 @@ def test_stale_running_run_does_not_block(
                 id=stale_id,
                 trigger="manual",
                 status=RunStatus.running,
-                started_at=datetime.now(UTC) - timedelta(hours=3),
+                started_at=datetime.now(UTC) - timedelta(hours=7),
             )
         )
         db.commit()
@@ -189,3 +189,48 @@ def test_runs_are_listed_newest_first(client: TestClient, admin_headers: dict[st
 
     assert len(runs) == 2
     assert runs[0]["started_at"] >= runs[1]["started_at"]
+
+
+def test_token_registered_in_database_starts_a_run(
+    client: TestClient, db_session_factory: SessionFactory
+) -> None:
+    import hashlib
+
+    from app.models_runs import WorkerTriggerKey
+
+    token = "db-registreret-noegle"
+    with db_session_factory() as db:
+        db.add(WorkerTriggerKey(token_sha256=hashlib.sha256(token.encode()).hexdigest()))
+        db.commit()
+
+    response = client.post(
+        "/api/v1/runs", json={"force_all": False}, headers={"X-Worker-Token": token}
+    )
+
+    assert response.status_code == 202, response.text
+    assert response.json()["trigger"] == "schedule"
+    assert client.post("/api/v1/runs", headers={"X-Worker-Token": "forkert"}).status_code == 401
+
+
+def test_run_counts_are_stored_while_it_runs(
+    client: TestClient, admin_headers: dict[str, str], run_provider: Any
+) -> None:
+    import app.worker as worker
+
+    _upload_document(client, admin_headers)
+    seen: list[int] = []
+    original = worker._store_counts
+
+    def spy(run: Any, result: Any) -> None:
+        original(run, result)
+        seen.append(result.documents_processed)
+
+    worker._store_counts = spy
+    try:
+        client.post("/api/v1/runs", headers=admin_headers)
+    finally:
+        worker._store_counts = original
+
+    # Mindst én løbende opdatering før den afsluttende.
+    assert len(seen) >= 2
+    assert seen[-1] == 1

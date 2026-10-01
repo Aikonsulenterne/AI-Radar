@@ -33,3 +33,15 @@ class WorkerRun(Base):
     documents_published: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     processing_skipped_no_ai: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_message_safe: Mapped[str | None] = mapped_column(Text)
+
+
+class WorkerTriggerKey(Base):
+    """Hash af en nøgle, en planlagt udløser må starte kørsler med."""
+
+    __tablename__ = "worker_trigger_keys"
+
+    token_sha256: Mapped[str] = mapped_column(Text, primary_key=True)
+    note: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, server_default=func.now()
+    )

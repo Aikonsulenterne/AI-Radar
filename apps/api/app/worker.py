@@ -16,11 +16,14 @@ i forretningssystemer (Technical Master §9).
 
 import argparse
 import logging
+import threading
 import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -124,11 +127,17 @@ def run_once(
     force_all: bool = False,
     use_configured_provider: bool = True,
     result: WorkerRunResult | None = None,
+    on_progress: Callable[[WorkerRunResult], None] | None = None,
 ) -> WorkerRunResult:
     """Hent kilder og AI-behandl nye dokumenter. Kaster RunAborted, hvis
     AI-udbyderen afviser kaldet (nøgle, model eller kvote). Tællingerne
     ligger i result, også hvis kørslen stopper undervejs."""
     result = result if result is not None else WorkerRunResult()
+
+    def progress() -> None:
+        if on_progress is not None:
+            on_progress(result)
+
     factory = session_factory or sessionmaker(bind=get_engine())
     if provider is None and use_configured_provider:
         provider = get_ai_provider()
@@ -137,6 +146,7 @@ def run_once(
         for source in _due_sources(db, datetime.now(UTC), force_all=force_all):
             _check_source(db, source, result)
             db.commit()
+            progress()
 
         if provider is None:
             result.processing_skipped_no_ai = True
@@ -163,9 +173,11 @@ def run_once(
                     raise RunAborted(exc.message) from exc
                 db.commit()
                 result.documents_processed += 1
+                progress()
 
             if get_settings().auto_publish:
                 _publish_backlog(db, provider, result)
+                progress()
 
     logger.info(
         "worker_run sources=%d created=%d unchanged=%d failures=%d processed=%d",
@@ -200,7 +212,7 @@ def _publish_backlog(db: Session, provider: AIProvider, result: WorkerRunResult)
 
 # En kørsel, der stadig står som running efter dette, er død undervejs
 # (fx genstart af serveren) og blokerer ikke en ny.
-STALE_RUN_AFTER = timedelta(hours=2)
+STALE_RUN_AFTER = timedelta(hours=6)
 
 
 def start_run(
@@ -236,17 +248,62 @@ def start_run(
     return run
 
 
+def _store_counts(run: WorkerRun, result: WorkerRunResult) -> None:
+    run.sources_checked = result.sources_checked
+    run.documents_created = result.documents_created
+    run.documents_unchanged = result.documents_unchanged
+    run.fetch_failures = result.fetch_failures
+    run.documents_processed = result.documents_processed
+    run.documents_published = result.documents_published
+    run.processing_skipped_no_ai = result.processing_skipped_no_ai
+
+
+# Render free tier lægger instansen i dvale efter ca. 15 minutter uden
+# indgående trafik — også midt i en kørsel. Et ping til egen offentlige URL
+# tæller som trafik.
+_KEEPALIVE_SECONDS = 240
+
+
+def _keepalive(stop: threading.Event) -> None:
+    base = get_settings().render_external_url.rstrip("/")
+    if not base:
+        return
+    while not stop.wait(_KEEPALIVE_SECONDS):
+        try:
+            httpx.get(f"{base}/api/v1/health", timeout=30)
+        except httpx.HTTPError:
+            logger.warning("keepalive_failed")
+
+
 def execute_run(
     session_factory: sessionmaker[Session],
     provider: AIProvider | None,
     run_id: uuid.UUID,
 ) -> None:
-    """Udfør en oprettet kørsel og gem resultatet. Kaster aldrig."""
+    """Udfør en oprettet kørsel og gem resultatet. Kaster aldrig.
+
+    Tællingerne gemmes løbende, så kørselsloggen viser fremskridt, mens
+    kørslen arbejder.
+    """
     with session_factory() as db:
         run = db.get(WorkerRun, run_id)
         if run is None:
             return
         force_all = run.force_all
+
+    def on_progress(current: WorkerRunResult) -> None:
+        try:
+            with session_factory() as progress_db:
+                live = progress_db.get(WorkerRun, run_id)
+                if live is not None:
+                    _store_counts(live, current)
+                    progress_db.commit()
+        except Exception:  # noqa: BLE001 — fremskridt må aldrig stoppe kørslen
+            logger.warning("run_progress_failed run=%s", run_id)
+
+    stop = threading.Event()
+    keepalive = threading.Thread(target=_keepalive, args=(stop,), daemon=True)
+    keepalive.start()
 
     status = RunStatus.succeeded
     error: str | None = None
@@ -258,12 +315,15 @@ def execute_run(
             force_all=force_all,
             use_configured_provider=False,
             result=result,
+            on_progress=on_progress,
         )
     except RunAborted as exc:
         status, error = RunStatus.failed, f"AI-udbyderen afviste kaldet: {exc}"
     except Exception as exc:  # noqa: BLE001 — kørslen skal altid afsluttes i loggen
         logger.exception("worker_run_failed run=%s", run_id)
         status, error = RunStatus.failed, f"Uventet fejl ({exc.__class__.__name__})."
+    finally:
+        stop.set()
 
     with session_factory() as db:
         run = db.get(WorkerRun, run_id)
@@ -272,13 +332,7 @@ def execute_run(
         run.status = status
         run.finished_at = datetime.now(UTC)
         run.error_message_safe = error
-        run.sources_checked = result.sources_checked
-        run.documents_created = result.documents_created
-        run.documents_unchanged = result.documents_unchanged
-        run.fetch_failures = result.fetch_failures
-        run.documents_processed = result.documents_processed
-        run.documents_published = result.documents_published
-        run.processing_skipped_no_ai = result.processing_skipped_no_ai
+        _store_counts(run, result)
         db.commit()
 
 

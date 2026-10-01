@@ -1,17 +1,14 @@
-# Ugentlig kørsel af AI Radar: hent kuraterede kilder og AI-behandl nye
-# dokumenter. Selve arbejdet sker i API'et på Render (POST /api/v1/runs);
-# workflowet er kun udløseren, så AI-nøgler og database-secrets bliver på
-# Render. Kan også startes manuelt: Actions → Ugentlig kørsel → Run workflow.
+# Manuel kørsel af AI Radar fra GitHub: hent kuraterede kilder og
+# AI-behandl nye dokumenter. Selve arbejdet sker i API'et på Render
+# (POST /api/v1/runs). Den ugentlige udløser ligger i databasen
+# (supabase/ops/weekly_trigger.sql); dette workflow er et alternativ, der
+# kan startes under Actions → Ugentlig kørsel → Run workflow.
 #
-# Kræver to repository secrets (Settings → Secrets and variables → Actions):
-#   AI_RADAR_API_URL      fx https://ai-radar-api-efk5.onrender.com/api/v1
-#   WORKER_TRIGGER_TOKEN  samme værdi som WORKER_TRIGGER_TOKEN på Render
+# Kræver repository secret WORKER_TRIGGER_TOKEN (samme værdi som på Render)
+# og valgfrit AI_RADAR_API_URL (standard: staging-API'et).
 name: Ugentlig kørsel
 
 on:
-  schedule:
-    # Mandag 05:00 UTC = 07:00 dansk sommertid / 06:00 vintertid.
-    - cron: "0 5 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -24,16 +21,16 @@ concurrency:
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 240
     steps:
       - name: Start kørsel og vent på resultatet
         env:
-          API_URL: ${{ secrets.AI_RADAR_API_URL }}
+          API_URL: ${{ secrets.AI_RADAR_API_URL || 'https://ai-radar-api-efk5.onrender.com/api/v1' }}
           TOKEN: ${{ secrets.WORKER_TRIGGER_TOKEN }}
         run: |
           set -euo pipefail
-          if [ -z "${API_URL}" ] || [ -z "${TOKEN}" ]; then
-            echo "::error::AI_RADAR_API_URL og WORKER_TRIGGER_TOKEN skal sættes som repository secrets."
+          if [ -z "${TOKEN}" ]; then
+            echo "::error::WORKER_TRIGGER_TOKEN skal sættes som repository secret."
             exit 1
           fi
 
@@ -50,7 +47,7 @@ jobs:
 
           # Polling holder også servicen vågen, mens kørslen arbejder.
           status=running
-          for _ in $(seq 1 110); do
+          for _ in $(seq 1 470); do
             sleep 30
             if curl --silent --show-error --fail --max-time 60 \
               "${API_URL}/runs/${run_id}" -H "X-Worker-Token: ${TOKEN}" > latest.json; then

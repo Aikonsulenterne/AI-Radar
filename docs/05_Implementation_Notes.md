@@ -289,17 +289,19 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
 - **Behov:** radaren skal hente fra kuraterede kilder ugentligt og on
   demand uden manuelle klik pr. kilde. Kilder kurateres fortsat af
   mennesker i Source Registry; kørslen opdager ikke nye kilder selv.
-- **Udløser:** GitHub Actions (`weekly-run.yml`, mandag 05:00 UTC) — ingen
-  ny tjeneste, CI'en findes allerede. Workflowet er kun en udløser: det
-  kalder API'et med `X-Worker-Token`, så AI-nøgle og database-secrets
-  forbliver på Render. "Kør nu" i admin bruger samme endpoint med
-  Admin-login.
+- **Udløser:** pg_cron + pg_net i Supabase (`supabase/ops/weekly_trigger.sql`,
+  mandag 05:00 UTC). Valgt frem for GitHub Actions, fordi den ikke kræver
+  repository secrets: nøglen ligger i Supabase Vault, og API'et validerer
+  dens hash i `worker_trigger_keys` (eller `WORKER_TRIGGER_TOKEN`).
+  Scriptet ligger uden for migrations/, da udvidelserne er
+  Supabase-specifikke. `weekly-run.yml` er bevaret som manuelt alternativ.
+  "Kør nu" i admin bruger samme endpoint med Admin-login.
 - **Planlagt vs. on demand:** planlagt kørsel henter kun kilder med
   forfalden frekvens; "Kør nu" (`force_all`) henter alle aktive kilder,
   også dem med frekvens "manuel" — et menneske har bedt om det.
 - **Kørselslog:** `worker_runs` (én række pr. kørsel: udløser, status,
   tællinger, sikker fejltekst). Kun én kørsel ad gangen; en kørsel, der har
-  stået som `running` i over 2 timer, markeres som afbrudt.
+  stået som `running` i over 6 timer, markeres som afbrudt.
 - **Samtidighed med manuel AI-behandling:** begge veje går gennem
   `begin_processing`, der låser dokumentrækken og sætter
   `extraction_pending` før AI-kaldet, så et dokument aldrig behandles to

@@ -2,11 +2,14 @@
 
 Render free tier har ingen baggrundsproces, så workeren køres i API'et:
 POST /runs opretter en kørsel og udfører den efter svaret. Den ugentlige
-udløser (GitHub Actions) autentificerer med X-Worker-Token; "Kør nu" i admin
-med Admin-login. Kørslen henter kun kuraterede kilder fra Source Registry og
-foreslår claims — publicering kræver fortsat et menneske.
+udløser (pg_cron i databasen, alternativt GitHub Actions) autentificerer med
+X-Worker-Token — mod WORKER_TRIGGER_TOKEN eller en nøgle-hash i
+worker_trigger_keys; "Kør nu" i admin med Admin-login. Kørslen henter kun
+kuraterede kilder fra Source Registry. Med AUTO_PUBLISH publicerer den selv
+(pipeline/autopublish.py); ellers lander claims til menneskeligt review.
 """
 
+import hashlib
 import hmac
 import uuid
 
@@ -20,7 +23,7 @@ from app.config import get_settings
 from app.db import get_db, get_session_factory
 from app.enums import RunTrigger, UserRole
 from app.errors import ApiError
-from app.models_runs import WorkerRun
+from app.models_runs import WorkerRun, WorkerTriggerKey
 from app.schemas_runs import RunRequest, WorkerRunOut
 from app.worker import execute_run, start_run
 
@@ -38,6 +41,10 @@ def _authorize(request: Request, db: Session) -> CurrentUser | None:
     if token is not None:
         expected = get_settings().worker_trigger_token
         if expected and hmac.compare_digest(token.encode(), expected.encode()):
+            return None
+        # Nøgler registreret i databasen (fx den ugentlige pg_cron-udløser).
+        digest = hashlib.sha256(token.encode()).hexdigest()
+        if token and db.get(WorkerTriggerKey, digest) is not None:
             return None
         raise ApiError(401, "unauthorized", "Ugyldigt worker-token.")
     user = get_current_user(request, db)

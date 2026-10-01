@@ -34,8 +34,9 @@ class Settings(BaseSettings):
     max_upload_bytes: int = 20_000_000
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 5_000_000
-    # Artikler pr. RSS-kørsel — holder én kørsel afgrænset.
-    rss_max_items: int = 20
+    # Artikler pr. RSS-kilde pr. kørsel — holder én kørsel afgrænset, så den
+    # kan nå at blive færdig på free tier.
+    rss_max_items: int = 10
 
     # Delt hemmelighed, som den planlagte udløser (GitHub Actions) sender i
     # X-Worker-Token for at starte en kørsel. Tom = kun Admin-login kan.
@@ -45,6 +46,11 @@ class Settings(BaseSettings):
     # publicerer case og signal uden menneskelig kontrol. Alt markeres som
     # AI-publiceret. False = human-in-the-loop som i masterfilerne.
     auto_publish: bool = False
+
+    # Offentlig URL på API-hosten (Render sætter RENDER_EXTERNAL_URL selv).
+    # Under en kørsel pinger API'et sig selv her, så free tier ikke lægger
+    # instansen i dvale midt i arbejdet.
+    render_external_url: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:

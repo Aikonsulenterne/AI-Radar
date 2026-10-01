@@ -156,3 +156,58 @@ def test_run_rss_reports_invalid_feed(
     response = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers)
     assert response.status_code == 502
     assert response.json()["error"]["code"] == "feed_invalid"
+
+
+FEED_WITH_TEXT = b"""<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Beskyttet kilde</title>
+    <item>
+      <title>Forsyning bruger AI til prognoser</title>
+      <link>https://example.org/beskyttet-1</link>
+      <description>Kort teaser.</description>
+      <content:encoded><![CDATA[<p>Forsyningsselskabet Eksempel Energi bruger nu en AI-model til at
+      lave prognoser for elforbruget. Ifoelge selskabet er prognosefejlen faldet med 12 procent
+      siden modellen blev sat i drift i foraaret, og modellen koerer i produktion.</p>]]>
+      </content:encoded>
+    </item>
+    <item>
+      <title>Kun en teaser</title>
+      <link>https://example.org/beskyttet-2</link>
+      <description>For kort til at bruge.</description>
+    </item>
+  </channel>
+</rss>
+"""
+
+
+def test_blocked_article_falls_back_to_the_feed_text(
+    client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_id = _create_rss_source(client, admin_headers)
+
+    def fake_fetch(url: str, timeout_seconds: float, max_bytes: int) -> FetchResult:
+        if url.endswith("feed.xml"):
+            return FetchResult(
+                data=FEED_WITH_TEXT, content_type="application/rss+xml", final_url=url
+            )
+        raise ApiError(502, "fetch_failed", "Kilden svarede med HTTP 403.")
+
+    monkeypatch.setattr("app.ingestion.run.fetch_url", fake_fetch)
+
+    body = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers).json()
+
+    # Første entry har udgiverens fulde tekst i feedet; andet kun en teaser.
+    assert body["created_count"] == 1
+    assert [failure["url"] for failure in body["failures"]] == ["https://example.org/beskyttet-2"]
+    document = body["documents"][0]["document"]
+    assert document["canonical_url"] == "https://example.org/beskyttet-1"
+    assert document["title"] == "Forsyning bruger AI til prognoser"
+    detail = client.get(f"/api/v1/review/documents/{document['id']}", headers=admin_headers).json()
+    assert "prognosefejlen faldet med 12 procent" in " ".join(detail["normalized_text"].split())
+
+
+def test_parse_feed_reads_entry_text() -> None:
+    entries = parse_feed(FEED_WITH_TEXT)
+    assert entries[0].summary is not None and "AI-model" in entries[0].summary
+    assert entries[1].summary == "For kort til at bruge."

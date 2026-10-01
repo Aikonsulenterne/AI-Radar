@@ -14,6 +14,7 @@ from xml.etree import ElementTree
 from app.errors import ApiError
 
 _ATOM = "{http://www.w3.org/2005/Atom}"
+_CONTENT = "{http://purl.org/rss/1.0/modules/content/}"
 # Et DTD er ikke nødvendigt i hverken RSS 2.0 eller Atom, men er vejen til
 # entity-expansion-angreb ("billion laughs") mod stdlib-parseren.
 _DTD_MARKERS = (b"<!doctype", b"<!entity")
@@ -24,6 +25,9 @@ class FeedEntry:
     title: str | None
     link: str | None
     published_at: datetime | None
+    # Udgiverens egen tekst i feedet (content:encoded/description eller Atom
+    # content/summary) — ofte HTML. Bruges, når artikelsiden ikke kan hentes.
+    summary: str | None = None
 
 
 def _text(element: ElementTree.Element | None) -> str | None:
@@ -59,6 +63,7 @@ def _rss_entries(root: ElementTree.Element) -> list[FeedEntry]:
             title=_text(item.find("title")),
             link=_text(item.find("link")),
             published_at=_rfc822(_text(item.find("pubDate"))),
+            summary=_text(item.find(f"{_CONTENT}encoded")) or _text(item.find("description")),
         )
         for item in root.findall("./channel/item")
     ]
@@ -81,6 +86,8 @@ def _atom_entries(root: ElementTree.Element) -> list[FeedEntry]:
                 title=_text(entry.find(f"{_ATOM}title")),
                 link=_atom_link(entry),
                 published_at=_rfc3339(published),
+                summary=_text(entry.find(f"{_ATOM}content"))
+                or _text(entry.find(f"{_ATOM}summary")),
             )
         )
     return entries

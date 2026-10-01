@@ -70,7 +70,7 @@ export default async function OverblikPage() {
         <KpiCard
           value={dashboard.approved_claims}
           label="Godkendte claims"
-          definition="Claims godkendt af reviewer"
+          definition="Godkendt af reviewer eller automatisk af AI"
         />
         <KpiCard
           value={dashboard.companies_with_claims}

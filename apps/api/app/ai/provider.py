@@ -35,6 +35,14 @@ class AIProviderRejected(Exception):
         super().__init__(_rejection_message(status_code))
 
 
+class AIDocumentRejected(Exception):
+    """Udbyderen afviste netop dette dokuments forespørgsel (HTTP 400).
+
+    Ikke en konfigurationsfejl — andre dokumenter kan sagtens gå igennem —
+    så kørslen fortsætter, og dokumentet går til manuel opfølgning.
+    """
+
+
 class AIRefusal(Exception):
     """Modellen afviste at behandle netop dette dokument.
 
@@ -56,6 +64,11 @@ def _rejection_message(status_code: int) -> str:
         return (
             "Modellen eller endpointet findes ikke hos udbyderen — tjek AI_MODEL_ID "
             "og AI_PROVIDER_BASE_URL."
+        )
+    if status_code == 402:
+        return (
+            "Kreditten hos AI-udbyderen er brugt op. Køb kredit (console.anthropic.com → "
+            "Billing) og kør igen — ubehandlede dokumenter samles op af næste kørsel."
         )
     if status_code == 429:
         return "Udbyderen afviste kaldet: kreditten er brugt op, eller der er sendt for mange kald."

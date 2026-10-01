@@ -21,7 +21,13 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.prompts import SIGNAL_PROMPT_ID, SIGNAL_PROMPT_VERSION, SIGNAL_SYSTEM
-from app.ai.provider import AIProvider, AIProviderError, AIRefusal
+from app.ai.provider import (
+    AIDocumentRejected,
+    AIProvider,
+    AIProviderError,
+    AIProviderRejected,
+    AIRefusal,
+)
 from app.ai.schemas import AISchemaError, SignalDraft, call_with_schema
 from app.audit import AuditAction, AuditEntity, record
 from app.enums import (
@@ -164,8 +170,15 @@ def _publish_signal(
             result_model=SignalDraft,
             document_id=document.id,
         )
-    except (AIProviderError, AIRefusal, AISchemaError) as exc:
-        # Cases og claims er allerede publiceret; signalet springes over.
+    except (
+        AIProviderError,
+        AIProviderRejected,
+        AIRefusal,
+        AIDocumentRejected,
+        AISchemaError,
+    ) as exc:
+        # Cases og claims er allerede publiceret; signalet springes over. Er
+        # nøglen eller kreditten problemet, stopper næste dokument kørslen.
         logger.warning("signal_draft_skipped document=%s reason=%s", document.id, type(exc))
         outcome.skipped_reasons.append("signal kunne ikke skrives af AI")
         return

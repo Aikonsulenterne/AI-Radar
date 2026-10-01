@@ -201,3 +201,50 @@ def test_process_error_names_the_missing_variable(
     response = client.post(f"/api/v1/review/documents/{document_id}/process", headers=admin_headers)
     assert response.status_code == 503
     assert "AI_PROVIDER_API_KEY" in response.json()["error"]["message"]
+
+
+def _status_error_with_body(status: int, message: str) -> anthropic.APIStatusError:
+    request = httpx2.Request("POST", "https://api.anthropic.com/v1/messages")
+    body = {"type": "error", "error": {"type": "invalid_request_error", "message": message}}
+    return anthropic.APIStatusError(
+        message, response=httpx2.Response(status, request=request), body=body
+    )
+
+
+def test_exhausted_credit_is_a_rejection_with_a_clear_message() -> None:
+    provider, _ = _claude(
+        _status_error_with_body(400, "Your credit balance is too low to access the API.")
+    )
+    with pytest.raises(AIProviderRejected) as rejected:
+        _call(provider)
+    assert "Kreditten" in str(rejected.value)
+
+
+def test_other_bad_requests_only_fail_the_document() -> None:
+    from app.ai.provider import AIDocumentRejected
+
+    provider, _ = _claude(_status_error_with_body(400, "prompt is too long"))
+    with pytest.raises(AIDocumentRejected):
+        _call(provider)
+
+
+def test_bad_request_document_fails_but_run_continues(
+    client: TestClient, admin_headers: dict[str, str]
+) -> None:
+    from app.routes.runs import run_ai_provider
+
+    first = _upload_document(client, admin_headers)
+    provider, messages = _claude(_status_error_with_body(400, "prompt is too long"))
+    app.dependency_overrides[run_ai_provider] = lambda: provider
+    try:
+        run = client.post("/api/v1/runs", headers=admin_headers).json()
+        run = client.get(f"/api/v1/runs/{run['id']}", headers=admin_headers).json()
+    finally:
+        app.dependency_overrides.pop(run_ai_provider, None)
+
+    assert run["status"] == "succeeded"
+    document = client.get(f"/api/v1/review/documents/{first}", headers=admin_headers).json()
+    assert document["processing_status"] == "failed"
+    assert document["error_code"] == "ai_request_rejected"
+    # Ingen retry på en afvist forespørgsel.
+    assert len(messages.calls) == 1

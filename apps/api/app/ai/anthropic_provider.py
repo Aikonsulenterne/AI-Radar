@@ -14,7 +14,7 @@ from typing import Any
 import anthropic
 from anthropic.types import TextBlock
 
-from app.ai.provider import AIProviderError, AIProviderRejected, AIRefusal
+from app.ai.provider import AIDocumentRejected, AIProviderError, AIProviderRejected, AIRefusal
 
 logger = logging.getLogger("ai_radar.ai")
 
@@ -32,6 +32,15 @@ def _strip_code_fence(text: str) -> str:
         if stripped.rstrip().endswith("```"):
             stripped = stripped.rstrip()[:-3]
     return stripped.strip()
+
+
+def _credit_exhausted(exc: anthropic.APIStatusError) -> bool:
+    """Anthropic svarer 400 (ikke 402/429), når kreditten er brugt op."""
+    body: dict[str, Any] = exc.body if isinstance(exc.body, dict) else {}
+    raw_error = body.get("error")
+    error: dict[str, Any] = raw_error if isinstance(raw_error, dict) else {}
+    message = str(error.get("message") or exc.message or "").lower()
+    return exc.status_code in (400, 402) and "credit balance" in message
 
 
 class AnthropicProvider:
@@ -59,6 +68,12 @@ class AnthropicProvider:
                 messages=[{"role": "user", "content": user}],
             )
         except anthropic.APIStatusError as exc:
+            if _credit_exhausted(exc):
+                raise AIProviderRejected(402) from exc
+            if exc.status_code == 400:
+                raise AIDocumentRejected(
+                    "AI-udbyderen afviste forespørgslen for dette dokument (HTTP 400)."
+                ) from exc
             if 400 <= exc.status_code < 500:
                 raise AIProviderRejected(exc.status_code) from exc
             raise AIProviderError(f"AI-udbyderen svarede med HTTP {exc.status_code}.") from exc

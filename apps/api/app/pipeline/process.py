@@ -19,7 +19,7 @@ from app.ai.prompts import (
     RELEVANCE_PROMPT_VERSION,
     RELEVANCE_SYSTEM,
 )
-from app.ai.provider import AIProvider, AIProviderRejected, AIRefusal
+from app.ai.provider import AIDocumentRejected, AIProvider, AIProviderRejected, AIRefusal
 from app.ai.schemas import (
     AISchemaError,
     ExtractedClaim,
@@ -181,6 +181,18 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
         # Konfigurationsfejl (nøgle, model, kvote): dokumentet har intet gjort
         # galt, så dets status røres ikke, og det kan køres igen efter rettelse.
         raise ApiError(502, "ai_provider_rejected", str(exc)) from exc
+    except AIDocumentRejected:
+        document.processing_status = ProcessingStatus.failed
+        document.error_code = "ai_request_rejected"
+        document.error_message_safe = (
+            "AI-udbyderen afviste forespørgslen for dokumentet; kræver manuel opfølgning."
+        )
+        db.flush()
+        return ProcessOutcome(
+            document_id=str(document.id),
+            status=ProcessingStatus.failed,
+            skipped_reasons=["ai_request_rejected"],
+        )
     except AIRefusal:
         document.processing_status = ProcessingStatus.failed
         document.error_code = "ai_refused"

@@ -48,6 +48,8 @@ from app.storage import get_storage
 
 logger = logging.getLogger("ai_radar.worker")
 
+_DUE_TOLERANCE = timedelta(hours=12)
+
 _FREQUENCY_INTERVAL: dict[Frequency, timedelta] = {
     Frequency.daily: timedelta(days=1),
     Frequency.weekly: timedelta(days=7),
@@ -81,7 +83,11 @@ def _due_sources(db: Session, now: datetime, *, force_all: bool = False) -> list
     if force_all:
         return list(db.scalars(stmt).all())
     rows = db.scalars(stmt.where(Source.frequency != Frequency.manual)).all()
-    return [s for s in rows if s.next_check_at is None or _aware(s.next_check_at) <= now]
+    # Tolerance: en kilde hentet mandag 05:01 har næste kontrol mandagen
+    # efter 05:01 og skal med i den planlagte kørsel samme mandag 05:00 —
+    # ellers hentes ugentlige kilder kun hver anden uge.
+    horizon = now + _DUE_TOLERANCE
+    return [s for s in rows if s.next_check_at is None or _aware(s.next_check_at) <= horizon]
 
 
 def _aware(value: datetime) -> datetime:

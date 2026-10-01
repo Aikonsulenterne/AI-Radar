@@ -234,3 +234,24 @@ def test_run_counts_are_stored_while_it_runs(
     # Mindst én løbende opdatering før den afsluttende.
     assert len(seen) >= 2
     assert seen[-1] == 1
+
+
+def test_weekly_source_is_due_at_the_same_time_next_week(
+    client: TestClient, admin_headers: dict[str, str], db_session_factory: SessionFactory
+) -> None:
+    from app.models import Source
+    from app.worker import _due_sources
+
+    source_id = _web_source(client, admin_headers, "weekly")
+    now = datetime.now(UTC)
+    with db_session_factory() as db:
+        source = db.get(Source, uuid.UUID(source_id))
+        assert source is not None
+        # Hentet sidste mandag et par minutter efter kørslen startede.
+        source.next_check_at = now + timedelta(minutes=3)
+        db.commit()
+        assert [s.id for s in _due_sources(db, now)] == [source.id]
+
+        source.next_check_at = now + timedelta(days=6)
+        db.commit()
+        assert _due_sources(db, now) == []

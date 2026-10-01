@@ -211,3 +211,34 @@ def test_parse_feed_reads_entry_text() -> None:
     entries = parse_feed(FEED_WITH_TEXT)
     assert entries[0].summary is not None and "AI-model" in entries[0].summary
     assert entries[1].summary == "For kort til at bruge."
+
+
+def test_known_article_is_not_fetched_or_stored_again(
+    client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    source_id = _create_rss_source(client, admin_headers)
+    fetches: list[str] = []
+    version = {"n": 0}
+
+    def fake_fetch(url: str, timeout_seconds: float, max_bytes: int) -> FetchResult:
+        if url.endswith("feed.xml"):
+            return FetchResult(data=RSS_FEED, content_type="application/rss+xml", final_url=url)
+        fetches.append(url)
+        # Dynamisk side: nyt indhold (og dermed ny hash) ved hver hentning.
+        version["n"] += 1
+        return FetchResult(
+            data=_article(f"{url} visning {version['n']}"),
+            content_type="text/html",
+            final_url=url,
+        )
+
+    monkeypatch.setattr("app.ingestion.run.fetch_url", fake_fetch)
+
+    first = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers).json()
+    second = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers).json()
+
+    assert first["created_count"] == 2
+    assert second["created_count"] == 0
+    assert second["unchanged_count"] == 2
+    # Artiklerne hentes kun én gang.
+    assert len(fetches) == 2

@@ -8,6 +8,7 @@ enkelt artikellink samles op, så resten af feedet stadig hentes.
 import html
 from dataclasses import dataclass, field
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.enums import RetrievalMethod
@@ -55,8 +56,14 @@ def _fetch_and_ingest(
     timeout_seconds: float,
     max_bytes: int,
     title: str | None = None,
+    skip_known: bool = False,
 ) -> RunDocument:
     fetched = fetch_url(url, timeout_seconds=timeout_seconds, max_bytes=max_bytes)
+    if skip_known and fetched.final_url != url:
+        # Linket viderestillede; artiklen kan være kendt under sin endelige URL.
+        known = _known_article(db, source, fetched.final_url)
+        if known is not None:
+            return RunDocument(document=known, created=False)
     result = ingest_bytes(
         db,
         storage,
@@ -67,6 +74,16 @@ def _fetch_and_ingest(
         title=title,
     )
     return RunDocument(document=result.document, created=result.created)
+
+
+def _known_article(db: Session, source: Source, link: str) -> Document | None:
+    """Et dokument fra samme kilde med dette link som kanonisk URL."""
+    return db.scalar(
+        select(Document)
+        .where(Document.source_id == source.id, Document.canonical_url == link)
+        .order_by(Document.created_at)
+        .limit(1)
+    )
 
 
 # Fejl, hvor udgiverens egen tekst i feedet kan bruges i stedet for siden
@@ -123,6 +140,13 @@ def _run_rss(
                 RunFailure(url="", code="missing_link", message="Entry uden link springes over.")
             )
             continue
+        known = _known_article(db, source, entry.link)
+        if known is not None:
+            # Artiklen er hentet før. Sider med dynamisk indhold (reklamer,
+            # tidsstempler) får ny hash ved hver hentning, så uden dette tjek
+            # blev samme artikel gemt — og AI-behandlet — igen og igen.
+            outcome.documents.append(RunDocument(document=known, created=False))
+            continue
         try:
             ensure_public_http_url(entry.link)
             run_document = _fetch_and_ingest(
@@ -133,6 +157,7 @@ def _run_rss(
                 timeout_seconds=timeout_seconds,
                 max_bytes=max_bytes,
                 title=entry.title,
+                skip_known=True,
             )
         except ApiError as exc:
             fallback = (

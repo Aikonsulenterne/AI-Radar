@@ -381,3 +381,27 @@ til noget væsentligt, opdateres masterfilerne i samme PR.
   subjekt (en person blev oprettet som virksomhed) og det fulde navn.
 - **Tempo og omfang:** ca. 2–4 dokumenter pr. minut med Claude Opus;
   `RSS_MAX_ITEMS` er 10 pr. kilde pr. kørsel.
+
+## Kundecenter-fokus (2026-10-06)
+
+Første kørsler gav for meget generel AI-nyhed (forskning, modelnyheder,
+leverandørblogs) og for lidt om kundecentre. Ændringer:
+
+- **Relevans 2.0.0:** kun AI/automatisering i kundeservice og kundecentre
+  (bots, agent assist, samtaleanalyse, QA, routing, CCaaS/CRM-AI, adoption
+  hos navngivne organisationer, regulering af AI i kundekontakt). Generel
+  AI-forskning og AI i andre funktioner frasorteres.
+- **Billig relevansmodel:** relevanstrinnet kører på `claude-haiku-4-5`
+  (overstyres med `AI_RELEVANCE_MODEL_ID`); udtræk og signaler bruger
+  fortsat `AI_MODEL_ID`. Adapteren vælger model pr. prompt-id.
+- **Signal 1.1.0:** analyse og anbefaling skrives til OK's kundecenter, og
+  leverandørers egne tal benævnes som leverandørens.
+- **Kildepakke:** `supabase/ops/kundecenter_sources.sql` tilføjer
+  kundecenter-medier og danske Bing News-søgefeeds og pauser AWS ML-bloggen.
+  Køres manuelt i Supabase SQL Editor. Feedene kunne ikke testes fra
+  udviklingsmiljøet; hentefejl ses pr. kørsel.
+- Allerede klassificerede dokumenter køres ikke om; kun ubehandlede
+  (normaliserede) dokumenter møder det nye filter.
+
+Udestår: problemtaksonomi for kundecentret, teknologilandskabsvisning
+(kategori → leverandør → adopter) og leverandørkilder med verificerede feeds.

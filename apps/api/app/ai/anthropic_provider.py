@@ -46,8 +46,15 @@ def _credit_exhausted(exc: anthropic.APIStatusError) -> bool:
 class AnthropicProvider:
     """Messages API via Anthropics officielle SDK."""
 
-    def __init__(self, api_key: str, model_id: str, client: Any | None = None) -> None:
+    def __init__(
+        self,
+        api_key: str,
+        model_id: str,
+        client: Any | None = None,
+        prompt_models: dict[str, str] | None = None,
+    ) -> None:
         self._model_id = model_id
+        self._prompt_models = prompt_models or {}
         self._client = client or anthropic.Anthropic(api_key=api_key, timeout=300.0)
 
     def complete_text(
@@ -59,10 +66,11 @@ class AnthropicProvider:
         user: str,
         document_id: uuid.UUID | None = None,
     ) -> str:
+        model_id = self._prompt_models.get(prompt_id, self._model_id)
         started = time.monotonic()
         try:
             response = self._client.messages.create(
-                model=self._model_id,
+                model=model_id,
                 max_tokens=_MAX_TOKENS,
                 system=system,
                 messages=[{"role": "user", "content": user}],
@@ -86,7 +94,7 @@ class AnthropicProvider:
             "prompt_tokens=%s completion_tokens=%s",
             prompt_id,
             prompt_version,
-            self._model_id,
+            model_id,
             document_id,
             latency_ms,
             response.usage.input_tokens,

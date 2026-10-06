@@ -59,6 +59,8 @@ Applikationsstacken skal så vidt muligt bygges med open source-komponenter og �
 
 MVP'en skal bevise intelligence-metoden før produktet udvides.
 
+**Fokus (besluttet 2026-10-06, produktejer):** Radaren fokuserer på OK's kundecenter. Den skal besvare to spørgsmål: hvilken AI- og automatiseringsteknologi findes på markedet til kundeservice og kundecentre, og hvordan andre, især danske og nordiske, kundecentre bruger og adopterer AI. Relevansklassifikationen frasorterer generel AI-forskning, AI i andre forretningsfunktioner og modelnyheder uden kundeserviceperspektiv, og kildeporteføljen vægter kundecenter-medier og danske søgefeeds frem for generelle tech- og leverandørblogs. Leverandørers egne tal skal fremgå som leverandørens.
+
 ## 3. Brugere og roller
 
 ### Reader

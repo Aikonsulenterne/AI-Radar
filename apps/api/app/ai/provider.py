@@ -13,6 +13,7 @@ from typing import Any, Protocol
 
 import httpx
 
+from app.ai.prompts import RELEVANCE_PROMPT_ID
 from app.config import get_settings
 
 logger = logging.getLogger("ai_radar.ai")
@@ -59,11 +60,13 @@ def _rejection_message(status_code: int) -> str:
             "AI-udbyderen afviste nøglen — den er ugyldig eller tilbagekaldt (AI_PROVIDER_API_KEY)."
         )
     if status_code == 403:
-        return "Nøglen har ikke adgang til den valgte model (AI_MODEL_ID)."
+        return (
+            "Nøglen har ikke adgang til den valgte model (AI_MODEL_ID eller AI_RELEVANCE_MODEL_ID)."
+        )
     if status_code == 404:
         return (
-            "Modellen eller endpointet findes ikke hos udbyderen — tjek AI_MODEL_ID "
-            "og AI_PROVIDER_BASE_URL."
+            "Modellen eller endpointet findes ikke hos udbyderen — tjek AI_MODEL_ID, "
+            "AI_RELEVANCE_MODEL_ID og AI_PROVIDER_BASE_URL."
         )
     if status_code == 402:
         return (
@@ -90,10 +93,17 @@ class AIProvider(Protocol):
 class OpenAICompatProvider:
     """Chat completions mod et OpenAI-kompatibelt endpoint."""
 
-    def __init__(self, base_url: str, api_key: str, model_id: str) -> None:
+    def __init__(
+        self,
+        base_url: str,
+        api_key: str,
+        model_id: str,
+        prompt_models: dict[str, str] | None = None,
+    ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
         self._model_id = model_id
+        self._prompt_models = prompt_models or {}
 
     def complete_text(
         self,
@@ -104,8 +114,9 @@ class OpenAICompatProvider:
         user: str,
         document_id: uuid.UUID | None = None,
     ) -> str:
+        model_id = self._prompt_models.get(prompt_id, self._model_id)
         payload: dict[str, Any] = {
-            "model": self._model_id,
+            "model": model_id,
             "temperature": 0,
             "response_format": {"type": "json_object"},
             "messages": [
@@ -142,7 +153,7 @@ class OpenAICompatProvider:
             "prompt_tokens=%s completion_tokens=%s",
             prompt_id,
             prompt_version,
-            self._model_id,
+            model_id,
             document_id,
             latency_ms,
             usage.get("prompt_tokens"),
@@ -159,6 +170,10 @@ class OpenAICompatProvider:
 
 
 _PROVIDERS = ("openai_compat", "anthropic")
+
+# Relevanstrinnet er en ja/nej-klassifikation pr. hentet dokument og behøver
+# ikke den dyre model. Overstyres med AI_RELEVANCE_MODEL_ID.
+DEFAULT_ANTHROPIC_RELEVANCE_MODEL = "claude-haiku-4-5"
 
 
 def ai_config_problem() -> str | None:
@@ -200,14 +215,21 @@ def get_ai_provider() -> AIProvider | None:
     settings = get_settings()
     model_id = settings.ai_model_id.strip()
     api_key = settings.ai_provider_api_key.strip()
+    is_anthropic = settings.ai_provider.strip().lower() == "anthropic"
 
-    if settings.ai_provider.strip().lower() == "anthropic":
+    relevance_model = settings.ai_relevance_model_id.strip() or (
+        DEFAULT_ANTHROPIC_RELEVANCE_MODEL if is_anthropic else model_id
+    )
+    prompt_models = {RELEVANCE_PROMPT_ID: relevance_model}
+
+    if is_anthropic:
         from app.ai.anthropic_provider import AnthropicProvider
 
-        return AnthropicProvider(api_key=api_key, model_id=model_id)
+        return AnthropicProvider(api_key=api_key, model_id=model_id, prompt_models=prompt_models)
 
     return OpenAICompatProvider(
         base_url=settings.ai_provider_base_url.strip(),
         api_key=api_key,
         model_id=model_id,
+        prompt_models=prompt_models,
     )

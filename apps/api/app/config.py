@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     ai_provider_base_url: str = ""
     ai_provider_api_key: str = ""
     ai_model_id: str = ""
+    # Model til relevanstrinnet (ja/nej pr. dokument). Tom = standard: med
+    # anthropic en billig model, ellers AI_MODEL_ID. Den dyre model bruges så
+    # kun på dokumenter, der faktisk er relevante.
+    ai_relevance_model_id: str = ""
 
     max_upload_bytes: int = 20_000_000
     fetch_timeout_seconds: float = 20.0

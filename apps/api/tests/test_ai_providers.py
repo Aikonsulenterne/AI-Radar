@@ -149,7 +149,13 @@ def ai_env(monkeypatch: pytest.MonkeyPatch) -> Any:
     from app.config import get_settings
 
     def apply(**env: str) -> None:
-        for key in ("AI_PROVIDER", "AI_MODEL_ID", "AI_PROVIDER_API_KEY", "AI_PROVIDER_BASE_URL"):
+        for key in (
+            "AI_PROVIDER",
+            "AI_MODEL_ID",
+            "AI_RELEVANCE_MODEL_ID",
+            "AI_PROVIDER_API_KEY",
+            "AI_PROVIDER_BASE_URL",
+        ):
             monkeypatch.delenv(key, raising=False)
         for key, value in env.items():
             monkeypatch.setenv(key, value)
@@ -191,6 +197,58 @@ def test_whitespace_and_case_from_copy_paste_do_not_disable_ai(ai_env: Any) -> N
     provider = get_ai_provider()
     assert isinstance(provider, AnthropicProvider)
     assert provider._model_id == "claude-opus-5"
+
+
+def test_relevance_runs_on_cheap_model_and_extraction_on_main_model(ai_env: Any) -> None:
+    from app.ai.provider import DEFAULT_ANTHROPIC_RELEVANCE_MODEL, get_ai_provider
+
+    ai_env(AI_PROVIDER="anthropic", AI_MODEL_ID="claude-opus-5", AI_PROVIDER_API_KEY="k")
+    provider = get_ai_provider()
+    assert isinstance(provider, AnthropicProvider)
+    messages = FakeMessages(_response('{"relevant": true, "reason": "x"}'))
+    provider._client = SimpleNamespace(messages=messages)
+
+    _call(provider)
+    provider.complete_text(prompt_id="claim_extraction", prompt_version="1", system="s", user="u")
+
+    assert [call["model"] for call in messages.calls] == [
+        DEFAULT_ANTHROPIC_RELEVANCE_MODEL,
+        "claude-opus-5",
+    ]
+
+
+def test_relevance_model_can_be_overridden(ai_env: Any) -> None:
+    from app.ai.provider import get_ai_provider
+
+    ai_env(
+        AI_PROVIDER="anthropic",
+        AI_MODEL_ID="claude-opus-5",
+        AI_RELEVANCE_MODEL_ID=" claude-sonnet-5 ",
+        AI_PROVIDER_API_KEY="k",
+    )
+    provider = get_ai_provider()
+    assert isinstance(provider, AnthropicProvider)
+    assert provider._prompt_models == {"relevance_classification": "claude-sonnet-5"}
+
+
+def test_openai_compat_uses_main_model_for_relevance_by_default(
+    ai_env: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.ai.provider import get_ai_provider
+
+    sent: list[str] = []
+
+    def fake_post(url: str, **kwargs: Any) -> httpx.Response:
+        sent.append(kwargs["json"]["model"])
+        body = {"choices": [{"message": {"content": '{"relevant": true, "reason": "x"}'}}]}
+        return httpx.Response(200, json=body, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr("app.ai.provider.httpx.post", fake_post)
+    ai_env(AI_MODEL_ID="lokal-model", AI_PROVIDER_BASE_URL="http://localhost:11434/v1")
+    provider = get_ai_provider()
+    assert provider is not None
+    _call(provider)
+    assert sent == ["lokal-model"]
 
 
 def test_process_error_names_the_missing_variable(

@@ -1,2 +1,3 @@
 {"text": "Danske Bank bruger Agent Assist i kundeservice. Banken rapporterer 20 procent lavere efterbehandlingstid.", "relevant": true, "expected_claims": [{"subject_name": "Danske Bank", "predicate": "USES_CAPABILITY"}, {"subject_name": "Danske Bank", "predicate": "REPORTED_EFFECT"}]}
 {"text": "Kommunen åbner en ny svømmehal til foråret med plads til 400 gæster.", "relevant": false, "expected_claims": []}
+{"text": "Forskere har brugt en ny AI-model til at forudsige proteinstrukturer hurtigere end før.", "relevant": false, "expected_claims": []}

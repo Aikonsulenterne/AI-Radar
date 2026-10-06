@@ -40,7 +40,11 @@ bryde den kørende version.
 **AI-provider.** Blueprintet sætter `AI_PROVIDER=anthropic` (Claude via
 Anthropics SDK). I dashboardet sættes `AI_PROVIDER_API_KEY` (nøglen fra
 console.anthropic.com) og `AI_MODEL_ID` — `claude-opus-5` som standard,
-`claude-sonnet-5` som det billigere alternativ. `AI_PROVIDER_BASE_URL`
+`claude-sonnet-5` som det billigere alternativ. Relevanstrinnet (ja/nej
+pr. hentet dokument) kører på `claude-haiku-4-5`, medmindre
+`AI_RELEVANCE_MODEL_ID` sættes; så bruges den dyre model kun på relevante
+dokumenter. API-nøglen skal være en API-nøgle (`sk-ant-api03-…`) fra
+samme organisation, som har kreditten. `AI_PROVIDER_BASE_URL`
 bruges ikke med Claude. Nøglen indtastes kun i Render — aldrig i Git,
 chat eller mail. Er nøgle, model eller kvote forkert, svarer "Kør
 AI-behandling" 502 `ai_provider_rejected` med en dansk forklaring, og

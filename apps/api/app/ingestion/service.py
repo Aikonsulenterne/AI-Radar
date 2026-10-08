@@ -30,6 +30,23 @@ class IngestResult:
     created: bool
 
 
+# Andel af tekstlinjer, der skal være ens, før en ny hentning af samme URL
+# regnes for samme indhold.
+_SAME_CONTENT_THRESHOLD = 0.9
+
+
+def _materially_same(old: str | None, new: str) -> bool:
+    """Linjebaseret Jaccard-lighed mellem to normaliserede tekster."""
+    if not old:
+        return False
+    old_lines = {line.strip() for line in old.splitlines() if line.strip()}
+    new_lines = {line.strip() for line in new.splitlines() if line.strip()}
+    if not old_lines or not new_lines:
+        return old.strip() == new.strip()
+    overlap = len(old_lines & new_lines) / len(old_lines | new_lines)
+    return overlap >= _SAME_CONTENT_THRESHOLD
+
+
 def ingest_bytes(
     db: Session,
     storage: StorageAdapter,
@@ -51,10 +68,24 @@ def ingest_bytes(
         return IngestResult(document=existing, created=False)
 
     mime = content_type.split(";")[0].strip().lower()
+    normalized = extract_text(mime, data)
+
+    if canonical_url and normalized.text:
+        previous = db.scalars(
+            select(Document)
+            .where(Document.source_id == source.id, Document.canonical_url == canonical_url)
+            .order_by(Document.retrieved_at.desc())
+            .limit(1)
+        ).first()
+        if previous is not None and _materially_same(previous.normalized_text, normalized.text):
+            # Samme side med ny markup (scripts, tokens, tidsstempler): ikke et
+            # nyt dokument. Ellers ville en produktside blive genbehandlet og
+            # give dublerede claims hver uge.
+            return IngestResult(document=previous, created=False)
+
     raw_path = f"{source.id}/{content_hash}{_EXTENSIONS.get(mime, '.bin')}"
     storage.save(raw_path, data, mime)
 
-    normalized = extract_text(mime, data)
     status = ProcessingStatus.normalized if normalized.text else ProcessingStatus.fetched
 
     document = Document(

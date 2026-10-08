@@ -125,3 +125,42 @@ def test_review_documents_requires_reviewer(
     assert body["raw_storage_path"] is not None
     # Lokal storage udsteder ingen signerede URLs.
     assert body["raw_url"] is None
+
+
+def test_web_fetch_ignores_markup_changes_but_keeps_real_changes(
+    client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """En produktside med skiftende scripts/tokens er ikke et nyt dokument hver
+    uge — men ændret indhold er."""
+    source_id = _create_source(
+        client,
+        admin_headers,
+        retrieval_method="web_fetch",
+        endpoint_url="https://example.org/produkt",
+    )
+    paragraphs = [f"<p>Funktion {n} til kundecentre.</p>" for n in range(20)]
+    page = {"nonce": "a", "body": "".join(paragraphs)}
+
+    def fake_fetch(url: str, timeout_seconds: float, max_bytes: int) -> FetchResult:
+        html = (
+            f"<html><head><title>Produkt</title><script>var t='{page['nonce']}'</script>"
+            f"</head><body>{page['body']}</body></html>"
+        ).encode()
+        return FetchResult(data=html, content_type="text/html", final_url=url)
+
+    monkeypatch.setattr("app.ingestion.run.fetch_url", fake_fetch)
+
+    def run() -> Any:
+        response = client.post(f"/api/v1/sources/{source_id}/run", headers=admin_headers)
+        assert response.status_code == 200, response.text
+        return response.json()
+
+    assert run()["created_count"] == 1
+    page["nonce"] = "b"  # kun markup ændret
+    assert run()["created_count"] == 0
+    page["body"] = (
+        "".join(paragraphs[:10])
+        + "<p>Ny: AI-agent til telefonen.</p>" * 1
+        + "".join(f"<p>Helt ny funktion {n}.</p>" for n in range(10))
+    )
+    assert run()["created_count"] == 1

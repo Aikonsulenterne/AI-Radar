@@ -451,8 +451,24 @@ så næsten alt stod på 0. Ændringer:
   flere artikler, vises som ét tilbud med "Også omtalt af". Virksomheder
   matches på tværs af selskabsform ("Zendesk" = "Zendesk, Inc." = "Puzzel AS"
   → "Puzzel"), også når kunder kobles til leverandører.
-- **Kendte begrænsninger:** landskabet bygges af nyheder, ikke af
-  leverandørernes produktsider (web_fetch gemmer et nyt dokument, hver gang
-  en dynamisk side ændrer sig, og ville give dubletter ugentligt); dansk
-  tilgængelighed/sprogstøtte står kun som fritekst i tilbuddet; allerede
-  behandlede dokumenter genudtrækkes ikke; feedene er ikke verificeret live.
+- **Dansk tilgængelighed:** `OFFERS_IN_MARKET` og `SUPPORTS_LANGUAGE`
+  (leverandør som subjekt, marked/sprog som objekttekst, kun når teksten
+  siger det). Landskabet viser marked og sprog med evidens pr. leverandør og
+  `nordic_documented`; *Leverandører* kan filtreres på Danmark/Norden
+  (`/vendors?norden=1`). En dansk kunde alene tæller ikke.
+- **Genlæsning:** `documents.vendor_extracted_at` sættes, når et dokument
+  udtrækkes med leverandørprompten. Kørslerne genlæser op til
+  `REREAD_PER_RUN` (25) relevante dokumenter uden værdien
+  (`pipeline/backfill.py`): kun leverandørclaims og `USES_VENDOR`, ingen
+  dubletter mod dokumentets eksisterende claims, ingen nye signaler/cases.
+  Talt i `worker_runs.documents_reread`.
+- **Produktsider:** web_fetch gemmer kun et nyt dokument, når teksten er
+  ændret væsentligt (< 90 % ens linjer) i forhold til seneste hentning af
+  samme URL — skiftende scripts/tokens giver ikke længere ugentlige
+  dubletter. Leverandørers produktsider kan derfor tilføjes som web_fetch-
+  kilder (type *Leverandørudsagn*, frekvens månedlig).
+- **Briefing:** sektionerne *Nye leverandørtilbud* og *Nyt i markedet*
+  (seneste 30 dage).
+- **Kendte begrænsninger:** feedene er ikke verificeret live; produktsider
+  skal tilføjes manuelt (URL'er er ikke gættet); prompten er fixture-testet,
+  ikke evalueret mod rigtige artikler.

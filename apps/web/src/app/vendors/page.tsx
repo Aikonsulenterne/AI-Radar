@@ -3,6 +3,7 @@ import {
   getVendorLandscape,
   type LandscapeCapability,
   type Offering,
+  type VendorFact,
   type VendorLandscape,
 } from "../lib/api";
 import {
@@ -53,6 +54,30 @@ function OfferingItem({ offering }: { offering: Offering }) {
   );
 }
 
+function VendorFacts({ label, facts }: { label: string; facts: VendorFact[] }) {
+  return (
+    <p className="vendor-customers">
+      <strong>{label}:</strong>{" "}
+      {facts.length === 0 ? (
+        <span className="cell-sub">Ikke dokumenteret</span>
+      ) : (
+        facts.map((fact, index) => (
+          <span key={fact.value} title={fact.excerpt ?? undefined}>
+            {index > 0 ? ", " : ""}
+            {fact.source_url ? (
+              <a href={fact.source_url} target="_blank" rel="noopener noreferrer">
+                {fact.value}
+              </a>
+            ) : (
+              fact.value
+            )}
+          </span>
+        ))
+      )}
+    </p>
+  );
+}
+
 function CapabilitySection({ capability }: { capability: LandscapeCapability }) {
   const technology = capability.technology;
   return (
@@ -94,6 +119,8 @@ function CapabilitySection({ capability }: { capability: LandscapeCapability }) 
                 <OfferingItem key={offering.claim_id} offering={offering} />
               ))}
             </ul>
+            <VendorFacts label="Marked" facts={vendor.markets} />
+            <VendorFacts label="Sprog" facts={vendor.languages} />
             <p className="vendor-customers">
               {vendor.customers.length > 0 ? (
                 <>
@@ -113,7 +140,13 @@ function CapabilitySection({ capability }: { capability: LandscapeCapability }) 
   );
 }
 
-export default async function VendorsPage() {
+export default async function VendorsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ norden?: string }>;
+}) {
+  const { norden } = await searchParams;
+  const nordicOnly = norden === "1";
   let landscape: VendorLandscape | null = null;
   let loadError: unknown = null;
   try {
@@ -132,8 +165,16 @@ export default async function VendorsPage() {
     );
   }
 
-  const withVendors = landscape.capabilities.filter((c) => c.vendors.length > 0);
-  const withoutVendors = landscape.capabilities.filter(
+  // Filter: kun leverandører med dokumenteret marked i Danmark/Norden eller
+  // dansk sprog. Uden dokumentation vises de ikke — de er ikke afvist.
+  const capabilities = nordicOnly
+    ? landscape.capabilities.map((c) => ({
+        ...c,
+        vendors: c.vendors.filter((v) => v.nordic_documented),
+      }))
+    : landscape.capabilities;
+  const withVendors = capabilities.filter((c) => c.vendors.length > 0);
+  const withoutVendors = capabilities.filter(
     (c) => c.vendors.length === 0 && c.technology !== null,
   );
 
@@ -148,7 +189,17 @@ export default async function VendorsPage() {
       </p>
       <p className="cell-sub">
         {landscape.vendor_count} leverandør(er) · {landscape.offering_count}{" "}
-        dokumenterede tilbud
+        dokumenterede tilbud ·{" "}
+        {nordicOnly ? (
+          <>
+            Viser kun leverandører med dokumenteret marked i Danmark/Norden
+            eller dansk sprog · <Link href="/vendors">Vis alle</Link>
+          </>
+        ) : (
+          <Link href="/vendors?norden=1">
+            Vis kun dokumenteret i Danmark/Norden
+          </Link>
+        )}
       </p>
 
       {withVendors.length === 0 ? (

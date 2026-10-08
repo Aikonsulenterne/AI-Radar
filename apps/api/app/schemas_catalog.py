@@ -118,12 +118,25 @@ class OfferingOut(BaseModel):
     also_reported_by: list[str] = Field(default_factory=list)
 
 
+class VendorFactOut(BaseModel):
+    """Et dokumenteret marked eller sprog med sit evidensuddrag."""
+
+    value: str
+    excerpt: str | None
+    source_url: str | None
+
+
 class LandscapeVendorOut(BaseModel):
     company_id: uuid.UUID
     name: str
     offerings: list[OfferingOut]
     # Organisationer med godkendt claim om, at de bruger leverandøren.
     customers: list[str]
+    markets: list[VendorFactOut] = Field(default_factory=list)
+    languages: list[VendorFactOut] = Field(default_factory=list)
+    # Dokumenteret marked i Danmark/Norden eller dansk sprogstøtte. En dansk
+    # kunde alene tæller ikke: kundens land registreres ikke.
+    nordic_documented: bool = False
 
 
 class LandscapeCapabilityOut(BaseModel):

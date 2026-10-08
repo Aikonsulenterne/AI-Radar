@@ -97,6 +97,9 @@ class Document(TimestampMixin, Base):
     processing_status: Mapped[ProcessingStatus] = mapped_column(
         Enum(ProcessingStatus, name="processing_status"), nullable=False, index=True
     )
+    # Hvornår dokumentet er udtrukket med leverandørprompten (extraction
+    # 1.3.0+). None = behandlet før; genlæses af kørslerne (pipeline/backfill).
+    vendor_extracted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     error_code: Mapped[str | None] = mapped_column(String(50))
     error_message_safe: Mapped[str | None] = mapped_column(Text)

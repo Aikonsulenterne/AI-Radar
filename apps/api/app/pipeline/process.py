@@ -120,14 +120,54 @@ class ProcessOutcome:
     skipped_reasons: list[str] = field(default_factory=list)
 
 
-def _capabilities(db: Session) -> list[tuple[str, str]]:
+def create_claim(
+    db: Session,
+    document: Document,
+    source: Source | None,
+    text: str,
+    extracted: ExtractedClaim,
+) -> Claim:
+    """Gem et valideret claim med dets ordrette evidensuddrag."""
+    company = resolve_company(db, extracted.subject_name)
+    object_type, object_id, object_text = _object_fields(db, extracted)
+
+    claim = Claim(
+        claim_type=extracted.claim_type,
+        subject_entity_type=EntityType.company,
+        subject_entity_id=company.id,
+        predicate=extracted.predicate,
+        object_entity_type=object_type,
+        object_entity_id=object_id,
+        object_text=object_text,
+        observed_at=document.published_at or document.retrieved_at,
+        created_by=ClaimCreatedBy.ai,
+    )
+    db.add(claim)
+    db.flush()
+
+    start = text.find(extracted.supporting_excerpt)
+    db.add(
+        ClaimEvidence(
+            claim_id=claim.id,
+            document_id=document.id,
+            supporting_excerpt=extracted.supporting_excerpt,
+            excerpt_start=start,
+            excerpt_end=start + len(extracted.supporting_excerpt),
+            source_type_snapshot=source.source_type if source else None,
+            independent_origin_key=document.canonical_url,
+        )
+    )
+    return claim
+
+
+def capabilities(db: Session) -> list[tuple[str, str]]:
     technologies = db.scalars(
         select(Technology).where(Technology.active.is_(True)).order_by(Technology.name)
     ).all()
     return [(technology.name, technology.definition) for technology in technologies]
 
 
-def _validate_claim(text: str, claim: ExtractedClaim) -> str | None:
+def validate_claim(text: str, claim: ExtractedClaim) -> str | None:
     """Returnér årsag til at kassere claimet, ellers None."""
     if claim.predicate not in PREDICATES_BY_CLAIM_TYPE[claim.claim_type]:
         return f"predicate {claim.predicate} passer ikke til claim_type {claim.claim_type}"
@@ -195,7 +235,7 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             prompt_id=EXTRACTION_PROMPT_ID,
             prompt_version=EXTRACTION_PROMPT_VERSION,
             system=EXTRACTION_SYSTEM,
-            user=extraction_user_message(_capabilities(db), prompt_text),
+            user=extraction_user_message(capabilities(db), prompt_text),
             result_model=ExtractionResult,
             document_id=document.id,
         )
@@ -245,7 +285,7 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
     seen: set[tuple[ClaimType, Predicate, str, str | None, str | None]] = set()
 
     for extracted in extraction.claims:
-        reason = _validate_claim(text, extracted)
+        reason = validate_claim(text, extracted)
         if reason is not None:
             skipped.append(reason)
             continue
@@ -262,37 +302,10 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             continue
         seen.add(dedupe_key)
 
-        company = resolve_company(db, extracted.subject_name)
-        object_type, object_id, object_text = _object_fields(db, extracted)
-
-        claim = Claim(
-            claim_type=extracted.claim_type,
-            subject_entity_type=EntityType.company,
-            subject_entity_id=company.id,
-            predicate=extracted.predicate,
-            object_entity_type=object_type,
-            object_entity_id=object_id,
-            object_text=object_text,
-            observed_at=document.published_at or document.retrieved_at,
-            created_by=ClaimCreatedBy.ai,
-        )
-        db.add(claim)
-        db.flush()
-
-        start = text.find(extracted.supporting_excerpt)
-        db.add(
-            ClaimEvidence(
-                claim_id=claim.id,
-                document_id=document.id,
-                supporting_excerpt=extracted.supporting_excerpt,
-                excerpt_start=start,
-                excerpt_end=start + len(extracted.supporting_excerpt),
-                source_type_snapshot=source.source_type if source else None,
-                independent_origin_key=document.canonical_url,
-            )
-        )
+        create_claim(db, document, source, text, extracted)
         created += 1
 
+    document.vendor_extracted_at = datetime.now(UTC)
     document.processing_status = (
         ProcessingStatus.review_pending if created > 0 else ProcessingStatus.classified_relevant
     )

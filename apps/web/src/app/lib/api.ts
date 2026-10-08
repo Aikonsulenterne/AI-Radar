@@ -205,6 +205,8 @@ export interface WorkerRun {
   fetch_failures: number;
   documents_processed: number;
   documents_published: number;
+  /** Ældre dokumenter genlæst med leverandørprompten. */
+  documents_reread: number;
   processing_skipped_no_ai: boolean;
   error_message_safe: string | null;
 }
@@ -556,11 +558,23 @@ export interface Offering {
   also_reported_by: string[];
 }
 
+export interface VendorFact {
+  value: string;
+  excerpt: string | null;
+  source_url: string | null;
+}
+
 export interface LandscapeVendor {
   company_id: string;
   name: string;
   offerings: Offering[];
   customers: string[];
+  /** Dokumenterede markeder/regioner (fx "Norden") med evidens. */
+  markets: VendorFact[];
+  /** Dokumenteret sprogstøtte (fx "dansk") med evidens. */
+  languages: VendorFact[];
+  /** Marked i Danmark/Norden eller dansk sprog er dokumenteret. */
+  nordic_documented: boolean;
 }
 
 export interface LandscapeCapability {

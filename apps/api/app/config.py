@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # Artikler pr. RSS-kilde pr. kørsel — holder én kørsel afgrænset, så den
     # kan nå at blive færdig på free tier.
     rss_max_items: int = 10
+    # Ældre dokumenter, der genlæses med leverandørprompten pr. kørsel
+    # (pipeline/backfill.py). Afgrænser tid og AI-forbrug pr. kørsel.
+    reread_per_run: int = 25
 
     # Delt hemmelighed, som den planlagte udløser (GitHub Actions) sender i
     # X-Worker-Token for at starte en kørsel. Tom = kun Admin-login kan.

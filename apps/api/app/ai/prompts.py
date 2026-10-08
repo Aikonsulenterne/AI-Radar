@@ -63,7 +63,8 @@ EXTRACTION_PROMPT_ID = "claim_extraction"
 # hovedspørgsmål er, hvem der sælger hvilken AI til kundecentre), og
 # capabilities navngives efter den kuraterede liste i brugerbeskeden; nye
 # capabilities uden for listen får et kort, generisk navn og bliver til
-# kandidat-teknologier ("Nyt i markedet").
+# kandidat-teknologier ("Nyt i markedet"); leverandørens marked og sprog
+# udtrækkes som OFFERS_IN_MARKET / SUPPORTS_LANGUAGE.
 EXTRACTION_PROMPT_VERSION = "1.3.0"
 
 EXTRACTION_SYSTEM = """\
@@ -95,8 +96,13 @@ Rules:
   contact centres, write "<vendor> OFFERS_CAPABILITY <capability>" with the
   vendor as subject, object_name = the capability, object_text = the product
   or feature name plus one short phrase on what it does, as stated in the
-  text. Availability in Denmark/the Nordics or Danish language support, when
-  stated, belongs in object_text.
+  text.
+- When the text states where a vendor sells or operates, or which languages
+  its product supports, add separate claims with the vendor as subject:
+  "<vendor> OFFERS_IN_MARKET" (object_text = the country or region exactly as
+  stated, e.g. "Denmark", "the Nordics", "Europe") and "<vendor>
+  SUPPORTS_LANGUAGE" (object_text = the language, e.g. "Danish"). Only when
+  explicitly stated; never infer a market from a customer's nationality.
 - A vendor offering is not adoption: never write "<vendor> USES_CAPABILITY
   <its own product>". When a named customer uses a vendor's product, the
   customer is the subject (USES_CAPABILITY / USES_VENDOR / USES_TECHNOLOGY),
@@ -116,7 +122,7 @@ Rules:
   stage: ADOPTION_STAGE (object_text = one of Experiment|Pilot|Production|Scale|Unknown,
          only when the stage is explicitly stated)
   technology_vendor: USES_TECHNOLOGY or USES_VENDOR (object_name = technology/vendor),
-         or OFFERS_CAPABILITY (vendor offering, see above)
+         or OFFERS_CAPABILITY / OFFERS_IN_MARKET / SUPPORTS_LANGUAGE (vendor, see above)
   effect: REPORTED_EFFECT (object_text = the effect exactly as reported)
   negative: REPORTS_BARRIER, REPORTS_NEGATIVE_OUTCOME or ABANDONED_OR_REPLACED
   organization: USES_GOVERNANCE_MODEL, USES_HUMAN_REVIEW,
@@ -131,11 +137,21 @@ Return {"claims": []} if nothing qualifies.
 """
 
 
-def extraction_user_message(capabilities: list[tuple[str, str]], document_text: str) -> str:
+VENDOR_ONLY_NOTE = (
+    "SCOPE: this document was processed before. Return ONLY claims with predicate "
+    "OFFERS_CAPABILITY, OFFERS_IN_MARKET, SUPPORTS_LANGUAGE or USES_VENDOR."
+)
+
+
+def extraction_user_message(
+    capabilities: list[tuple[str, str]], document_text: str, *, vendor_only: bool = False
+) -> str:
     """Kuraterede capabilities (navn, definition) foran dokumentteksten, så
-    modellen bruger radarens egne navne og claims lander på teknologierne."""
+    modellen bruger radarens egne navne og claims lander på teknologierne.
+    vendor_only begrænser svaret ved genlæsning (kortere og billigere svar)."""
     lines = "\n".join(f"- {name}: {definition}" for name, definition in capabilities)
-    return f"CAPABILITIES:\n{lines or '- (ingen)'}\n\nDOCUMENT:\n{document_text}"
+    scope = f"{VENDOR_ONLY_NOTE}\n\n" if vendor_only else ""
+    return f"{scope}CAPABILITIES:\n{lines or '- (ingen)'}\n\nDOCUMENT:\n{document_text}"
 
 
 OPPORTUNITY_PROMPT_ID = "opportunity_proposal"

@@ -43,6 +43,7 @@ from app.ingestion.run import run_source_fetch
 from app.models import Document, Source
 from app.models_runs import WorkerRun
 from app.pipeline.autopublish import autopublish_document
+from app.pipeline.backfill import documents_to_reread, reread_document
 from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.storage import get_storage
 
@@ -66,6 +67,7 @@ class WorkerRunResult:
     documents_processed: int = 0
     # Dokumenter publiceret automatisk (AUTO_PUBLISH), inkl. ventende backlog.
     documents_published: int = 0
+    documents_reread: int = 0
     processing_skipped_no_ai: bool = False
 
 
@@ -185,6 +187,8 @@ def run_once(
                 _publish_backlog(db, provider, result)
                 progress()
 
+            _reread_backlog(db, provider, result, progress)
+
     logger.info(
         "worker_run sources=%d created=%d unchanged=%d failures=%d processed=%d",
         result.sources_checked,
@@ -194,6 +198,27 @@ def run_once(
         result.documents_processed,
     )
     return result
+
+
+def _reread_backlog(
+    db: Session,
+    provider: AIProvider,
+    result: WorkerRunResult,
+    progress: Callable[[], None],
+) -> None:
+    """Genlæs ældre dokumenter med leverandørprompten, et afgrænset antal
+    pr. kørsel, så leverandørlandskabet også fyldes af det allerede hentede."""
+    for document in documents_to_reread(db, get_settings().reread_per_run):
+        try:
+            reread_document(db, provider, document)
+        except ApiError as exc:
+            db.rollback()
+            if exc.code == "ai_provider_rejected":
+                raise RunAborted(exc.message) from exc
+            raise
+        db.commit()
+        result.documents_reread += 1
+        progress()
 
 
 def _publish_backlog(db: Session, provider: AIProvider, result: WorkerRunResult) -> None:
@@ -261,6 +286,7 @@ def _store_counts(run: WorkerRun, result: WorkerRunResult) -> None:
     run.fetch_failures = result.fetch_failures
     run.documents_processed = result.documents_processed
     run.documents_published = result.documents_published
+    run.documents_reread = result.documents_reread
     run.processing_skipped_no_ai = result.processing_skipped_no_ai
 
 

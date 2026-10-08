@@ -4,6 +4,9 @@
 -- leverandøren som subjekt og produktnavnet som objekttekst.
 
 alter type claim_predicate add value if not exists 'OFFERS_CAPABILITY';
+-- Leverandørens dokumenterede marked og sprog (fx Danmark/Norden, dansk).
+alter type claim_predicate add value if not exists 'OFFERS_IN_MARKET';
+alter type claim_predicate add value if not exists 'SUPPORTS_LANGUAGE';
 
 -- Selvbetjening via chat-/voicebots manglede i den kuraterede liste.
 with inserted as (
@@ -28,3 +31,8 @@ on conflict (entity_type, normalized_alias) do nothing;
 alter table technologies add column if not exists is_candidate boolean not null default false;
 alter table technologies add column if not exists discovered_at timestamptz null;
 alter table technologies alter column horizon drop not null;
+
+-- Genlæsning: dokumenter behandlet før leverandørprompten har null og
+-- genlæses af kørslerne; kørselsloggen tæller dem.
+alter table documents add column if not exists vendor_extracted_at timestamptz null;
+alter table worker_runs add column if not exists documents_reread integer not null default 0;

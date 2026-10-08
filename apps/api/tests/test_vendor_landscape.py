@@ -316,3 +316,64 @@ def test_vendor_matches_across_legal_form(client: TestClient, db_session_factory
         assert resolve_company(db, "Zendesk Inc.").id == first.id
         assert resolve_company(db, "Zendesk, Inc.").id == first.id
         assert resolve_company(db, "Zendesk Labs").id != first.id
+
+
+MARKET_TEXT = (
+    "Puzzel lancerer Puzzel Agent Assist med dansk sprogstøtte til kundecentre. "
+    "Puzzel sælger løsningen i hele Norden. Produktet understøtter dansk."
+)
+
+MARKET_EXTRACTION = {
+    "claims": [
+        EXTRACTION["claims"][0],
+        {
+            "claim_type": "technology_vendor",
+            "predicate": "OFFERS_IN_MARKET",
+            "subject_name": "Puzzel AS",
+            "object_name": None,
+            "object_text": "Norden",
+            "supporting_excerpt": "Puzzel sælger løsningen i hele Norden.",
+        },
+        {
+            "claim_type": "technology_vendor",
+            "predicate": "SUPPORTS_LANGUAGE",
+            "subject_name": "Puzzel",
+            "object_name": None,
+            "object_text": "dansk",
+            "supporting_excerpt": "Produktet understøtter dansk.",
+        },
+    ]
+}
+
+
+def test_vendor_market_and_language_are_documented_and_flag_nordic(
+    client: TestClient, admin_headers: dict[str, str], auto_publish: None
+) -> None:
+    provider = FakeProvider(extraction=MARKET_EXTRACTION)
+    app.dependency_overrides[ai_provider_dep] = lambda: provider
+    try:
+        _process_text(client, admin_headers, MARKET_TEXT)
+    finally:
+        app.dependency_overrides.pop(ai_provider_dep, None)
+
+    landscape = client.get("/api/v1/vendor-landscape", headers=admin_headers).json()
+    row = next(c for c in landscape["capabilities"] if c["capability_name"] == "Agent Assist")
+    [puzzel] = row["vendors"]
+    assert [m["value"] for m in puzzel["markets"]] == ["Norden"]
+    assert puzzel["markets"][0]["excerpt"] == "Puzzel sælger løsningen i hele Norden."
+    assert [lang["value"] for lang in puzzel["languages"]] == ["dansk"]
+    assert puzzel["nordic_documented"] is True
+
+    # Marked og sprog er udsagn om leverandøren — ingen adoption case.
+    cases = client.get("/api/v1/adoption-cases", headers=admin_headers).json()["items"]
+    assert cases == []
+
+
+def test_vendor_without_documented_market_is_not_nordic(
+    client: TestClient, admin_headers: dict[str, str], vendor_provider: Any, auto_publish: None
+) -> None:
+    _process_vendor_document(client, admin_headers)
+    landscape = client.get("/api/v1/vendor-landscape", headers=admin_headers).json()
+    row = next(c for c in landscape["capabilities"] if c["capability_name"] == "Agent Assist")
+    assert row["vendors"][0]["nordic_documented"] is False
+    assert row["vendors"][0]["markets"] == []

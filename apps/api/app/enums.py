@@ -87,6 +87,9 @@ class Predicate(StrEnum):
     REPORTS_DATA_FOUNDATION = "REPORTS_DATA_FOUNDATION"
     # Leverandørens tilbud: "<leverandør> OFFERS_CAPABILITY <capability>".
     OFFERS_CAPABILITY = "OFFERS_CAPABILITY"
+    # Leverandørens dokumenterede marked og sprog: "Danmark", "Norden", "dansk".
+    OFFERS_IN_MARKET = "OFFERS_IN_MARKET"
+    SUPPORTS_LANGUAGE = "SUPPORTS_LANGUAGE"
 
 
 # Eksklusiv mapping claim_type → tilladte predicates (Technical Master §5).
@@ -95,7 +98,13 @@ PREDICATES_BY_CLAIM_TYPE: dict[ClaimType, frozenset[Predicate]] = {
     ClaimType.use_case: frozenset({Predicate.USES_FOR}),
     ClaimType.stage: frozenset({Predicate.ADOPTION_STAGE}),
     ClaimType.technology_vendor: frozenset(
-        {Predicate.USES_TECHNOLOGY, Predicate.USES_VENDOR, Predicate.OFFERS_CAPABILITY}
+        {
+            Predicate.USES_TECHNOLOGY,
+            Predicate.USES_VENDOR,
+            Predicate.OFFERS_CAPABILITY,
+            Predicate.OFFERS_IN_MARKET,
+            Predicate.SUPPORTS_LANGUAGE,
+        }
     ),
     ClaimType.effect: frozenset({Predicate.REPORTED_EFFECT}),
     ClaimType.negative: frozenset(
@@ -202,3 +211,10 @@ class RunStatus(StrEnum):
     running = "running"
     succeeded = "succeeded"
     failed = "failed"
+
+
+# Udsagn om leverandøren selv (tilbud, marked, sprog) — aldrig adoption, og
+# de giver ingen adoption case.
+VENDOR_PREDICATES: frozenset[Predicate] = frozenset(
+    {Predicate.OFFERS_CAPABILITY, Predicate.OFFERS_IN_MARKET, Predicate.SUPPORTS_LANGUAGE}
+)

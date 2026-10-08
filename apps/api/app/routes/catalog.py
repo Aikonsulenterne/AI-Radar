@@ -35,6 +35,7 @@ from app.schemas_catalog import (
     TechnologyDetailOut,
     TechnologyOut,
     TechnologyUpdate,
+    VendorFactOut,
     VendorLandscapeOut,
 )
 
@@ -596,6 +597,62 @@ def _merged_offerings(db: Session, claims: list[Claim]) -> list[OfferingOut]:
     return list(merged.values())
 
 
+_NORDIC_MARKETS = (
+    "denmark",
+    "danmark",
+    "danish",
+    "dansk",
+    "nordic",
+    "nordics",
+    "norden",
+    "nordisk",
+    "scandinavia",
+    "skandinavien",
+)
+
+
+def _vendor_facts(
+    db: Session, vendor_ids: set[uuid.UUID]
+) -> dict[uuid.UUID, tuple[list[VendorFactOut], list[VendorFactOut]]]:
+    """Godkendte marked- og sprogclaims pr. leverandør (dubletter fjernet)."""
+    facts: dict[uuid.UUID, tuple[list[VendorFactOut], list[VendorFactOut]]] = {
+        vendor_id: ([], []) for vendor_id in vendor_ids
+    }
+    if not vendor_ids:
+        return facts
+    rows = db.scalars(
+        select(Claim).where(
+            Claim.predicate.in_((Predicate.OFFERS_IN_MARKET, Predicate.SUPPORTS_LANGUAGE)),
+            Claim.review_status.in_(_APPROVED),
+            Claim.subject_entity_id.in_(vendor_ids),
+        )
+    ).all()
+    for claim in rows:
+        if not claim.object_text:
+            continue
+        offering = _offering_out(db, claim)
+        target = facts[claim.subject_entity_id][
+            0 if claim.predicate == Predicate.OFFERS_IN_MARKET else 1
+        ]
+        if any(normalize_alias(f.value) == normalize_alias(claim.object_text) for f in target):
+            continue
+        target.append(
+            VendorFactOut(
+                value=claim.object_text,
+                excerpt=offering.excerpt,
+                source_url=offering.source_url,
+            )
+        )
+    return facts
+
+
+def _is_nordic(markets: list[VendorFactOut], languages: list[VendorFactOut]) -> bool:
+    values = [normalize_alias(f.value) for f in (*markets, *languages)]
+    return any(
+        word in value.split() or value == word for value in values for word in _NORDIC_MARKETS
+    )
+
+
 def _customers_by_vendor(
     db: Session, vendors: dict[uuid.UUID, Company]
 ) -> dict[uuid.UUID, set[str]]:
@@ -654,6 +711,7 @@ def vendor_landscape(
         grouped.setdefault(technology_id, {}).setdefault(company.id, []).append(claim)
 
     customers = _customers_by_vendor(db, vendors)
+    vendor_facts = _vendor_facts(db, set(vendors))
 
     def vendor_rows(by_vendor: dict[uuid.UUID, list[Claim]]) -> list[LandscapeVendorOut]:
         rows = [
@@ -662,6 +720,9 @@ def vendor_landscape(
                 name=vendors[company_id].name,
                 offerings=_merged_offerings(db, claims),
                 customers=sorted(customers[company_id]),
+                markets=vendor_facts[company_id][0],
+                languages=vendor_facts[company_id][1],
+                nordic_documented=_is_nordic(*vendor_facts[company_id]),
             )
             for company_id, claims in by_vendor.items()
         ]

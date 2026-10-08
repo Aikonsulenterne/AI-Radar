@@ -31,10 +31,10 @@ from app.ai.provider import (
 from app.ai.schemas import AISchemaError, SignalDraft, call_with_schema
 from app.audit import AuditAction, AuditEntity, record
 from app.enums import (
+    VENDOR_PREDICATES,
     CaseStatus,
     DocumentationLevel,
     EntityType,
-    Predicate,
     ProcessingStatus,
     ReviewStatus,
     SignalStatus,
@@ -71,7 +71,7 @@ def _document_claims(db: Session, document_id: uuid.UUID) -> list[Claim]:
     return [claim for claim in claims if claim is not None]
 
 
-def _approve(db: Session, claim: Claim) -> None:
+def approve_automatically(db: Session, claim: Claim) -> None:
     claim.review_status = ReviewStatus.approved
     claim.auto_approved = True
     claim.reviewed_by_user_id = None
@@ -114,7 +114,7 @@ def _publish_cases(
     for claim in claims:
         # Et leverandørtilbud er ikke adoption: leverandøren får ingen case
         # for sit eget produkt. Tilbuddet vises i leverandørlandskabet.
-        if claim.predicate == Predicate.OFFERS_CAPABILITY:
+        if claim.predicate in VENDOR_PREDICATES:
             continue
         if claim.subject_entity_type == EntityType.company:
             by_company[claim.subject_entity_id].append(claim)
@@ -233,7 +233,7 @@ def autopublish_document(
         return outcome
 
     for claim in open_claims:
-        _approve(db, claim)
+        approve_automatically(db, claim)
     outcome.claims_approved = len(open_claims)
     db.flush()
 

@@ -29,5 +29,6 @@ class WorkerRunOut(BaseModel):
     fetch_failures: int
     documents_processed: int
     documents_published: int
+    documents_reread: int = 0
     processing_skipped_no_ai: bool
     error_message_safe: str | None

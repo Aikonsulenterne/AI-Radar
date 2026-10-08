@@ -41,7 +41,8 @@ function summary(run: WorkerRun): string {
     run.status === "succeeded" &&
     run.sources_checked === 0 &&
     run.documents_processed === 0 &&
-    run.documents_published === 0
+    run.documents_published === 0 &&
+    run.documents_reread === 0
   ) {
     return "Intet at gøre: ingen aktive RSS- eller web-kilder at hente fra og ingen nye dokumenter at AI-behandle.";
   }
@@ -51,6 +52,8 @@ function summary(run: WorkerRun): string {
     `${run.documents_processed} AI-behandlet`,
   ];
   if (run.documents_published > 0) parts.push(`${run.documents_published} publiceret automatisk`);
+  if (run.documents_reread > 0)
+    parts.push(`${run.documents_reread} ældre genlæst for leverandørtilbud`);
   if (run.fetch_failures > 0) parts.push(`${run.fetch_failures} hentefejl`);
   if (run.processing_skipped_no_ai) parts.push("AI ikke konfigureret");
   return parts.join(" · ");

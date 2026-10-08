@@ -38,6 +38,8 @@ class TechnologyOut(BaseModel):
     active: bool
     # Antal virksomheder med godkendte claims, der refererer teknologien.
     adopting_company_count: int = 0
+    # Antal leverandører med et godkendt tilbud (OFFERS_CAPABILITY).
+    vendor_count: int = 0
 
 
 class CaseFacts(BaseModel):
@@ -81,6 +83,45 @@ class CompanyDetailOut(CompanyOut):
 class TechnologyDetailOut(TechnologyOut):
     claims: list[ClaimOut] = Field(default_factory=list)
     companies: list[CompanyOut] = Field(default_factory=list)
+    vendors: list[CompanyOut] = Field(default_factory=list)
+
+
+class OfferingOut(BaseModel):
+    """Ét godkendt tilbud: leverandøren tilbyder en capability (produkt)."""
+
+    claim_id: uuid.UUID
+    product: str | None
+    excerpt: str | None
+    document_id: uuid.UUID | None
+    document_title: str | None
+    source_url: str | None
+    source_name: str | None
+    source_type: str | None
+    auto_approved: bool
+    observed_at: datetime | None
+
+
+class LandscapeVendorOut(BaseModel):
+    company_id: uuid.UUID
+    name: str
+    offerings: list[OfferingOut]
+    # Organisationer med godkendt claim om, at de bruger leverandøren.
+    customers: list[str]
+
+
+class LandscapeCapabilityOut(BaseModel):
+    """En kurateret teknologi — eller technology=None for tilbud, hvis
+    capability ikke findes på den kuraterede liste."""
+
+    technology: TechnologyOut | None
+    capability_name: str
+    vendors: list[LandscapeVendorOut]
+
+
+class VendorLandscapeOut(BaseModel):
+    capabilities: list[LandscapeCapabilityOut]
+    vendor_count: int
+    offering_count: int
 
 
 class CaseCreate(BaseModel):

@@ -49,8 +49,9 @@ export default async function TechnologiesPage() {
     <>
       <h1>Teknologiradar</h1>
       <p className="page-lead">
-        Kuraterede AI-capabilities i tre horisonter. Adoption tælles kun på
-        godkendte claims — der er ingen samlet score.
+        Kuraterede AI-capabilities til kundecentre i tre horisonter.
+        Leverandørtilbud og adoption tælles kun på godkendte claims — der er
+        ingen samlet score. <Link href="/vendors">Se leverandørerne →</Link>
       </p>
 
       {technologies.length === 0 ? (
@@ -89,6 +90,8 @@ export default async function TechnologiesPage() {
                           {technology.definition}
                         </p>
                         <p className="cell-sub">
+                          {technology.vendor_count} leverandør(er) med
+                          dokumenteret tilbud ·{" "}
                           {technology.adopting_company_count} virksomhed(er)
                           med dokumenteret adoption
                         </p>

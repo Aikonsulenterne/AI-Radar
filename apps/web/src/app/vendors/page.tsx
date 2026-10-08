@@ -1,0 +1,191 @@
+import Link from "next/link";
+import {
+  getVendorLandscape,
+  type LandscapeCapability,
+  type Offering,
+  type VendorLandscape,
+} from "../lib/api";
+import {
+  SOURCE_TYPE_LABELS,
+  formatDateTime,
+  isVendorSource,
+} from "../lib/labels";
+import { ApiErrorAlert } from "../../components/states/api-error";
+
+export const dynamic = "force-dynamic";
+
+const HORIZON_LABELS: Record<string, string> = {
+  now: "NU",
+  next: "NÆSTE",
+  horizon: "HORIZON",
+};
+
+function anchorId(capability: LandscapeCapability): string {
+  return `cap-${capability.technology?.slug ?? "oevrige"}`;
+}
+
+function OfferingItem({ offering }: { offering: Offering }) {
+  const sourceLabel = offering.source_type
+    ? (SOURCE_TYPE_LABELS[offering.source_type] ?? offering.source_type)
+    : null;
+  return (
+    <li>
+      <strong>{offering.product ?? "Produkt ikke navngivet"}</strong>
+      <span className="cell-sub">
+        {offering.source_name ?? "Ukendt kilde"}
+        {sourceLabel ? ` · ${sourceLabel}` : ""}
+        {offering.observed_at ? ` · ${formatDateTime(offering.observed_at)}` : ""}
+        {offering.auto_approved ? " · Automatisk godkendt af AI" : ""}
+      </span>
+      {isVendorSource(offering.source_type) ? (
+        <span className="cell-sub">Leverandørens eget udsagn</span>
+      ) : null}
+      {offering.excerpt ? (
+        <p className="offering-excerpt">&ldquo;{offering.excerpt}&rdquo;</p>
+      ) : null}
+      {offering.source_url ? (
+        <a href={offering.source_url} target="_blank" rel="noopener noreferrer">
+          Original kilde ↗
+        </a>
+      ) : null}
+    </li>
+  );
+}
+
+function CapabilitySection({ capability }: { capability: LandscapeCapability }) {
+  const technology = capability.technology;
+  return (
+    <section
+      id={anchorId(capability)}
+      className="landscape-capability"
+      aria-label={capability.capability_name}
+    >
+      <div className="landscape-capability-head">
+        <h2 className="section-title">
+          {technology ? (
+            <Link href={`/technologies/${technology.id}`}>
+              {capability.capability_name}
+            </Link>
+          ) : (
+            capability.capability_name
+          )}
+        </h2>
+        {technology ? (
+          <span className={`badge badge-horizon-${technology.horizon}`}>
+            {HORIZON_LABELS[technology.horizon]}
+          </span>
+        ) : null}
+        <span className="cell-sub">
+          {capability.vendors.length} leverandør(er)
+          {technology
+            ? ` · ${technology.adopting_company_count} virksomhed(er) med dokumenteret adoption`
+            : ""}
+        </span>
+      </div>
+      <p className="page-lead">
+        {technology?.definition ??
+          "Tilbud, hvis capability ikke findes på radarens kuraterede liste."}
+      </p>
+      <div className="vendor-grid">
+        {capability.vendors.map((vendor) => (
+          <article key={vendor.company_id} className="vendor-card">
+            <h3 className="vendor-name">{vendor.name}</h3>
+            <ul className="offering-list">
+              {vendor.offerings.map((offering) => (
+                <OfferingItem key={offering.claim_id} offering={offering} />
+              ))}
+            </ul>
+            <p className="vendor-customers">
+              {vendor.customers.length > 0 ? (
+                <>
+                  <strong>Dokumenterede kunder:</strong>{" "}
+                  {vendor.customers.join(", ")}
+                </>
+              ) : (
+                <span className="cell-sub">
+                  Ingen dokumenterede kunder endnu
+                </span>
+              )}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export default async function VendorsPage() {
+  let landscape: VendorLandscape | null = null;
+  let loadError: unknown = null;
+  try {
+    landscape = await getVendorLandscape();
+  } catch (error) {
+    landscape = null;
+    loadError = error;
+  }
+
+  if (landscape === null) {
+    return (
+      <>
+        <h1>Leverandører</h1>
+        <ApiErrorAlert error={loadError} />
+      </>
+    );
+  }
+
+  const withVendors = landscape.capabilities.filter((c) => c.vendors.length > 0);
+  const withoutVendors = landscape.capabilities.filter(
+    (c) => c.vendors.length === 0 && c.technology !== null,
+  );
+
+  return (
+    <>
+      <h1>Leverandører</h1>
+      <p className="page-lead">
+        Hvilke leverandører tilbyder hvilken AI-teknologi til kundecentre — og
+        hvilke organisationer bruger dem. Kun godkendte claims med ordret
+        evidensuddrag. Udsagn fra leverandørens egne kilder er markeret som
+        leverandørens.
+      </p>
+      <p className="cell-sub">
+        {landscape.vendor_count} leverandør(er) · {landscape.offering_count}{" "}
+        dokumenterede tilbud
+      </p>
+
+      {withVendors.length === 0 ? (
+        <div className="empty-state">
+          <p>
+            <strong>Ingen dokumenterede leverandørtilbud endnu.</strong>
+          </p>
+          <p>
+            Tilbud udtrækkes fra nye artikler ved næste kørsel (Admin → Kilder →
+            Kør nu).
+          </p>
+        </div>
+      ) : (
+        <>
+          <nav aria-label="Capabilities" className="landscape-capability-head">
+            {withVendors.map((capability) => (
+              <a key={anchorId(capability)} href={`#${anchorId(capability)}`}>
+                {capability.capability_name} ({capability.vendors.length})
+              </a>
+            ))}
+          </nav>
+          {withVendors.map((capability) => (
+            <CapabilitySection
+              key={anchorId(capability)}
+              capability={capability}
+            />
+          ))}
+        </>
+      )}
+
+      {withoutVendors.length > 0 ? (
+        <p className="cell-sub">
+          Ingen dokumenterede leverandører endnu:{" "}
+          {withoutVendors.map((c) => c.capability_name).join(", ")}
+        </p>
+      ) : null}
+    </>
+  );
+}

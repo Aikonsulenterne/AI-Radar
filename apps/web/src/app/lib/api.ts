@@ -442,6 +442,11 @@ export function listSignals(status?: SignalStatus): Promise<Paginated<Signal>> {
   return request<Paginated<Signal>>(`/signals${query}`);
 }
 
+/** Alle publicerede signaler, nyeste først (Signaler-siden). */
+export function listPublishedSignals(): Promise<Paginated<Signal>> {
+  return request<Paginated<Signal>>("/signals?status=published&limit=200");
+}
+
 export function getSignal(signalId: string): Promise<SignalDetail> {
   return request<SignalDetail>(`/signals/${signalId}`);
 }
@@ -489,6 +494,8 @@ export interface Technology {
   horizon: TechHorizon;
   active: boolean;
   adopting_company_count: number;
+  /** Leverandører med et godkendt tilbud (OFFERS_CAPABILITY). */
+  vendor_count: number;
 }
 
 export interface CaseFacts {
@@ -527,6 +534,43 @@ export interface CompanyDetail extends Company {
 export interface TechnologyDetail extends Technology {
   claims: Claim[];
   companies: Company[];
+  vendors: Company[];
+}
+
+export interface Offering {
+  claim_id: string;
+  product: string | null;
+  excerpt: string | null;
+  document_id: string | null;
+  document_title: string | null;
+  source_url: string | null;
+  source_name: string | null;
+  source_type: string | null;
+  auto_approved: boolean;
+  observed_at: string | null;
+}
+
+export interface LandscapeVendor {
+  company_id: string;
+  name: string;
+  offerings: Offering[];
+  customers: string[];
+}
+
+export interface LandscapeCapability {
+  technology: Technology | null;
+  capability_name: string;
+  vendors: LandscapeVendor[];
+}
+
+export interface VendorLandscape {
+  capabilities: LandscapeCapability[];
+  vendor_count: number;
+  offering_count: number;
+}
+
+export function getVendorLandscape(): Promise<VendorLandscape> {
+  return request<VendorLandscape>("/vendor-landscape");
 }
 
 export function listCompanies(): Promise<Paginated<Company>> {

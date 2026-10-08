@@ -8,6 +8,8 @@ type NavItem = { href: string; label: string };
 // Primær navigation jf. UI Master §6.
 export const primaryNav: NavItem[] = [
   { href: "/", label: "Overblik" },
+  { href: "/vendors", label: "Leverandører" },
+  { href: "/signals", label: "Signaler" },
   { href: "/adoption", label: "AI-adoption" },
   { href: "/technologies", label: "Teknologiradar" },
   { href: "/opportunities", label: "Opportunities" },

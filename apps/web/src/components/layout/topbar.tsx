@@ -9,6 +9,7 @@ function pageTitle(pathname: string): string {
     isActive(pathname, item.href),
   );
   if (pathname.startsWith("/signals/")) return "Signal";
+  if (pathname === "/signals") return "Signaler";
   if (pathname.startsWith("/adoption/cases/")) return "Adoption case";
   if (pathname.startsWith("/adoption/companies/")) return "Virksomhed";
   if (pathname.startsWith("/technologies/")) return "Teknologi";

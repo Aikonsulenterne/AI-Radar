@@ -51,10 +51,38 @@ export default async function TechnologyPage({
 
       <section
         className="signal-section section-fact"
+        aria-label="Leverandører"
+      >
+        <h2 className="section-title">
+          Leverandører{" "}
+          <span className="section-tag">Kun godkendte claims</span>
+        </h2>
+        {technology.vendors.length === 0 ? (
+          <p className="cell-sub">
+            Ingen dokumenterede leverandørtilbud endnu.
+          </p>
+        ) : (
+          <ul>
+            {technology.vendors.map((vendor) => (
+              <li key={vendor.id}>
+                <Link href={`/adoption/companies/${vendor.id}`}>
+                  {vendor.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="cell-sub">
+          <Link href="/vendors">Se hele leverandørlandskabet →</Link>
+        </p>
+      </section>
+
+      <section
+        className="signal-section section-fact"
         aria-label="Dokumenteret adoption"
       >
         <h2 className="section-title">
-          Skandinavisk adoption{" "}
+          Dokumenteret adoption{" "}
           <span className="section-tag">Kun godkendte claims</span>
         </h2>
         {technology.companies.length === 0 ? (

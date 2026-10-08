@@ -34,6 +34,7 @@ from app.enums import (
     CaseStatus,
     DocumentationLevel,
     EntityType,
+    Predicate,
     ProcessingStatus,
     ReviewStatus,
     SignalStatus,
@@ -111,6 +112,10 @@ def _publish_cases(
 ) -> None:
     by_company: dict[uuid.UUID, list[Claim]] = defaultdict(list)
     for claim in claims:
+        # Et leverandørtilbud er ikke adoption: leverandøren får ingen case
+        # for sit eget produkt. Tilbuddet vises i leverandørlandskabet.
+        if claim.predicate == Predicate.OFFERS_CAPABILITY:
+            continue
         if claim.subject_entity_type == EntityType.company:
             by_company[claim.subject_entity_id].append(claim)
 

@@ -85,6 +85,8 @@ class Predicate(StrEnum):
     USES_HUMAN_REVIEW = "USES_HUMAN_REVIEW"
     REPORTS_ADOPTION_APPROACH = "REPORTS_ADOPTION_APPROACH"
     REPORTS_DATA_FOUNDATION = "REPORTS_DATA_FOUNDATION"
+    # Leverandørens tilbud: "<leverandør> OFFERS_CAPABILITY <capability>".
+    OFFERS_CAPABILITY = "OFFERS_CAPABILITY"
 
 
 # Eksklusiv mapping claim_type → tilladte predicates (Technical Master §5).
@@ -92,7 +94,9 @@ PREDICATES_BY_CLAIM_TYPE: dict[ClaimType, frozenset[Predicate]] = {
     ClaimType.adoption: frozenset({Predicate.USES_CAPABILITY}),
     ClaimType.use_case: frozenset({Predicate.USES_FOR}),
     ClaimType.stage: frozenset({Predicate.ADOPTION_STAGE}),
-    ClaimType.technology_vendor: frozenset({Predicate.USES_TECHNOLOGY, Predicate.USES_VENDOR}),
+    ClaimType.technology_vendor: frozenset(
+        {Predicate.USES_TECHNOLOGY, Predicate.USES_VENDOR, Predicate.OFFERS_CAPABILITY}
+    ),
     ClaimType.effect: frozenset({Predicate.REPORTED_EFFECT}),
     ClaimType.negative: frozenset(
         {

@@ -405,3 +405,33 @@ leverandørblogs) og for lidt om kundecentre. Ændringer:
 
 Udestår: problemtaksonomi for kundecentret, teknologilandskabsvisning
 (kategori → leverandør → adopter) og leverandørkilder med verificerede feeds.
+
+## Leverandørlandskab (2026-10-08)
+
+Produktejeren præciserede radarens opgave: *hvilke leverandører tilbyder
+hvilken AI-teknologi til danske kundecentre*. Extraction 1.1.0–1.2.0
+sprang netop leverandørtilbud over, og Teknologiradaren talte kun adoption,
+så næsten alt stod på 0. Ændringer:
+
+- **Migration `20261008090000_vendor_offerings.sql`:** predicate
+  `OFFERS_CAPABILITY` og teknologien *Virtual Agent* (chat-/voicebots).
+  Skal køres i Supabase SQL Editor, *før* koden deployes — ellers fejler
+  forespørgsler på den nye enum-værdi (Teknologiradar, Leverandører).
+- **Extraction 1.3.0:** leverandørtilbud udtrækkes (`<leverandør>
+  OFFERS_CAPABILITY <capability>`, produktnavn i objekttekst); brugerbeskeden
+  indeholder radarens kuraterede capabilities, så objektet rammer en
+  teknologi i stedet for fritekst. Relevans 2.1.0 nævner tilbud eksplicit.
+- **Autopublicering:** tilbud giver ingen adoption case (leverandøren
+  adopterer ikke sit eget produkt).
+- **API:** `GET /vendor-landscape` (capability → leverandører → tilbud med
+  evidens og kilde, plus kunder fra godkendte `USES_VENDOR`/`USES_TECHNOLOGY`
+  claims). `TechnologyOut.vendor_count` og `TechnologyDetailOut.vendors`;
+  adoption tæller ikke længere tilbud med.
+- **UI:** ny side *Leverandører* (`/vendors`), *Signaler* (`/signals`, alle
+  publicerede), "Se alle"-link på Overblik, leverandørantal på
+  Teknologiradaren, og titlen på kort i HORIZON-kolonnen er synlig igen.
+- **Kilder:** `kundecenter_sources.sql` har fået Bing News-feeds på
+  leverandører (Puzzel, Dixa, Zendesk, Genesys, Agentforce, Dynamics 365
+  Contact Center, contact center AI-lanceringer). Idempotent.
+- Allerede behandlede dokumenter udtrækkes ikke igen; landskabet fyldes af
+  nye artikler.

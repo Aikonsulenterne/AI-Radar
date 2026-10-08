@@ -216,7 +216,7 @@ Et claim må kun indeholde ét faktuelt udsagn. Ukendte værdier og tidsreferenc
 - Adoption: `USES_CAPABILITY`
 - Use case: `USES_FOR`
 - Stage: `ADOPTION_STAGE`
-- Technology/vendor: `USES_TECHNOLOGY`, `USES_VENDOR`
+- Technology/vendor: `USES_TECHNOLOGY`, `USES_VENDOR`, `OFFERS_CAPABILITY` (leverandøren er subjekt, capability objekt, produktnavn objekttekst — tæller som leverandør, aldrig som adoption)
 - Effect: `REPORTED_EFFECT`
 - Negative/barrier: `REPORTS_BARRIER`, `REPORTS_NEGATIVE_OUTCOME`, `ABANDONED_OR_REPLACED`
 - Organization: `USES_GOVERNANCE_MODEL`, `USES_HUMAN_REVIEW`, `REPORTS_ADOPTION_APPROACH`, `REPORTS_DATA_FOUNDATION`

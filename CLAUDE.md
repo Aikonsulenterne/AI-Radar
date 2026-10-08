@@ -103,3 +103,7 @@ ugodkendt og markeret som AI-forslag — mennesket godkender fortsat.
 Beslutninger i review, kilder, opportunities og publicering skrives til en
 append-only audit-log (`GET /audit`, kun Admin) med aktør, før/efter og
 correlation id.
+Radarens hovedopgave (2026-10-08): hvilke leverandører tilbyder hvilken
+AI-teknologi til kundecentre, og hvem bruger den. Leverandørtilbud er
+`OFFERS_CAPABILITY`-claims; siden *Leverandører* (`/vendors`) og
+`GET /vendor-landscape` viser landskabet pr. kurateret capability.

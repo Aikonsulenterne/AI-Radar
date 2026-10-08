@@ -9,6 +9,7 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.prompts import (
@@ -18,6 +19,7 @@ from app.ai.prompts import (
     RELEVANCE_PROMPT_ID,
     RELEVANCE_PROMPT_VERSION,
     RELEVANCE_SYSTEM,
+    extraction_user_message,
 )
 from app.ai.provider import AIDocumentRejected, AIProvider, AIProviderRejected, AIRefusal
 from app.ai.schemas import (
@@ -39,7 +41,7 @@ from app.enums import (
 )
 from app.errors import ApiError
 from app.models import Document, Source
-from app.models_claims import Claim, ClaimEvidence
+from app.models_claims import Claim, ClaimEvidence, Technology
 from app.pipeline.entities import resolve_company, resolve_object_entity
 
 # Dokumenter afkortes til denne længde i prompten; fulde tekster ligger i DB.
@@ -114,6 +116,13 @@ class ProcessOutcome:
     skipped_reasons: list[str] = field(default_factory=list)
 
 
+def _capabilities(db: Session) -> list[tuple[str, str]]:
+    technologies = db.scalars(
+        select(Technology).where(Technology.active.is_(True)).order_by(Technology.name)
+    ).all()
+    return [(technology.name, technology.definition) for technology in technologies]
+
+
 def _validate_claim(text: str, claim: ExtractedClaim) -> str | None:
     """Returnér årsag til at kassere claimet, ellers None."""
     if claim.predicate not in PREDICATES_BY_CLAIM_TYPE[claim.claim_type]:
@@ -173,7 +182,7 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             prompt_id=EXTRACTION_PROMPT_ID,
             prompt_version=EXTRACTION_PROMPT_VERSION,
             system=EXTRACTION_SYSTEM,
-            user=prompt_text,
+            user=extraction_user_message(_capabilities(db), prompt_text),
             result_model=ExtractionResult,
             document_id=document.id,
         )

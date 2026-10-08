@@ -53,11 +53,14 @@ export default async function OverblikPage() {
     <>
       <section className="hero" aria-label="Introduktion">
         <p className="hero-eyebrow">Technology Intelligence</p>
-        <h1>Hvad gør de bedste — og hvor ved vi det fra?</h1>
+        <h1>Hvilken AI kan OK&#8217;s kundecenter bruge — og hvem bruger den?</h1>
         <p className="hero-sub">
-          Verificerede signaler om AI-adoption i skandinaviske virksomheder.
-          Hvert tal er en optælling i databasen, og hvert signal kan åbnes
-          hele vejen ned til evidensuddrag og original kilde.
+          Leverandørernes AI-tilbud til kundecentre og dokumenterede erfaringer
+          fra andre kundecentre. Hvert tal er en optælling i databasen, og hvert
+          signal kan åbnes hele vejen ned til evidensuddrag og original kilde.
+        </p>
+        <p className="hero-sub">
+          <Link href="/vendors">Se leverandørlandskabet →</Link>
         </p>
       </section>
 
@@ -89,7 +92,12 @@ export default async function OverblikPage() {
         />
       </div>
 
-      <h2 className="section-title">Seneste signaler</h2>
+      <h2 className="section-title">
+        Seneste signaler{" "}
+        <Link href="/signals" className="section-tag">
+          Se alle {dashboard.published_signals} →
+        </Link>
+      </h2>
       {dashboard.latest_signals.length === 0 ? (
         <div className="empty-state">
           <p>

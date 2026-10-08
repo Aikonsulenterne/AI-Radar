@@ -35,3 +35,18 @@ export function formatDateTime(value: string | null): string {
     timeZone: "Europe/Copenhagen",
   }).format(new Date(value));
 }
+
+export const SOURCE_TYPE_LABELS: Record<string, string> = {
+  primary: "Primær",
+  independent_analysis: "Uafhængig analyse",
+  vendor_case: "Leverandørcase",
+  vendor_claim: "Leverandørudsagn",
+  media: "Medie",
+  research: "Forskning",
+  early_signal: "Tidligt signal",
+};
+
+/** Leverandørens egne ord — tal og påstande er leverandørens. */
+export function isVendorSource(sourceType: string | null): boolean {
+  return sourceType === "vendor_case" || sourceType === "vendor_claim";
+}

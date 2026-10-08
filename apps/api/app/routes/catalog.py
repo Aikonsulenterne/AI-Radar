@@ -15,9 +15,10 @@ from app.auth import CurrentUser, get_current_user, require_role
 from app.db import get_db
 from app.enums import CaseStatus, EntityType, Predicate, ReviewStatus, UserRole
 from app.errors import ApiError
+from app.models import Document, Source
 from app.models_cases import AdoptionCase, AdoptionCaseClaim
-from app.models_claims import Claim, Company, Technology
-from app.pipeline.entities import entity_name
+from app.models_claims import Claim, ClaimEvidence, Company, Technology
+from app.pipeline.entities import entity_name, normalize_alias
 from app.routes.documents import _claim_out
 from app.schemas import Paginated
 from app.schemas_catalog import (
@@ -28,8 +29,12 @@ from app.schemas_catalog import (
     CaseUpdate,
     CompanyDetailOut,
     CompanyOut,
+    LandscapeCapabilityOut,
+    LandscapeVendorOut,
+    OfferingOut,
     TechnologyDetailOut,
     TechnologyOut,
+    VendorLandscapeOut,
 )
 
 router = APIRouter(tags=["catalog"])
@@ -80,19 +85,34 @@ def _company_out(db: Session, company: Company) -> CompanyOut:
     return out.model_copy(update={"approved_claim_count": approved, "published_case_count": cases})
 
 
-def _technology_out(db: Session, technology: Technology) -> TechnologyOut:
-    adopting = (
+def _distinct_subjects(db: Session, technology: Technology, *, offers: bool) -> int:
+    predicate_filter = (
+        Claim.predicate == Predicate.OFFERS_CAPABILITY
+        if offers
+        else Claim.predicate != Predicate.OFFERS_CAPABILITY
+    )
+    return (
         db.scalar(
             select(func.count(func.distinct(Claim.subject_entity_id))).where(
                 Claim.object_entity_type == EntityType.technology,
                 Claim.object_entity_id == technology.id,
                 Claim.review_status.in_(_APPROVED),
+                predicate_filter,
             )
         )
         or 0
     )
+
+
+def _technology_out(db: Session, technology: Technology) -> TechnologyOut:
     out = TechnologyOut.model_validate(technology)
-    return out.model_copy(update={"adopting_company_count": adopting})
+    return out.model_copy(
+        update={
+            # En leverandørs tilbud er ikke adoption og tælles for sig.
+            "adopting_company_count": _distinct_subjects(db, technology, offers=False),
+            "vendor_count": _distinct_subjects(db, technology, offers=True),
+        }
+    )
 
 
 def _case_claims(db: Session, case_id: uuid.UUID) -> list[Claim]:
@@ -233,21 +253,27 @@ def get_technology(
             .order_by(Claim.observed_at.desc())
         ).all()
     )
-    company_ids = {
-        claim.subject_entity_id
-        for claim in claims
-        if claim.subject_entity_type == EntityType.company
-    }
-    companies = [
-        _company_out(db, company)
-        for company_id in company_ids
-        if (company := db.get(Company, company_id)) is not None
-    ]
+
+    def companies_for(offers: bool) -> list[CompanyOut]:
+        ids = {
+            claim.subject_entity_id
+            for claim in claims
+            if claim.subject_entity_type == EntityType.company
+            and (claim.predicate == Predicate.OFFERS_CAPABILITY) == offers
+        }
+        found = [
+            _company_out(db, company)
+            for company_id in ids
+            if (company := db.get(Company, company_id)) is not None
+        ]
+        return sorted(found, key=lambda c: c.name)
+
     base = _technology_out(db, technology)
     return TechnologyDetailOut(
         **base.model_dump(),
         claims=[_claim_out(db, claim) for claim in claims],
-        companies=sorted(companies, key=lambda c: c.name),
+        companies=companies_for(offers=False),
+        vendors=companies_for(offers=True),
     )
 
 
@@ -422,3 +448,126 @@ def publish_case(
         changes={"claims": len(claims)},
     )
     return _case_out(db, case)
+
+
+# --- Leverandørlandskab ---
+
+_OTHER_CAPABILITIES = "Øvrige capabilities"
+
+
+def _offering_out(db: Session, claim: Claim) -> OfferingOut:
+    evidence = db.scalars(
+        select(ClaimEvidence).where(ClaimEvidence.claim_id == claim.id).limit(1)
+    ).first()
+    document = db.get(Document, evidence.document_id) if evidence else None
+    source = db.get(Source, document.source_id) if document else None
+    return OfferingOut(
+        claim_id=claim.id,
+        product=claim.object_text,
+        excerpt=evidence.supporting_excerpt if evidence else None,
+        document_id=document.id if document else None,
+        document_title=document.title if document else None,
+        source_url=document.canonical_url if document else None,
+        source_name=source.name if source else None,
+        source_type=str(source.source_type) if source else None,
+        auto_approved=claim.auto_approved,
+        observed_at=claim.observed_at,
+    )
+
+
+def _customers_by_vendor(
+    db: Session, vendors: dict[uuid.UUID, Company]
+) -> dict[uuid.UUID, set[str]]:
+    """Godkendte "X USES_VENDOR/USES_TECHNOLOGY <leverandør>"-claims, matchet
+    på leverandørens id eller (når objektet forblev tekst) dens navn."""
+    by_name = {normalize_alias(company.name): company_id for company_id, company in vendors.items()}
+    customers: dict[uuid.UUID, set[str]] = {company_id: set() for company_id in vendors}
+    usage = db.scalars(
+        select(Claim).where(
+            Claim.predicate.in_((Predicate.USES_VENDOR, Predicate.USES_TECHNOLOGY)),
+            Claim.review_status.in_(_APPROVED),
+        )
+    ).all()
+    for claim in usage:
+        vendor_id: uuid.UUID | None = None
+        if claim.object_entity_type == EntityType.company and claim.object_entity_id in vendors:
+            vendor_id = claim.object_entity_id
+        elif claim.object_text:
+            vendor_id = by_name.get(normalize_alias(claim.object_text))
+        if vendor_id is None or claim.subject_entity_id == vendor_id:
+            continue
+        name = entity_name(db, claim.subject_entity_type, claim.subject_entity_id)
+        if name:
+            customers[vendor_id].add(name)
+    return customers
+
+
+@router.get("/vendor-landscape", response_model=VendorLandscapeOut)
+def vendor_landscape(
+    db: Session = Depends(get_db),
+    _user: CurrentUser = Depends(require_role(UserRole.reader)),
+) -> VendorLandscapeOut:
+    """Hvem tilbyder hvilken AI-capability til kundecentre — kun godkendte
+    OFFERS_CAPABILITY-claims, grupperet efter radarens kuraterede teknologier."""
+    offers = db.scalars(
+        select(Claim)
+        .where(
+            Claim.predicate == Predicate.OFFERS_CAPABILITY,
+            Claim.review_status.in_(_APPROVED),
+            Claim.subject_entity_type == EntityType.company,
+        )
+        .order_by(Claim.observed_at.desc())
+    ).all()
+
+    vendors: dict[uuid.UUID, Company] = {}
+    # (teknologi-id eller None) → leverandør-id → tilbud
+    grouped: dict[uuid.UUID | None, dict[uuid.UUID, list[Claim]]] = {}
+    for claim in offers:
+        company = vendors.get(claim.subject_entity_id) or db.get(Company, claim.subject_entity_id)
+        if company is None:
+            continue
+        vendors[company.id] = company
+        technology_id = (
+            claim.object_entity_id if claim.object_entity_type == EntityType.technology else None
+        )
+        grouped.setdefault(technology_id, {}).setdefault(company.id, []).append(claim)
+
+    customers = _customers_by_vendor(db, vendors)
+
+    def vendor_rows(by_vendor: dict[uuid.UUID, list[Claim]]) -> list[LandscapeVendorOut]:
+        rows = [
+            LandscapeVendorOut(
+                company_id=company_id,
+                name=vendors[company_id].name,
+                offerings=[_offering_out(db, claim) for claim in claims],
+                customers=sorted(customers[company_id]),
+            )
+            for company_id, claims in by_vendor.items()
+        ]
+        return sorted(rows, key=lambda row: (-len(row.offerings), row.name.casefold()))
+
+    horizon_order = {"now": 0, "next": 1, "horizon": 2}
+    technologies = db.scalars(select(Technology).where(Technology.active.is_(True))).all()
+    capabilities = [
+        LandscapeCapabilityOut(
+            technology=_technology_out(db, technology),
+            capability_name=technology.name,
+            vendors=vendor_rows(grouped.get(technology.id, {})),
+        )
+        for technology in sorted(
+            technologies, key=lambda t: (horizon_order.get(str(t.horizon), 9), t.name)
+        )
+    ]
+    if None in grouped:
+        capabilities.append(
+            LandscapeCapabilityOut(
+                technology=None,
+                capability_name=_OTHER_CAPABILITIES,
+                vendors=vendor_rows(grouped[None]),
+            )
+        )
+    return VendorLandscapeOut(
+        capabilities=capabilities,
+        vendor_count=len(vendors),
+        offering_count=len(offers),
+    )

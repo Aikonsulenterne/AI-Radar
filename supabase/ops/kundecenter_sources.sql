@@ -29,7 +29,22 @@ from (values
   ('Bing News: chatbot kundeservice', 'https://www.bing.com/news', 'media',
    'https://www.bing.com/news/search?q=chatbot+kundeservice&format=rss&setlang=da&cc=DK', 'DK'),
   ('Bing News: AI kundeservice Norden', 'https://www.bing.com/news', 'media',
-   'https://www.bing.com/news/search?q=%22customer+service%22+AI+Denmark+OR+Nordic&format=rss', null)
+   'https://www.bing.com/news/search?q=%22customer+service%22+AI+Denmark+OR+Nordic&format=rss', null),
+  -- Leverandørlandskab: hvad leverandørerne lancerer og sælger til kundecentre.
+  ('Bing News: Puzzel AI', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=Puzzel+AI&format=rss', null),
+  ('Bing News: Dixa AI', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=Dixa+AI+customer+service&format=rss', null),
+  ('Bing News: Zendesk AI', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=Zendesk+AI+agents&format=rss', null),
+  ('Bing News: Genesys AI', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=Genesys+Cloud+AI&format=rss', null),
+  ('Bing News: Salesforce Agentforce Service', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=Agentforce+customer+service&format=rss', null),
+  ('Bing News: Dynamics 365 Contact Center', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=%22Dynamics+365+Contact+Center%22&format=rss', null),
+  ('Bing News: contact center AI lancering', 'https://www.bing.com/news', 'media',
+   'https://www.bing.com/news/search?q=%22contact+center%22+AI+launches&format=rss', null)
 ) as v(name, base_url, source_type, endpoint_url, country_code)
 where not exists (select 1 from sources s where s.endpoint_url = v.endpoint_url);
 

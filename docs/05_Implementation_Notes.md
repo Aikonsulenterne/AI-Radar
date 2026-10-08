@@ -435,3 +435,12 @@ så næsten alt stod på 0. Ændringer:
   Contact Center, contact center AI-lanceringer). Idempotent.
 - Allerede behandlede dokumenter udtrækkes ikke igen; landskabet fyldes af
   nye artikler.
+- **Nyt i markedet:** en `OFFERS_CAPABILITY`/`USES_CAPABILITY`-capability,
+  der ikke matcher radarens teknologier, opretter en kandidat-teknologi
+  (`is_candidate=true`, `horizon=null`, fast "ikke kurateret"-definition,
+  `discovered_at`). Kun korte, generiske navne (≤ 60 tegn, ≤ 6 ord) — ellers
+  forbliver objektet tekst. Kandidater sendes med i næste udtræk, så samme
+  navn genbruges i stedet for at give dubletter. Admin kuraterer under
+  Admin → Teknologier (`PATCH /technologies/{id}`: horisont + definition
+  optager, `active=false` afviser; audit-logget). Teknologiradaren viser
+  kandidater i sektionen *Nyt i markedet*.

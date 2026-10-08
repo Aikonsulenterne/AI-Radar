@@ -140,3 +140,137 @@ def test_unapproved_offering_is_not_shown(
     landscape = client.get("/api/v1/vendor-landscape", headers=admin_headers).json()
     assert landscape["vendor_count"] == 0
     assert all(row["vendors"] == [] for row in landscape["capabilities"])
+
+
+NEW_TECH_TEXT = (
+    "Dixa lancerer Dixa Live Translate, der oversætter kundesamtaler i realtid. "
+    "Dixa tilbyder også Emotion Radar, der måler kundens følelser undervejs."
+)
+
+NEW_TECH_EXTRACTION = {
+    "claims": [
+        {
+            "claim_type": "technology_vendor",
+            "predicate": "OFFERS_CAPABILITY",
+            "subject_name": "Dixa",
+            "object_name": "Real-time Translation",
+            "object_text": "Dixa Live Translate",
+            "supporting_excerpt": (
+                "Dixa lancerer Dixa Live Translate, der oversætter kundesamtaler i realtid."
+            ),
+        },
+        {
+            "claim_type": "technology_vendor",
+            "predicate": "OFFERS_CAPABILITY",
+            "subject_name": "Dixa",
+            # For langt til at være et capability-navn: forbliver tekst.
+            "object_name": "A tool that measures how the customer feels during the conversation",
+            "object_text": "Emotion Radar",
+            "supporting_excerpt": (
+                "Dixa tilbyder også Emotion Radar, der måler kundens følelser undervejs."
+            ),
+        },
+    ]
+}
+
+
+def _process_text(client: TestClient, headers: dict[str, str], text: str) -> None:
+    source = client.post(
+        "/api/v1/sources",
+        json={
+            "name": "Branchemedie",
+            "source_type": "media",
+            "retrieval_method": "manual_upload",
+            "access_class": "public",
+        },
+        headers=headers,
+    ).json()
+    upload = client.post(
+        f"/api/v1/sources/{source['id']}/documents",
+        files={"file": ("nyhed.txt", text.encode(), "text/plain")},
+        headers=headers,
+    )
+    assert upload.status_code == 200, upload.text
+    document_id = upload.json()["document"]["id"]
+    response = client.post(f"/api/v1/review/documents/{document_id}/process", headers=headers)
+    assert response.status_code == 200, response.text
+
+
+@pytest.fixture()
+def new_tech_provider() -> Any:
+    provider = FakeProvider(extraction=NEW_TECH_EXTRACTION)
+    app.dependency_overrides[ai_provider_dep] = lambda: provider
+    yield provider
+    app.dependency_overrides.pop(ai_provider_dep, None)
+
+
+def _technologies(client: TestClient, headers: dict[str, str]) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = client.get("/api/v1/technologies", headers=headers).json()[
+        "items"
+    ]
+    return items
+
+
+def test_unknown_capability_becomes_candidate_technology_once(
+    client: TestClient, admin_headers: dict[str, str], new_tech_provider: Any, auto_publish: None
+) -> None:
+    _process_text(client, admin_headers, NEW_TECH_TEXT)
+    _process_text(client, admin_headers, NEW_TECH_TEXT + " ")
+
+    candidates = [t for t in _technologies(client, admin_headers) if t["is_candidate"]]
+    # Samme navn to gange giver én kandidat; den lange beskrivelse giver ingen.
+    assert [t["name"] for t in candidates] == ["Real-time Translation"]
+    candidate = candidates[0]
+    assert candidate["horizon"] is None
+    assert candidate["discovered_at"] is not None
+    assert candidate["vendor_count"] == 1
+
+    # Næste udtræk får kandidaten med, så modellen genbruger navnet.
+    prompt = new_tech_provider.prompts[new_tech_provider.calls.index("claim_extraction")]
+    assert "- Real-time Translation:" not in prompt  # første kald: fandtes ikke endnu
+    last_prompt = [
+        p
+        for c, p in zip(new_tech_provider.calls, new_tech_provider.prompts, strict=True)
+        if c == "claim_extraction"
+    ][-1]
+    assert "- Real-time Translation:" in last_prompt
+
+    landscape = client.get("/api/v1/vendor-landscape", headers=admin_headers).json()
+    row = next(
+        c for c in landscape["capabilities"] if c["capability_name"] == "Real-time Translation"
+    )
+    assert row["technology"]["is_candidate"] is True
+    assert [v["name"] for v in row["vendors"]] == ["Dixa"]
+    other = next(c for c in landscape["capabilities"] if c["technology"] is None)
+    assert other["vendors"][0]["offerings"][0]["product"] == "Emotion Radar"
+
+
+def test_admin_adopts_candidate_onto_the_radar(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reviewer_headers: dict[str, str],
+    new_tech_provider: Any,
+) -> None:
+    _process_text(client, admin_headers, NEW_TECH_TEXT)
+    [candidate] = [t for t in _technologies(client, admin_headers) if t["is_candidate"]]
+    url = f"/api/v1/technologies/{candidate['id']}"
+
+    assert client.patch(url, json={"horizon": "next"}, headers=reviewer_headers).status_code == 403
+    assert client.patch(url, json={"horizon": None}, headers=admin_headers).status_code == 422
+
+    response = client.patch(
+        url,
+        json={"horizon": "next", "definition": "Oversættelse af kundesamtaler i realtid."},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200, response.text
+    adopted = response.json()
+    assert adopted["horizon"] == "next"
+    assert adopted["is_candidate"] is False
+
+    rejected = client.patch(url, json={"active": False}, headers=admin_headers)
+    assert rejected.status_code == 200
+    assert all(t["id"] != candidate["id"] for t in _technologies(client, admin_headers))
+
+    audit = client.get("/api/v1/audit?entity_type=technology", headers=admin_headers).json()
+    assert len(audit["items"]) == 2

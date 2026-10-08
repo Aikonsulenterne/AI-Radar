@@ -17,7 +17,7 @@ from app.enums import CaseStatus, EntityType, Predicate, ReviewStatus, UserRole
 from app.errors import ApiError
 from app.models import Document, Source
 from app.models_cases import AdoptionCase, AdoptionCaseClaim
-from app.models_claims import Claim, ClaimEvidence, Company, Technology
+from app.models_claims import Claim, ClaimEvidence, Company, EntityAlias, Technology
 from app.pipeline.entities import entity_name, normalize_alias
 from app.routes.documents import _claim_out
 from app.schemas import Paginated
@@ -34,6 +34,7 @@ from app.schemas_catalog import (
     OfferingOut,
     TechnologyDetailOut,
     TechnologyOut,
+    TechnologyUpdate,
     VendorLandscapeOut,
 )
 
@@ -274,6 +275,64 @@ def get_technology(
         claims=[_claim_out(db, claim) for claim in claims],
         companies=companies_for(offers=False),
         vendors=companies_for(offers=True),
+    )
+
+
+@router.patch("/technologies/{technology_id}", response_model=TechnologyOut)
+def update_technology(
+    technology_id: uuid.UUID,
+    body: TechnologyUpdate,
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
+) -> TechnologyOut:
+    """Kuratering. En kandidat optages på radaren, når den får en horisont;
+    så er den ikke længere kandidat. active=false afviser/skjuler den."""
+    technology = db.get(Technology, technology_id)
+    if technology is None:
+        raise ApiError(404, "not_found", "Teknologien findes ikke.")
+    updates = body.model_dump(exclude_unset=True)
+    if "horizon" in updates and updates["horizon"] is None:
+        raise ApiError(422, "invalid_horizon", "En teknologi på radaren skal have en horisont.")
+    before = {key: getattr(technology, key) for key in (*updates, "is_candidate")}
+    for key, value in updates.items():
+        setattr(technology, key, value)
+    if updates.get("horizon") is not None:
+        technology.is_candidate = False
+    if "name" in updates:
+        alias_name = updates["name"]
+        if _alias_owner(db, alias_name) is None:
+            db.add(
+                EntityAlias(
+                    entity_type=EntityType.technology,
+                    entity_id=technology.id,
+                    alias=alias_name,
+                    normalized_alias=normalize_alias(alias_name),
+                )
+            )
+    after = {key: getattr(technology, key) for key in before}
+    record(
+        db,
+        entity_type=AuditEntity.technology,
+        entity_id=technology.id,
+        action=AuditAction.updated,
+        actor_user_id=user.user_id,
+        changes={
+            key: {"before": str(before[key]), "after": str(after[key])}
+            for key in before
+            if before[key] != after[key]
+        },
+    )
+    db.commit()
+    db.refresh(technology)
+    return _technology_out(db, technology)
+
+
+def _alias_owner(db: Session, name: str) -> uuid.UUID | None:
+    return db.scalar(
+        select(EntityAlias.entity_id).where(
+            EntityAlias.entity_type == EntityType.technology,
+            EntityAlias.normalized_alias == normalize_alias(name),
+        )
     )
 
 
@@ -555,7 +614,11 @@ def vendor_landscape(
             vendors=vendor_rows(grouped.get(technology.id, {})),
         )
         for technology in sorted(
-            technologies, key=lambda t: (horizon_order.get(str(t.horizon), 9), t.name)
+            technologies,
+            key=lambda t: (
+                horizon_order.get(str(t.horizon), 9) if t.horizon is not None else 9,
+                t.name,
+            ),
         )
     ]
     if None in grouped:

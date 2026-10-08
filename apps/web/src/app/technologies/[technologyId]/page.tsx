@@ -1,13 +1,9 @@
 import Link from "next/link";
 import { getTechnology, type TechnologyDetail } from "../../lib/api";
+import { HorizonBadge } from "../../../components/states/horizon-badge";
 
 export const dynamic = "force-dynamic";
 
-const HORIZON_LABELS: Record<TechnologyDetail["horizon"], string> = {
-  now: "NU",
-  next: "NÆSTE",
-  horizon: "HORIZON",
-};
 
 export default async function TechnologyPage({
   params,
@@ -43,9 +39,7 @@ export default async function TechnologyPage({
       </p>
       <h1>{technology.name}</h1>
       <p className="page-lead">
-        <span className={`badge badge-horizon-${technology.horizon}`}>
-          {HORIZON_LABELS[technology.horizon]}
-        </span>{" "}
+        <HorizonBadge technology={technology} />{" "}
         {technology.definition}
       </p>
 

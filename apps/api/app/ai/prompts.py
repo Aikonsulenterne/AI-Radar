@@ -61,7 +61,9 @@ EXTRACTION_PROMPT_ID = "claim_extraction"
 # 1.2.0: subjektet skal være en organisation, aldrig en person.
 # 1.3.0: leverandørers tilbud udtrækkes som OFFERS_CAPABILITY (radarens
 # hovedspørgsmål er, hvem der sælger hvilken AI til kundecentre), og
-# capabilities navngives efter den kuraterede liste i brugerbeskeden.
+# capabilities navngives efter den kuraterede liste i brugerbeskeden; nye
+# capabilities uden for listen får et kort, generisk navn og bliver til
+# kandidat-teknologier ("Nyt i markedet").
 EXTRACTION_PROMPT_VERSION = "1.3.0"
 
 EXTRACTION_SYSTEM = """\
@@ -100,8 +102,12 @@ Rules:
   customer is the subject (USES_CAPABILITY / USES_VENDOR / USES_TECHNOLOGY),
   and the vendor is the object of USES_VENDOR.
 - object_name for USES_CAPABILITY and OFFERS_CAPABILITY: use the name from
-  the CAPABILITIES list EXACTLY when one fits; otherwise a short generic
-  capability name in English.
+  the CAPABILITIES list EXACTLY when one genuinely fits. New capabilities
+  that are NOT on the list are especially valuable — never force a poor fit.
+  Then give a short, generic capability name in English, Title Case, 1-4
+  words, describing the kind of technology rather than the product (e.g.
+  "Speech Analytics", "Real-time Translation", "Emotion Detection"), and put
+  the product name in object_text.
 - Skip vague marketing ("helps companies to", "transforms CX") that names no
   concrete product, feature or capability.
 - claim_type/predicate pairs (use exactly these spellings):

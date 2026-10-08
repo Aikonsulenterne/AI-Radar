@@ -107,3 +107,6 @@ Radarens hovedopgave (2026-10-08): hvilke leverandører tilbyder hvilken
 AI-teknologi til kundecentre, og hvem bruger den. Leverandørtilbud er
 `OFFERS_CAPABILITY`-claims; siden *Leverandører* (`/vendors`) og
 `GET /vendor-landscape` viser landskabet pr. kurateret capability.
+Ukendte capabilities bliver kandidat-teknologier (`is_candidate`, ingen
+horisont) under *Nyt i markedet*; Admin kuraterer via
+`PATCH /technologies/{id}` (Admin → Teknologier).

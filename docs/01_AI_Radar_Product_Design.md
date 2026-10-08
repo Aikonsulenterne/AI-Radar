@@ -43,7 +43,7 @@ De tre typer skal adskilles både semantisk og visuelt.
 
 Produktet starter med problemer, use cases og capabilities. Leverandører vises sekundært og kun med dokumenteret relation.
 
-**Ændret beslutning (2026-10-08, produktejer):** Radarens hovedopgave er at vise, hvilke leverandører der tilbyder hvilken AI-teknologi til (danske) kundecentre, og hvem der bruger den. Leverandørtilbud er derfor førsteklasses indhold: claim extraction udtrækker `OFFERS_CAPABILITY` (leverandør → kurateret capability, produktnavn), og siden *Leverandører* viser landskabet pr. capability med dokumenterede kunder. Tilbud er stadig evidensbaserede (ordret uddrag, kun godkendte claims), tæller aldrig som adoption og giver ingen adoption case, og udsagn fra leverandørens egne kilder mærkes som leverandørens.
+**Ændret beslutning (2026-10-08, produktejer):** Radarens hovedopgave er at vise, hvilke leverandører der tilbyder hvilken AI-teknologi til (danske) kundecentre, og hvem der bruger den. Leverandørtilbud er derfor førsteklasses indhold: claim extraction udtrækker `OFFERS_CAPABILITY` (leverandør → kurateret capability, produktnavn), og siden *Leverandører* viser landskabet pr. capability med dokumenterede kunder. Tilbud er stadig evidensbaserede (ordret uddrag, kun godkendte claims), tæller aldrig som adoption og giver ingen adoption case, og udsagn fra leverandørens egne kilder mærkes som leverandørens. Radaren skal også finde capabilities, OK ikke kender endnu: en capability uden for den kuraterede liste oprettes som kandidat (*Nyt i markedet*, uden horisont og uden opfundet definition), og en Admin optager den på radaren eller afviser den.
 
 ### Human-in-the-loop
 

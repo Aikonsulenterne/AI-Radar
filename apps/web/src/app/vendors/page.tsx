@@ -11,14 +11,10 @@ import {
   isVendorSource,
 } from "../lib/labels";
 import { ApiErrorAlert } from "../../components/states/api-error";
+import { HorizonBadge } from "../../components/states/horizon-badge";
 
 export const dynamic = "force-dynamic";
 
-const HORIZON_LABELS: Record<string, string> = {
-  now: "NU",
-  next: "NÆSTE",
-  horizon: "HORIZON",
-};
 
 function anchorId(capability: LandscapeCapability): string {
   return `cap-${capability.technology?.slug ?? "oevrige"}`;
@@ -71,9 +67,7 @@ function CapabilitySection({ capability }: { capability: LandscapeCapability }) 
           )}
         </h2>
         {technology ? (
-          <span className={`badge badge-horizon-${technology.horizon}`}>
-            {HORIZON_LABELS[technology.horizon]}
-          </span>
+          <HorizonBadge technology={technology} />
         ) : null}
         <span className="cell-sub">
           {capability.vendors.length} leverandør(er)

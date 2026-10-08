@@ -491,8 +491,12 @@ export interface Technology {
   name: string;
   slug: string;
   definition: string;
-  horizon: TechHorizon;
+  /** null = fundet i markedet, endnu ikke placeret i en horisont. */
+  horizon: TechHorizon | null;
   active: boolean;
+  /** Fundet automatisk (ikke kurateret). Admin optager eller afviser. */
+  is_candidate: boolean;
+  discovered_at: string | null;
   adopting_company_count: number;
   /** Leverandører med et godkendt tilbud (OFFERS_CAPABILITY). */
   vendor_count: number;
@@ -567,6 +571,24 @@ export interface VendorLandscape {
   capabilities: LandscapeCapability[];
   vendor_count: number;
   offering_count: number;
+}
+
+export interface TechnologyUpdateInput {
+  name?: string;
+  definition?: string;
+  horizon?: TechHorizon;
+  active?: boolean;
+}
+
+export function updateTechnology(
+  technologyId: string,
+  input: TechnologyUpdateInput,
+): Promise<Technology> {
+  return request<Technology>(`/technologies/${technologyId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
 }
 
 export function getVendorLandscape(): Promise<VendorLandscape> {

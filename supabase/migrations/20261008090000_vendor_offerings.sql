@@ -20,3 +20,11 @@ with inserted as (
 insert into entity_aliases (entity_type, entity_id, alias, normalized_alias)
 select 'technology'::entity_type, id, name, lower(name) from inserted
 on conflict (entity_type, normalized_alias) do nothing;
+
+-- Nye capabilities i markedet: et tilbud (eller en anvendelse) med en
+-- capability, der ikke findes på den kuraterede liste, opretter en
+-- kandidat-teknologi. Den er ikke placeret i en horisont, før en Admin
+-- optager den på radaren.
+alter table technologies add column if not exists is_candidate boolean not null default false;
+alter table technologies add column if not exists discovered_at timestamptz null;
+alter table technologies alter column horizon drop not null;

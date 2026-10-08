@@ -34,8 +34,11 @@ class TechnologyOut(BaseModel):
     name: str
     slug: str
     definition: str
-    horizon: TechHorizon
+    # None = kandidat fundet i markedet, endnu ikke placeret i en horisont.
+    horizon: TechHorizon | None
     active: bool
+    is_candidate: bool = False
+    discovered_at: datetime | None = None
     # Antal virksomheder med godkendte claims, der refererer teknologien.
     adopting_company_count: int = 0
     # Antal leverandører med et godkendt tilbud (OFFERS_CAPABILITY).
@@ -84,6 +87,16 @@ class TechnologyDetailOut(TechnologyOut):
     claims: list[ClaimOut] = Field(default_factory=list)
     companies: list[CompanyOut] = Field(default_factory=list)
     vendors: list[CompanyOut] = Field(default_factory=list)
+
+
+class TechnologyUpdate(BaseModel):
+    """Admin kuraterer en teknologi: optag en kandidat på radaren (horisont
+    og definition), omdøb den, eller afvis den (active=false)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    definition: str | None = Field(default=None, min_length=1, max_length=1000)
+    horizon: TechHorizon | None = None
+    active: bool | None = None
 
 
 class OfferingOut(BaseModel):

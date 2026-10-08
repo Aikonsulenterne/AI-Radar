@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listTechnologies, type Technology } from "../lib/api";
 import { ApiErrorAlert } from "../../components/states/api-error";
+import { formatDateTime } from "../lib/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -103,6 +104,54 @@ export default async function TechnologiesPage() {
           ))}
         </div>
       )}
+
+      <NewInMarket
+        candidates={technologies
+          .filter((t) => t.is_candidate)
+          .sort((a, b) =>
+            (b.discovered_at ?? "").localeCompare(a.discovered_at ?? ""),
+          )}
+      />
     </>
+  );
+}
+
+/** Capabilities fundet i markedet, som radaren ikke kendte — ikke kurateret. */
+function NewInMarket({ candidates }: { candidates: Technology[] }) {
+  return (
+    <section aria-label="Nyt i markedet" className="landscape-capability">
+      <h2 className="section-title">
+        Nyt i markedet{" "}
+        <span className="section-tag">Fundet automatisk · ikke kurateret</span>
+      </h2>
+      <p className="page-lead">
+        Capabilities, som leverandører tilbyder eller organisationer bruger, men
+        som ikke står på radaren endnu. En administrator placerer dem i en
+        horisont eller afviser dem under Admin → Teknologier.
+      </p>
+      {candidates.length === 0 ? (
+        <p className="cell-sub">Ingen nye capabilities fundet endnu.</p>
+      ) : (
+        <div className="vendor-grid">
+          {candidates.map((technology) => (
+            <Link
+              key={technology.id}
+              href={`/technologies/${technology.id}`}
+              className="signal-card-link"
+            >
+              <article className="signal-card">
+                <h3 className="signal-title">{technology.name}</h3>
+                <p className="cell-sub">
+                  Fundet {formatDateTime(technology.discovered_at)} ·{" "}
+                  {technology.vendor_count} leverandør(er) ·{" "}
+                  {technology.adopting_company_count} virksomhed(er) med
+                  dokumenteret adoption
+                </p>
+              </article>
+            </Link>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

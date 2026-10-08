@@ -42,7 +42,11 @@ from app.enums import (
 from app.errors import ApiError
 from app.models import Document, Source
 from app.models_claims import Claim, ClaimEvidence, Technology
-from app.pipeline.entities import resolve_company, resolve_object_entity
+from app.pipeline.entities import (
+    resolve_candidate_technology,
+    resolve_company,
+    resolve_object_entity,
+)
 
 # Dokumenter afkortes til denne længde i prompten; fulde tekster ligger i DB.
 _MAX_PROMPT_CHARS = 60_000
@@ -135,6 +139,11 @@ def _validate_claim(text: str, claim: ExtractedClaim) -> str | None:
     return None
 
 
+# Predicates hvis objekt er en capability. En capability uden for radarens
+# liste er netop det nye i markedet, radaren skal fange.
+_CAPABILITY_PREDICATES = frozenset({Predicate.OFFERS_CAPABILITY, Predicate.USES_CAPABILITY})
+
+
 def _object_fields(
     db: Session, claim: ExtractedClaim
 ) -> tuple[EntityType | None, uuid.UUID | None, str | None]:
@@ -142,6 +151,10 @@ def _object_fields(
         resolved = resolve_object_entity(db, claim.object_name)
         if resolved is not None:
             return resolved[0], resolved[1], claim.object_text
+        if claim.predicate in _CAPABILITY_PREDICATES:
+            candidate = resolve_candidate_technology(db, claim.object_name)
+            if candidate is not None:
+                return EntityType.technology, candidate.id, claim.object_text
         # Intet deterministisk match: objektet forbliver tekst.
         return None, None, claim.object_text or claim.object_name
     return None, None, claim.object_text

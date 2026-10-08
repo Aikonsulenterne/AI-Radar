@@ -540,6 +540,13 @@ a {
   border-color: var(--ok-stone-pale);
 }
 
+/* Kandidat fundet i markedet: stiplet kant, så status ikke kun er farve. */
+.badge-candidate {
+  color: var(--fg);
+  background: var(--bg-elev);
+  border: 1px dashed var(--fg-mute);
+}
+
 /* --- Tabeller --- */
 
 .data-table {

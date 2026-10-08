@@ -7,6 +7,7 @@ reviewer kan flette senere via duplicate-kandidater.
 
 import re
 import uuid
+from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -68,6 +69,53 @@ def resolve_company(db: Session, name: str) -> Company:
     _add_alias(db, EntityType.company, company.id, name)
     db.flush()
     return company
+
+
+# Et capability-navn er kort og generisk ("Speech Analytics"). Længere tekst
+# er en beskrivelse, ikke en ny teknologi, og forbliver objekttekst.
+_MAX_CAPABILITY_CHARS = 60
+_MAX_CAPABILITY_WORDS = 6
+
+CANDIDATE_DEFINITION = "Ny capability fundet automatisk i markedet; ikke kurateret endnu."
+
+
+def resolve_candidate_technology(db: Session, name: str) -> Technology | None:
+    """Find eller opret en kandidat-teknologi for en capability, der ikke
+    står på radarens liste. None, når navnet ikke ligner et capability-navn.
+
+    Kandidaten placeres ikke i en horisont (det er en vurdering, AI ikke
+    træffer) og har ingen opfundet definition; en Admin optager eller
+    afviser den. Samme navn genbruges via alias, så der ikke opstår dubletter.
+    """
+    cleaned = " ".join(name.split())
+    if not cleaned or len(cleaned) > _MAX_CAPABILITY_CHARS:
+        return None
+    if len(cleaned.split()) > _MAX_CAPABILITY_WORDS:
+        return None
+    entity_id = _alias_match(db, EntityType.technology, cleaned)
+    if entity_id is not None:
+        return db.get(Technology, entity_id)
+
+    base = slugify(cleaned)
+    slug = base
+    counter = 2
+    while db.scalar(select(Technology).where(Technology.slug == slug)) is not None:
+        slug = f"{base}-{counter}"
+        counter += 1
+    technology = Technology(
+        name=cleaned,
+        slug=slug,
+        definition=CANDIDATE_DEFINITION,
+        horizon=None,
+        active=True,
+        is_candidate=True,
+        discovered_at=datetime.now(UTC),
+    )
+    db.add(technology)
+    db.flush()
+    _add_alias(db, EntityType.technology, technology.id, cleaned)
+    db.flush()
+    return technology
 
 
 def resolve_object_entity(db: Session, name: str) -> tuple[EntityType, uuid.UUID] | None:

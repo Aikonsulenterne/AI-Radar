@@ -75,10 +75,14 @@ class Technology(TimestampMixin, Base):
     name: Mapped[str] = mapped_column(Text, nullable=False)
     slug: Mapped[str] = mapped_column(Text, nullable=False, unique=True)
     definition: Mapped[str] = mapped_column(Text, nullable=False)
-    horizon: Mapped[TechHorizon] = mapped_column(
-        Enum(TechHorizon, name="tech_horizon"), nullable=False
+    # None = kandidat, der endnu ikke er placeret i en horisont.
+    horizon: Mapped[TechHorizon | None] = mapped_column(
+        Enum(TechHorizon, name="tech_horizon"), nullable=True
     )
     active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Fundet automatisk i markedet (ikke kurateret). Admin optager eller afviser.
+    is_candidate: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    discovered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Vendor(TimestampMixin, Base):

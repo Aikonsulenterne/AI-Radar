@@ -27,6 +27,7 @@ class AuditEntity(StrEnum):
     signal = "signal"
     adoption_case = "adoption_case"
     opportunity = "opportunity"
+    technology = "technology"
 
 
 class AuditAction(StrEnum):

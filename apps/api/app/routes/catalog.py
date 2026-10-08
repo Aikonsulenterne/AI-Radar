@@ -18,7 +18,7 @@ from app.errors import ApiError
 from app.models import Document, Source
 from app.models_cases import AdoptionCase, AdoptionCaseClaim
 from app.models_claims import Claim, ClaimEvidence, Company, EntityAlias, Technology
-from app.pipeline.entities import entity_name, normalize_alias
+from app.pipeline.entities import entity_name, legal_base_name, normalize_alias
 from app.routes.documents import _claim_out
 from app.schemas import Paginated
 from app.schemas_catalog import (
@@ -290,7 +290,9 @@ def update_technology(
     technology = db.get(Technology, technology_id)
     if technology is None:
         raise ApiError(404, "not_found", "Teknologien findes ikke.")
-    updates = body.model_dump(exclude_unset=True)
+    if body.merge_into_id is not None:
+        return _merge_technology(db, technology, body, user)
+    updates = body.model_dump(exclude_unset=True, exclude={"merge_into_id"})
     if "horizon" in updates and updates["horizon"] is None:
         raise ApiError(422, "invalid_horizon", "En teknologi på radaren skal have en horisont.")
     before = {key: getattr(technology, key) for key in (*updates, "is_candidate")}
@@ -325,6 +327,49 @@ def update_technology(
     db.commit()
     db.refresh(technology)
     return _technology_out(db, technology)
+
+
+def _merge_technology(
+    db: Session, technology: Technology, body: TechnologyUpdate, user: CurrentUser
+) -> TechnologyOut:
+    """Slå en dublet sammen med en eksisterende teknologi: claims peger
+    derefter på målet, og dublettens navne bliver aliaser for målet, så
+    næste udtræk med samme navn lander rigtigt. Dubletten deaktiveres."""
+    if body.model_dump(exclude_unset=True, exclude={"merge_into_id"}):
+        raise ApiError(
+            422, "invalid_merge", "Sammenlægning kan ikke kombineres med andre ændringer."
+        )
+    target = db.get(Technology, body.merge_into_id)
+    if target is None or not target.active or target.id == technology.id:
+        raise ApiError(422, "invalid_merge", "Vælg en anden, aktiv teknologi at slå sammen med.")
+    claims = db.scalars(
+        select(Claim).where(
+            Claim.object_entity_type == EntityType.technology,
+            Claim.object_entity_id == technology.id,
+        )
+    ).all()
+    for claim in claims:
+        claim.object_entity_id = target.id
+    for alias in db.scalars(
+        select(EntityAlias).where(
+            EntityAlias.entity_type == EntityType.technology,
+            EntityAlias.entity_id == technology.id,
+        )
+    ).all():
+        alias.entity_id = target.id
+    technology.active = False
+    technology.is_candidate = False
+    record(
+        db,
+        entity_type=AuditEntity.technology,
+        entity_id=technology.id,
+        action=AuditAction.updated,
+        actor_user_id=user.user_id,
+        changes={"merged_into": str(target.id), "claims_moved": len(claims)},
+    )
+    db.commit()
+    db.refresh(target)
+    return _technology_out(db, target)
 
 
 def _alias_owner(db: Session, name: str) -> uuid.UUID | None:
@@ -534,12 +579,29 @@ def _offering_out(db: Session, claim: Claim) -> OfferingOut:
     )
 
 
+def _merged_offerings(db: Session, claims: list[Claim]) -> list[OfferingOut]:
+    """Samme produkt fra samme leverandør, omtalt i flere artikler, vises som
+    ét tilbud (det nyeste) med de øvrige kilder i also_reported_by."""
+    merged: dict[str, OfferingOut] = {}
+    for claim in claims:  # nyeste først
+        offering = _offering_out(db, claim)
+        key = normalize_alias(offering.product or "") or str(claim.id)
+        first = merged.get(key)
+        if first is None:
+            merged[key] = offering
+            continue
+        source = offering.source_name or offering.document_title
+        if source and source not in first.also_reported_by and source != first.source_name:
+            first.also_reported_by.append(source)
+    return list(merged.values())
+
+
 def _customers_by_vendor(
     db: Session, vendors: dict[uuid.UUID, Company]
 ) -> dict[uuid.UUID, set[str]]:
     """Godkendte "X USES_VENDOR/USES_TECHNOLOGY <leverandør>"-claims, matchet
     på leverandørens id eller (når objektet forblev tekst) dens navn."""
-    by_name = {normalize_alias(company.name): company_id for company_id, company in vendors.items()}
+    by_name = {legal_base_name(company.name): company_id for company_id, company in vendors.items()}
     customers: dict[uuid.UUID, set[str]] = {company_id: set() for company_id in vendors}
     usage = db.scalars(
         select(Claim).where(
@@ -552,7 +614,7 @@ def _customers_by_vendor(
         if claim.object_entity_type == EntityType.company and claim.object_entity_id in vendors:
             vendor_id = claim.object_entity_id
         elif claim.object_text:
-            vendor_id = by_name.get(normalize_alias(claim.object_text))
+            vendor_id = by_name.get(legal_base_name(claim.object_text))
         if vendor_id is None or claim.subject_entity_id == vendor_id:
             continue
         name = entity_name(db, claim.subject_entity_type, claim.subject_entity_id)
@@ -598,7 +660,7 @@ def vendor_landscape(
             LandscapeVendorOut(
                 company_id=company_id,
                 name=vendors[company_id].name,
-                offerings=[_offering_out(db, claim) for claim in claims],
+                offerings=_merged_offerings(db, claims),
                 customers=sorted(customers[company_id]),
             )
             for company_id, claims in by_vendor.items()

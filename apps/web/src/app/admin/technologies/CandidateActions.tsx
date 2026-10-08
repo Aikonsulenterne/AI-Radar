@@ -15,11 +15,18 @@ const HORIZONS: { value: TechHorizon; label: string }[] = [
   { value: "horizon", label: "HORIZON — 1–3 år, højere usikkerhed" },
 ];
 
-export function CandidateActions({ technology }: { technology: Technology }) {
+export function CandidateActions({
+  technology,
+  mergeTargets,
+}: {
+  technology: Technology;
+  mergeTargets: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const [name, setName] = useState(technology.name);
   const [horizon, setHorizon] = useState<TechHorizon>("next");
   const [definition, setDefinition] = useState("");
+  const [mergeInto, setMergeInto] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -102,6 +109,35 @@ export function CandidateActions({ technology }: { technology: Technology }) {
       >
         Afvis
       </button>
+      {mergeTargets.length > 0 ? (
+        <div className="field-row">
+          <div className="field">
+            <label htmlFor={`${idPrefix}-merge`}>Dublet af</label>
+            <select
+              id={`${idPrefix}-merge`}
+              value={mergeInto}
+              onChange={(event) => setMergeInto(event.target.value)}
+            >
+              <option value="">Vælg teknologi …</option>
+              {mergeTargets.map((target) => (
+                <option key={target.id} value={target.id}>
+                  {target.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              disabled={busy || !mergeInto}
+              onClick={() => void save({ merge_into_id: mergeInto })}
+            >
+              Slå sammen
+            </button>
+          </div>
+        </div>
+      ) : null}
     </form>
   );
 }

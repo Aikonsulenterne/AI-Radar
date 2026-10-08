@@ -274,3 +274,45 @@ def test_admin_adopts_candidate_onto_the_radar(
 
     audit = client.get("/api/v1/audit?entity_type=technology", headers=admin_headers).json()
     assert len(audit["items"]) == 2
+
+
+def test_merging_duplicate_candidate_moves_claims_and_future_names(
+    client: TestClient, admin_headers: dict[str, str], new_tech_provider: Any, auto_publish: None
+) -> None:
+    _process_text(client, admin_headers, NEW_TECH_TEXT)
+    techs = _technologies(client, admin_headers)
+    [candidate] = [t for t in techs if t["is_candidate"]]
+    [agent_assist] = [t for t in techs if t["name"] == "Agent Assist"]
+
+    response = client.patch(
+        f"/api/v1/technologies/{candidate['id']}",
+        json={"merge_into_id": agent_assist["id"]},
+        headers=admin_headers,
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["vendor_count"] == 1
+    assert all(t["id"] != candidate["id"] for t in _technologies(client, admin_headers))
+
+    # Dublettens navn er nu et alias for målet: samme navn igen giver ingen ny kandidat.
+    _process_text(client, admin_headers, NEW_TECH_TEXT + " ")
+    assert not [t for t in _technologies(client, admin_headers) if t["is_candidate"]]
+
+    landscape = client.get("/api/v1/vendor-landscape", headers=admin_headers).json()
+    row = next(c for c in landscape["capabilities"] if c["capability_name"] == "Agent Assist")
+    [dixa] = row["vendors"]
+    # To artikler om samme produkt vises som ét tilbud.
+    assert [o["product"] for o in dixa["offerings"]] == ["Dixa Live Translate"]
+    assert dixa["offerings"][0]["also_reported_by"] == []  # samme kilde begge gange
+
+
+def test_vendor_matches_across_legal_form(client: TestClient, db_session_factory: Any) -> None:
+    from app.pipeline.entities import legal_base_name, resolve_company
+
+    assert legal_base_name("Zendesk, Inc.") == "zendesk"
+    assert legal_base_name("Puzzel AS") == "puzzel"
+    assert legal_base_name("Group") == "group"
+    with db_session_factory() as db:
+        first = resolve_company(db, "Zendesk")
+        assert resolve_company(db, "Zendesk Inc.").id == first.id
+        assert resolve_company(db, "Zendesk, Inc.").id == first.id
+        assert resolve_company(db, "Zendesk Labs").id != first.id

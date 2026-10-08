@@ -444,3 +444,15 @@ så næsten alt stod på 0. Ændringer:
   Admin → Teknologier (`PATCH /technologies/{id}`: horisont + definition
   optager, `active=false` afviser; audit-logget). Teknologiradaren viser
   kandidater i sektionen *Nyt i markedet*.
+- **Robusthed (djævlens advokat, 2026-10-08):** kandidater kan slås sammen
+  med en eksisterende teknologi (`merge_into_id`: claims og aliaser flyttes,
+  så navnet genkendes fremover) i stedet for at blive afvist — en afvist
+  teknologis tilbud vises ikke. Samme produkt fra samme leverandør, omtalt i
+  flere artikler, vises som ét tilbud med "Også omtalt af". Virksomheder
+  matches på tværs af selskabsform ("Zendesk" = "Zendesk, Inc." = "Puzzel AS"
+  → "Puzzel"), også når kunder kobles til leverandører.
+- **Kendte begrænsninger:** landskabet bygges af nyheder, ikke af
+  leverandørernes produktsider (web_fetch gemmer et nyt dokument, hver gang
+  en dynamisk side ændrer sig, og ville give dubletter ugentligt); dansk
+  tilgængelighed/sprogstøtte står kun som fritekst i tilbuddet; allerede
+  behandlede dokumenter genudtrækkes ikke; feedene er ikke verificeret live.

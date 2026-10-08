@@ -20,6 +20,45 @@ def normalize_alias(name: str) -> str:
     return " ".join(name.casefold().split())
 
 
+# Selskabsformer, der ikke gør to navne til to organisationer:
+# "Zendesk" = "Zendesk Inc." = "Zendesk, Inc.".
+_LEGAL_SUFFIXES = frozenset(
+    {
+        "inc",
+        "inc.",
+        "ltd",
+        "ltd.",
+        "llc",
+        "a/s",
+        "as",
+        "aps",
+        "ab",
+        "oy",
+        "oyj",
+        "gmbh",
+        "ag",
+        "bv",
+        "b.v.",
+        "nv",
+        "sa",
+        "plc",
+        "corp",
+        "corp.",
+        "corporation",
+        "co.",
+        "group",
+    }
+)
+
+
+def legal_base_name(name: str) -> str:
+    """Normaliseret navn uden afsluttende selskabsform og komma."""
+    words = normalize_alias(name).replace(",", " ").split()
+    while len(words) > 1 and words[-1] in _LEGAL_SUFFIXES:
+        words.pop()
+    return " ".join(words)
+
+
 def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.casefold()).strip("-")
     return slug or "entity"
@@ -55,12 +94,35 @@ def _unique_slug(db: Session, base: str) -> str:
     return slug
 
 
+def _legal_base_match(db: Session, name: str) -> uuid.UUID | None:
+    """Samme organisation under en anden selskabsform. Lineær scanning af
+    virksomhedsaliases er acceptabel ved radarens volumen."""
+    base = legal_base_name(name)
+    if not base:
+        return None
+    for alias in db.scalars(
+        select(EntityAlias).where(EntityAlias.entity_type == EntityType.company)
+    ).all():
+        if legal_base_name(alias.normalized_alias) == base:
+            return alias.entity_id
+    return None
+
+
 def resolve_company(db: Session, name: str) -> Company:
     """Find virksomhed via alias, ellers opret (uden at opfinde land m.m.)."""
     entity_id = _alias_match(db, EntityType.company, name)
     if entity_id is not None:
         company = db.get(Company, entity_id)
         if company is not None:
+            return company
+
+    entity_id = _legal_base_match(db, name)
+    if entity_id is not None:
+        company = db.get(Company, entity_id)
+        if company is not None:
+            # Husk varianten, så næste opslag er et direkte alias-match.
+            _add_alias(db, EntityType.company, company.id, name)
+            db.flush()
             return company
 
     company = Company(name=name.strip(), slug=_unique_slug(db, slugify(name)))

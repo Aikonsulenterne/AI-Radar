@@ -97,6 +97,8 @@ class TechnologyUpdate(BaseModel):
     definition: str | None = Field(default=None, min_length=1, max_length=1000)
     horizon: TechHorizon | None = None
     active: bool | None = None
+    # Kandidaten er en dublet: flyt dens claims og navne til denne teknologi.
+    merge_into_id: uuid.UUID | None = None
 
 
 class OfferingOut(BaseModel):
@@ -112,6 +114,8 @@ class OfferingOut(BaseModel):
     source_type: str | None
     auto_approved: bool
     observed_at: datetime | None
+    # Samme tilbud omtalt i flere kilder vises én gang; de øvrige kilder her.
+    also_reported_by: list[str] = Field(default_factory=list)
 
 
 class LandscapeVendorOut(BaseModel):

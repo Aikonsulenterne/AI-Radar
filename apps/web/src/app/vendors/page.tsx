@@ -36,6 +36,11 @@ function OfferingItem({ offering }: { offering: Offering }) {
       {isVendorSource(offering.source_type) ? (
         <span className="cell-sub">Leverandørens eget udsagn</span>
       ) : null}
+      {offering.also_reported_by.length > 0 ? (
+        <span className="cell-sub">
+          Også omtalt af: {offering.also_reported_by.join(", ")}
+        </span>
+      ) : null}
       {offering.excerpt ? (
         <p className="offering-excerpt">&ldquo;{offering.excerpt}&rdquo;</p>
       ) : null}

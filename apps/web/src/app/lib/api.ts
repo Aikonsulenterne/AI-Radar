@@ -552,6 +552,8 @@ export interface Offering {
   source_type: string | null;
   auto_approved: boolean;
   observed_at: string | null;
+  /** Andre kilder, der omtaler samme tilbud. */
+  also_reported_by: string[];
 }
 
 export interface LandscapeVendor {
@@ -578,6 +580,8 @@ export interface TechnologyUpdateInput {
   definition?: string;
   horizon?: TechHorizon;
   active?: boolean;
+  /** Kandidaten er en dublet af denne teknologi. */
+  merge_into_id?: string;
 }
 
 export function updateTechnology(

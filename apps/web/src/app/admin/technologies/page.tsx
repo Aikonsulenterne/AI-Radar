@@ -35,8 +35,11 @@ export default async function AdminTechnologiesPage() {
       <h1>Teknologier</h1>
       <p className="page-lead">
         Nye capabilities, som radaren har fundet i markedet. Optag en kandidat
-        på radaren ved at give den en horisont og en definition, eller afvis
-        den. Kræver Admin; hver beslutning skrives til audit-loggen.
+        på radaren ved at give den en horisont og en definition. Er den en
+        dublet af en teknologi, radaren kender, så slå den sammen — så flyttes
+        dens tilbud med, og navnet genkendes fremover. Afvis kun det, der ikke
+        er relevant: afviste kandidaters tilbud vises ikke. Kræver Admin; hver
+        beslutning skrives til audit-loggen.
       </p>
       {candidates.length === 0 ? (
         <div className="empty-state">
@@ -56,7 +59,12 @@ export default async function AdminTechnologiesPage() {
                 {technology.adopting_company_count} virksomhed(er) med
                 dokumenteret adoption
               </p>
-              <CandidateActions technology={technology} />
+              <CandidateActions
+                technology={technology}
+                mergeTargets={technologies
+                  .filter((t) => t.id !== technology.id)
+                  .map((t) => ({ id: t.id, name: t.name }))}
+              />
             </article>
           ))}
         </div>

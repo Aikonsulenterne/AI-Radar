@@ -68,6 +68,16 @@ async def request_logging(
 
 
 register_exception_handlers(app)
+
+
+@app.on_event("startup")
+def _ensure_schema() -> None:
+    # Render migrerer ikke ved deploy; se app/schema_guard.py.
+    from app.schema_guard import ensure_vendor_schema
+
+    ensure_vendor_schema()
+
+
 app.include_router(sources.router, prefix=API_PREFIX)
 app.include_router(documents.router, prefix=API_PREFIX)
 app.include_router(signals.router, prefix=API_PREFIX)

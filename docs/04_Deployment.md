@@ -146,3 +146,14 @@ shell, og en indlejret `sh -c "..."` ender som ét kommando-ord (exit 127).
 - Frontendens Overblik viser data fra API'et.
 - Kør evalueringen mod reference-datasættet før modelskift:
   `uv run python -m app.evaluation --dataset evaluation/dataset.jsonl`.
+
+## Skemasikring ved opstart (2026-10-09)
+
+Render migrerer ikke ved deploy. Migrationen
+`20261008090000_vendor_offerings.sql` gentages derfor idempotent, når
+API'et starter mod PostgreSQL (`app/schema_guard.py`), og kundecenter-
+kildepakken (`supabase/ops/kundecenter_sources.sql`) indsættes én gang
+(markør i `sources.notes`). Fejler en sætning (fx manglende rettigheder),
+logges `schema_guard_failed`, og opstarten fortsætter — kør så SQL'en
+manuelt i Supabase SQL Editor. Testen `test_schema_guard` holder
+sætningerne i sync med migrationen og kildepakken.

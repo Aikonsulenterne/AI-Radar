@@ -78,7 +78,7 @@ export function RunPanel() {
       setRuns(await listRuns());
     } catch (err) {
       setError(
-        err instanceof ApiClientError ? err.message : "Kørsler kunne ikke hentes.",
+        err instanceof ApiClientError ? err.message : "API'et svarede ikke. Det kan være ved at vågne efter inaktivitet (op til et minut) — prøv igen. Fortsætter det, så åbn API'ets /api/v1/health?schema=true og send svaret til den, der drifter radaren.",
       );
     }
   }, []);
@@ -112,7 +112,7 @@ export function RunPanel() {
       await refresh();
     } catch (err) {
       setError(
-        err instanceof ApiClientError ? err.message : "Kørslen kunne ikke startes.",
+        err instanceof ApiClientError ? err.message : "API'et svarede ikke. Det kan være ved at vågne efter inaktivitet (op til et minut) — prøv igen. Fortsætter det, så åbn API'ets /api/v1/health?schema=true og send svaret til den, der drifter radaren.",
       );
     } finally {
       setBusy(false);

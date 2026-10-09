@@ -91,9 +91,22 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+    # "ok", "mangler: …" eller "ikke tjekket" (fx SQLite). Liveness påvirkes
+    # ikke: et ufuldstændigt skema skal kunne ses, ikke stoppe deployet.
+    schema_status: str = "ikke tjekket"
+    schema_errors: list[str] = []
 
 
 @app.get(f"{API_PREFIX}/health", response_model=HealthResponse, tags=["system"])
-def health() -> HealthResponse:
-    """Liveness-check til containerhost og CI."""
-    return HealthResponse(status="ok", service="ai-radar-api", version=app.version)
+def health(schema: bool = False) -> HealthResponse:
+    """Liveness-check til containerhost og CI. ?schema=true tjekker også, at
+    databasen har de kolonner og værdier, koden kræver."""
+    from app.schema_guard import LAST_ERRORS, missing_schema
+
+    response = HealthResponse(status="ok", service="ai-radar-api", version=app.version)
+    if schema:
+        missing = missing_schema()
+        if missing is not None:
+            response.schema_status = "ok" if not missing else "mangler: " + ", ".join(missing)
+        response.schema_errors = list(LAST_ERRORS)
+    return response

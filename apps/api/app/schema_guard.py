@@ -179,20 +179,86 @@ def _ensure_source_pack(connection: Connection) -> None:
     logger.info("source_pack_seeded count=%d", len(SOURCE_PACK))
 
 
-def ensure_vendor_schema() -> None:
-    """Kør de idempotente sætninger. Fejl logges (fx manglende rettigheder)
-    og stopper ikke opstarten — så viser siderne fejlen som før."""
+# Fejl fra seneste opstart (vises i /health, så de kan ses uden Render-loggen).
+LAST_ERRORS: list[str] = []
+
+# Kolonner og enum-værdier, koden kræver. Bruges af /health.
+_REQUIRED_COLUMNS = (
+    ("technologies", "is_candidate"),
+    ("technologies", "discovered_at"),
+    ("documents", "vendor_extracted_at"),
+    ("worker_runs", "documents_reread"),
+)
+_REQUIRED_PREDICATES = ("OFFERS_CAPABILITY", "OFFERS_IN_MARKET", "SUPPORTS_LANGUAGE")
+
+
+def _short(exc: Exception) -> str:
+    """Første linje af fejlen — aldrig forbindelsesstreng eller parametre."""
+    first = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
+    return f"{exc.__class__.__name__}: {first}"[:300]
+
+
+def missing_schema() -> list[str] | None:
+    """Det, der mangler i databasen; [] = alt på plads, None = ikke PostgreSQL
+    eller kunne ikke tjekkes."""
     engine = get_engine()
     if engine.dialect.name != "postgresql":
-        return
-    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
-        for statement in VENDOR_MIGRATION_STATEMENTS:
+        return None
+    try:
+        with engine.connect() as connection:
+            columns = {
+                (row[0], row[1])
+                for row in connection.execute(
+                    text(
+                        "select table_name, column_name from information_schema.columns "
+                        "where table_schema = current_schema()"
+                    )
+                )
+            }
+            predicates = {
+                row[0]
+                for row in connection.execute(
+                    text("select unnest(enum_range(null::claim_predicate))::text")
+                )
+            }
+    except Exception as exc:  # noqa: BLE001
+        LAST_ERRORS.append(_short(exc))
+        return None
+    missing = [
+        f"{table}.{column}" for table, column in _REQUIRED_COLUMNS if (table, column) not in columns
+    ]
+    missing += [
+        f"claim_predicate.{value}" for value in _REQUIRED_PREDICATES if value not in predicates
+    ]
+    return missing
+
+
+def ensure_vendor_schema() -> None:
+    """Kør de idempotente sætninger. Fejl logges (fx manglende rettigheder
+    eller en låst tabel) og stopper ikke opstarten; de vises i /health."""
+    LAST_ERRORS.clear()
+    try:
+        engine = get_engine()
+        if engine.dialect.name != "postgresql":
+            return
+        with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as connection:
+            # Vent aldrig længe på en lås: en hængende opstart er værre end en
+            # sætning, der prøves igen ved næste genstart.
+            connection.execute(text("set lock_timeout = '10s'"))
+            connection.execute(text("set statement_timeout = '60s'"))
+            for statement in VENDOR_MIGRATION_STATEMENTS:
+                try:
+                    connection.execute(text(statement))
+                except Exception as exc:  # noqa: BLE001 — opstarten må ikke dø
+                    LAST_ERRORS.append(_short(exc))
+                    logger.error("schema_guard_failed error=%s", _short(exc))
             try:
-                connection.execute(text(statement))
-            except Exception:  # noqa: BLE001 — opstarten må ikke dø på en sikring
-                logger.exception("schema_guard_failed statement=%s", statement.split(" add ")[0])
-        try:
-            _ensure_source_pack(connection)
-        except Exception:  # noqa: BLE001
-            logger.exception("source_pack_failed")
-    logger.info("schema_guard_done")
+                _ensure_source_pack(connection)
+            except Exception as exc:  # noqa: BLE001
+                LAST_ERRORS.append(_short(exc))
+                logger.error("source_pack_failed error=%s", _short(exc))
+    except Exception as exc:  # noqa: BLE001 — fx ingen forbindelse ved opstart
+        LAST_ERRORS.append(_short(exc))
+        logger.error("schema_guard_unavailable error=%s", _short(exc))
+        return
+    logger.info("schema_guard_done errors=%d", len(LAST_ERRORS))

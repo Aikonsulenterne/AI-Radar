@@ -32,6 +32,32 @@ def _error_response(status_code: int, code: str, message: str) -> JSONResponse:
 
 
 def register_exception_handlers(app: FastAPI) -> None:
+    @app.exception_handler(Exception)
+    async def handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
+        # Ukendte fejl svares som JSON med CORS-header, så frontenden kan vise
+        # "Serverfejl" i stedet for at tro, at API'et ikke kan nås. Detaljer
+        # står kun i loggen (sammen med request-id).
+        import logging
+
+        from app.config import get_settings
+        from app.context import request_id_var
+
+        request_id = request_id_var.get() or request.headers.get("x-request-id") or "ukendt"
+        logging.getLogger("ai_radar.http").exception(
+            "unhandled_error path=%s request_id=%s", request.url.path, request_id
+        )
+        response = _error_response(
+            500,
+            "server_error",
+            f"Uventet serverfejl ({exc.__class__.__name__}). Request-id {request_id} "
+            "står i API-loggen.",
+        )
+        origin = request.headers.get("origin")
+        if origin and origin in get_settings().cors_origin_list:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+        return response
+
     @app.exception_handler(ApiError)
     async def handle_api_error(request: Request, exc: ApiError) -> JSONResponse:
         return _error_response(exc.status_code, exc.code, exc.message)

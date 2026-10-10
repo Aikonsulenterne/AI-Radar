@@ -110,3 +110,7 @@ AI-teknologi til kundecentre, og hvem bruger den. Leverandørtilbud er
 Ukendte capabilities bliver kandidat-teknologier (`is_candidate`, ingen
 horisont) under *Nyt i markedet*; Admin kuraterer via
 `PATCH /technologies/{id}` (Admin → Teknologier).
+Direktørvisningen *Muligheder* (`/muligheder`, `GET /opportunity-map`) går fra
+OK's problemliste til capabilities, leverandører, dokumenteret brug, effekt
+og næste skridt; koblingen problem → capability er kurateret i
+`app/routes/opportunity_map.py`.

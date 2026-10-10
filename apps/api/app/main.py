@@ -16,7 +16,16 @@ from pydantic import BaseModel
 from app.config import get_settings
 from app.context import request_id_var
 from app.errors import register_exception_handlers
-from app.routes import audit, catalog, documents, opportunities, runs, signals, sources
+from app.routes import (
+    audit,
+    catalog,
+    documents,
+    opportunities,
+    opportunity_map,
+    runs,
+    signals,
+    sources,
+)
 
 API_PREFIX = "/api/v1"
 
@@ -85,6 +94,7 @@ app.include_router(catalog.router, prefix=API_PREFIX)
 app.include_router(opportunities.router, prefix=API_PREFIX)
 app.include_router(audit.router, prefix=API_PREFIX)
 app.include_router(runs.router, prefix=API_PREFIX)
+app.include_router(opportunity_map.router, prefix=API_PREFIX)
 
 
 class HealthResponse(BaseModel):

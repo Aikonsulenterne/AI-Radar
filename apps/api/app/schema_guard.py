@@ -143,40 +143,189 @@ SOURCE_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
 )
 
 
-def _ensure_source_pack(connection: Connection) -> None:
+# Kildepakke 2 (2026-10-10): konkrete leverandør- og kundecase-sider om AI i
+# danske og nordiske kundecentre, fundet ved research og hentet månedligt med
+# web_fetch. Siderne gemmes kun igen, når teksten ændrer sig væsentligt.
+CASE_PAGES_MARKER = "Leverandør- og casesider 2026-10"
+CASE_PAGES: tuple[tuple[str, str, str, str, str | None], ...] = (
+    (
+        "Puzzel-case: Andel Energi",
+        "https://www.puzzel.com",
+        "vendor_case",
+        "https://www.puzzel.com/customers/andel-energi",
+        "DK",
+    ),
+    (
+        "Puzzel-case: Norlys",
+        "https://www.puzzel.com",
+        "vendor_case",
+        "https://www.puzzel.com/customers/norlys",
+        "DK",
+    ),
+    (
+        "Puzzel-case: Aalborg Forsyning",
+        "https://www.puzzel.com",
+        "vendor_case",
+        "https://www.puzzel.com/customers/aalborg-forsyning",
+        "DK",
+    ),
+    (
+        "NNIT-case: Norlys og AI i kundeservice",
+        "https://nnit.com",
+        "vendor_case",
+        "https://nnit.com/our-solutions/data-and-ai/norlys-are-optimizing-the-customer-service-experience-using-artificial-intelligence",
+        "DK",
+    ),
+    (
+        "Kraken: Norlys vælger Kraken",
+        "https://www.kraken.tech",
+        "vendor_claim",
+        "https://www.kraken.tech/press-releases/kraken-enters-nordics-with-norlys",
+        "DK",
+    ),
+    (
+        "Cognigy: Nuuday vælger AI-agenter",
+        "https://www.cognigy.com",
+        "vendor_claim",
+        "https://www.cognigy.com/news/nuuday-selects-cognigy",
+        "DK",
+    ),
+    (
+        "Total Telecom: Nuuday-voicebotten Josefine",
+        "https://totaltele.com",
+        "media",
+        "https://totaltele.com/nuuday-infuses-ai-into-customer-experience-with-the-avaya-onecloud-experience-platform/",
+        "DK",
+    ),
+    (
+        "KPMG-case: Alm. Brands ALBOT",
+        "https://home.kpmg",
+        "vendor_case",
+        "https://home.kpmg/dk/en/home/services/case-stories/alm-brand-albot.html",
+        "DK",
+    ),
+    (
+        "Boye & Co: Trygs chatbots",
+        "https://www.boye-co.com",
+        "media",
+        "https://www.boye-co.com/blog/2020/8/24/chatbots-during-covid19-at-danish-insurance-firm-tryg",
+        "DK",
+    ),
+    (
+        "Genesys-case: 3 Danmark",
+        "https://www.casestudies.com",
+        "vendor_case",
+        "https://www.casestudies.com/company/genesys/case-study/3-denmark-boosts-productivity-10-and-cuts-handle-times-20-with-genesys",
+        "DK",
+    ),
+    (
+        "Puzzel køber Capturi (samtaleanalyse)",
+        "https://techsavvy.media",
+        "media",
+        "https://techsavvy.media/en/leading-platform-acquires-aarhus-based-startup-to-boost-ai-powered-customer-service-in-europe/",
+        "DK",
+    ),
+    (
+        "CustomerThink: Capturi om samtaleanalyse på nordiske sprog",
+        "https://customerthink.com",
+        "media",
+        "https://customerthink.com/the-challenge-with-conversational-analysis-in-the-nordics-interview-with-tue-martin-berg-of-capturi/",
+        "DK",
+    ),
+    (
+        "KU: SupWiz og AI-drevet kundesupport",
+        "https://science.ku.dk",
+        "research",
+        "https://science.ku.dk/ai-centre/news/danish-researchers-behind-ai-driven-customer-support-in-a-class-of-its-own/",
+        "DK",
+    ),
+    (
+        "DI: AI-case Solar",
+        "https://www.danskindustri.dk",
+        "media",
+        "https://www.danskindustri.dk/vi-radgiver-dig/virksomhedsregler-og-varktojer/ai/cases-og-eksempler/casearkiv-ai-for-alle/Solar/",
+        "DK",
+    ),
+    (
+        "DI: AI-case Group Online (Capturi)",
+        "https://www.danskindustri.dk",
+        "media",
+        "https://www.danskindustri.dk/vi-radgiver-dig/virksomhedsregler-og-varktojer/ai/cases-og-eksempler/casearkiv-ai-for-alle/use-case-group-online/",
+        "DK",
+    ),
+    (
+        "TechCrunch: Zendesks AI-agent",
+        "https://techcrunch.com",
+        "media",
+        "https://techcrunch.com/2025/10/08/zendesk-says-its-new-ai-agent-can-solve-80-of-support-issues",
+        None,
+    ),
+)
+
+
+def _ensure_pack(
+    connection: Connection,
+    *,
+    marker: str,
+    pack: tuple[tuple[str, str, str, str, str | None], ...],
+    retrieval_method: str,
+    frequency: str,
+) -> bool:
+    """Indsæt en kildepakke én gang. False, hvis den allerede er indsat."""
     seeded = connection.execute(
         text("select 1 from sources where notes like :marker limit 1"),
-        {"marker": f"{SOURCE_PACK_MARKER}%"},
+        {"marker": f"{marker}%"},
     ).first()
     if seeded is not None:
-        return
-    for name, base_url, source_type, endpoint_url, country_code in SOURCE_PACK:
+        return False
+    for name, base_url, source_type, endpoint_url, country_code in pack:
         connection.execute(
             text(
                 "insert into sources (name, base_url, source_type, retrieval_method, "
                 "endpoint_url, country_code, frequency, access_class, active, next_check_at, "
                 "notes) select :name, :base_url, cast(:source_type as source_type), "
-                "'rss'::retrieval_method, :endpoint_url, :country_code, "
-                "'weekly'::source_frequency, 'public'::access_class, true, now(), :marker "
-                "where not exists (select 1 from sources s where s.endpoint_url = :endpoint_url)"
+                "cast(:retrieval_method as retrieval_method), :endpoint_url, :country_code, "
+                "cast(:frequency as source_frequency), 'public'::access_class, true, now(), "
+                ":marker where not exists "
+                "(select 1 from sources s where s.endpoint_url = :endpoint_url)"
             ),
             {
                 "name": name,
                 "base_url": base_url,
                 "source_type": source_type,
+                "retrieval_method": retrieval_method,
                 "endpoint_url": endpoint_url,
                 "country_code": country_code,
-                "marker": SOURCE_PACK_MARKER,
+                "frequency": frequency,
+                "marker": marker,
             },
         )
-    connection.execute(
-        text(
-            "update sources set active = false, notes = coalesce(notes || ' · ', '') || "
-            "'Pauset 2026-10: ikke kundecenter-relevant' "
-            "where active and endpoint_url ilike '%aws.amazon.com%'"
+    logger.info("source_pack_seeded marker=%s count=%d", marker, len(pack))
+    return True
+
+
+def _ensure_source_pack(connection: Connection) -> None:
+    if _ensure_pack(
+        connection,
+        marker=SOURCE_PACK_MARKER,
+        pack=SOURCE_PACK,
+        retrieval_method="rss",
+        frequency="weekly",
+    ):
+        connection.execute(
+            text(
+                "update sources set active = false, notes = coalesce(notes || ' · ', '') || "
+                "'Pauset 2026-10: ikke kundecenter-relevant' "
+                "where active and endpoint_url ilike '%aws.amazon.com%'"
+            )
         )
+    _ensure_pack(
+        connection,
+        marker=CASE_PAGES_MARKER,
+        pack=CASE_PAGES,
+        retrieval_method="web_fetch",
+        frequency="monthly",
     )
-    logger.info("source_pack_seeded count=%d", len(SOURCE_PACK))
 
 
 # Fejl fra seneste opstart (vises i /health, så de kan ses uden Render-loggen).

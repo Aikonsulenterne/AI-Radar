@@ -910,7 +910,8 @@ a {
 /* .cell-sub bryder overalt (lange URL'er i tabeller); i kort skal ord
    holdes hele. */
 .vendor-card .cell-sub,
-.signal-card .cell-sub {
+.signal-card .cell-sub,
+.problem-card .cell-sub {
   word-break: normal;
   overflow-wrap: anywhere;
 }
@@ -918,6 +919,59 @@ a {
 .vendor-customers {
   margin: 0;
   font-size: 13px;
+}
+
+/* --- Muligheder (direktørvisning) --- */
+
+.problem-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--ok-red);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.problem-card h2 {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+}
+
+.problem-capabilities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+.opportunity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-5);
+  margin-top: var(--space-3);
+}
+
+.opportunity-grid h3 {
+  margin: 0 0 var(--space-2);
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-mute);
+}
+
+.opportunity-grid ul {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.problem-next {
+  margin-top: var(--space-4);
 }
 
 /* --- Diverse --- */

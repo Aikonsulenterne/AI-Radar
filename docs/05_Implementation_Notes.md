@@ -472,3 +472,20 @@ så næsten alt stod på 0. Ændringer:
 - **Kendte begrænsninger:** feedene er ikke verificeret live; produktsider
   skal tilføjes manuelt (URL'er er ikke gættet); prompten er fixture-testet,
   ikke evalueret mod rigtige artikler.
+
+## Muligheder for OK Kundeservice (2026-10-10)
+
+Direktørvisningen `/muligheder` (`GET /opportunity-map`) går fra OK's
+problemliste til capabilities (kurateret kobling i
+`app/routes/opportunity_map.py`), leverandører (Danmark/Norden-dokumenterede
+først, med deres dokumenterede kunder), organisationer med dokumenteret brug,
+dokumenterede effekter (leverandørens egne tal markeret) og åbne
+opportunities som næste skridt. Kun godkendte claims; ingen samlet score —
+sorteringen følger mængden af dokumentation.
+
+Kildepakke 2 (`CASE_PAGES` i `app/schema_guard.py`, indsat én gang ved
+opstart): 16 konkrete leverandør- og casesider om AI i danske kundecentre,
+fundet ved research — bl.a. Puzzels cases med Andel Energi, Norlys og Aalborg
+Forsyning, Nuuday (voicebot Josefine, Cognigy), Alm. Brand (ALBOT), Tryg
+(boost.ai), 3 Danmark (Genesys), Capturi og SupWiz (begge opkøbt af Puzzel).
+Hentes månedligt med web_fetch; ikke verificeret live fra udviklingsmiljøet.

@@ -42,7 +42,9 @@ def test_health_reports_schema_status_only_when_asked(client: TestClient) -> Non
     assert plain["schema_status"] == "ikke tjekket"
     checked = client.get("/api/v1/health?schema=true").json()
     assert checked["status"] == "ok"
-    assert checked["schema_status"] == "ikke tjekket"  # SQLite i testene
+    # SQLite: tjekkes ikke. PostgreSQL (CI): migrationerne er kørt, så "ok".
+    assert checked["schema_status"] in ("ikke tjekket", "ok")
+    assert checked["schema_errors"] == []
 
 
 def test_unexpected_error_is_json_with_cors_header() -> None:

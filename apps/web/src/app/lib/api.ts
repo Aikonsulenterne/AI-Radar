@@ -762,3 +762,53 @@ export function setOpportunityStatus(
     body: JSON.stringify({ status }),
   });
 }
+
+export interface MapVendor {
+  company_id: string;
+  name: string;
+  nordic_documented: boolean;
+  capabilities: string[];
+  products: string[];
+  /** Dokumenterede kunder hos leverandøren (ikke nødvendigvis af disse produkter). */
+  customers: string[];
+}
+
+export interface MapReference {
+  name: string;
+  how: string;
+  source_url: string | null;
+}
+
+export interface MapEffect {
+  organization: string;
+  effect: string;
+  excerpt: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  /** Tallet stammer fra leverandørens egen kilde. */
+  vendor_source: boolean;
+}
+
+export interface MapOpportunity {
+  id: string;
+  title: string;
+  status: string;
+  approved: boolean;
+  recommended_next_action: string;
+}
+
+export interface ProblemOpportunity {
+  problem_id: string;
+  name: string;
+  description: string;
+  capabilities: Technology[];
+  vendors: MapVendor[];
+  references: MapReference[];
+  effects: MapEffect[];
+  opportunities: MapOpportunity[];
+  evidence_count: number;
+}
+
+export function getOpportunityMap(): Promise<{ problems: ProblemOpportunity[] }> {
+  return request<{ problems: ProblemOpportunity[] }>("/opportunity-map");
+}

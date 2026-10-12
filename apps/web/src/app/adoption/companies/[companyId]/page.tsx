@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCompany, type CompanyDetail } from "../../../lib/api";
 import { ApiErrorAlert } from "../../../../components/states/api-error";
+import { FactGroups } from "../../../../components/facts/fact-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -66,32 +67,11 @@ export default async function CompanyPage({
           Dokumenterede claims{" "}
           <span className="section-tag">Dokumenteret fakta</span>
         </h2>
-        {company.claims.length === 0 ? (
-          <p className="cell-sub">Ingen godkendte claims endnu.</p>
-        ) : (
-          <div className="claim-list">
-            {company.claims.map((claim) => (
-              <article className="claim-card" key={claim.id}>
-                <p className="claim-statement">
-                  <span className="claim-predicate">{claim.predicate}</span>{" "}
-                  {claim.object_name ?? claim.object_text ?? (
-                    <i>Ikke dokumenteret</i>
-                  )}
-                </p>
-                {claim.evidence.map((evidence) => (
-                  <blockquote className="evidence-quote" key={evidence.id}>
-                    &#8220;{evidence.supporting_excerpt}&#8221;
-                    {evidence.source_type_snapshot ? (
-                      <footer className="cell-sub">
-                        Kildetype: {evidence.source_type_snapshot}
-                      </footer>
-                    ) : null}
-                  </blockquote>
-                ))}
-              </article>
-            ))}
-          </div>
-        )}
+        <FactGroups
+          claims={company.claims}
+          showSubject={false}
+          empty="Ingen godkendte claims endnu."
+        />
       </section>
     </>
   );

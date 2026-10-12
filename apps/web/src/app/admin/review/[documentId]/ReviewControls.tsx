@@ -14,6 +14,7 @@ import {
   type ClaimRelation,
   type DocumentReview,
 } from "../../../lib/api";
+import { predicateLabel } from "../../../lib/labels";
 
 function errorMessage(err: unknown, fallback: string): string {
   return err instanceof ApiClientError ? err.message : fallback;
@@ -166,7 +167,9 @@ export function DuplicateCandidates({ claim }: { claim: Claim }) {
         <div className="duplicate-candidate" key={candidate.id}>
           <p className="claim-statement">
             <b>{candidate.subject_name ?? "(ukendt subjekt)"}</b>{" "}
-            <span className="claim-predicate">{candidate.predicate}</span>{" "}
+            <span className="claim-predicate" title={candidate.predicate}>
+              {predicateLabel(candidate.predicate)}
+            </span>{" "}
             {candidate.object_display ?? <i>Ikke dokumenteret</i>}
           </p>
           <p className="cell-sub">

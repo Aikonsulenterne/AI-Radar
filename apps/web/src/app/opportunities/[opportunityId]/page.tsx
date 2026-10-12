@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getOpportunity, type OpportunityDetail } from "../../lib/api";
 import { OpportunityActions, STATUS_LABELS } from "../OpportunityControls";
 import { ApiErrorAlert } from "../../../components/states/api-error";
+import { FactGroups } from "../../../components/facts/fact-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -111,22 +112,7 @@ export default async function OpportunityPage({
               </ul>
             ) : null}
             {opportunity.claims.length > 0 ? (
-              <div className="claim-list">
-                {opportunity.claims.map((claim) => (
-                  <article className="claim-card" key={claim.id}>
-                    <p className="claim-statement">
-                      <b>{claim.subject_name ?? "(ukendt)"}</b>{" "}
-                      <span className="claim-predicate">{claim.predicate}</span>{" "}
-                      {claim.object_name ?? claim.object_text ?? ""}
-                    </p>
-                    {claim.evidence.map((evidence) => (
-                      <blockquote className="evidence-quote" key={evidence.id}>
-                        &#8220;{evidence.supporting_excerpt}&#8221;
-                      </blockquote>
-                    ))}
-                  </article>
-                ))}
-              </div>
+              <FactGroups claims={opportunity.claims} />
             ) : null}
           </>
         )}

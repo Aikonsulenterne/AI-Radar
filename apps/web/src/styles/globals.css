@@ -402,10 +402,125 @@ a {
 }
 
 .claim-predicate {
-  font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 13px;
   color: var(--fg-mute);
 }
+
+/* --- Fakta samlet pr. virksomhed (signal, case, virksomhed, opportunity) --- */
+
+.fact-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.fact-group {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.fact-subject {
+  margin: 0 0 var(--space-3);
+  font-size: 16px;
+}
+
+.fact-subject a,
+.fact-chip a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.fact-subject a:hover,
+.fact-chip a:hover,
+.fact-subject a:focus-visible,
+.fact-chip a:focus-visible {
+  text-decoration: underline;
+}
+
+.fact-rows {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) 1fr;
+  column-gap: var(--space-5);
+  row-gap: var(--space-3);
+}
+
+.fact-row {
+  display: contents;
+}
+
+.fact-row dt {
+  color: var(--fg-mute);
+  font-size: 13px;
+  padding-top: 3px;
+}
+
+.fact-row dd {
+  margin: 0;
+  font-size: 14px;
+}
+
+.fact-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.fact-chip {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  font-size: 13px;
+  background: var(--bg);
+}
+
+.fact-sentences {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.fact-chips + .fact-sentences {
+  margin-top: var(--space-2);
+}
+
+.fact-sentences li + li {
+  margin-top: var(--space-1);
+}
+
+.fact-unapproved {
+  color: var(--fg-mute);
+  font-size: 12px;
+}
+
+.fact-quotes {
+  margin-top: var(--space-4);
+}
+
+.fact-quotes summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fg-soft);
+}
+
+.fact-quotes .evidence-quote {
+  margin-top: var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .fact-rows {
+    grid-template-columns: 1fr;
+    row-gap: var(--space-1);
+  }
+  .fact-row dd {
+    margin-bottom: var(--space-2);
+  }
+}
+
 
 /* --- Semantiske mønstre: fakta / analyse / anbefaling (UI Master §8) --- */
 

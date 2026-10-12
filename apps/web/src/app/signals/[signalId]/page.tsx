@@ -7,8 +7,25 @@ import {
 } from "../../lib/labels";
 import { AiPublishedBadge } from "../../../components/states/ai-badge";
 import { ApiErrorAlert } from "../../../components/states/api-error";
+import { FactGroups } from "../../../components/facts/fact-groups";
 
 export const dynamic = "force-dynamic";
+
+function factSummary(signal: SignalDetail): string {
+  const companies = signal.companies.length;
+  const documents = new Set(
+    signal.claims.flatMap((claim) => claim.evidence.map((e) => e.document_id)),
+  ).size;
+  return [
+    `${signal.claims.length} fakta`,
+    companies > 0
+      ? `${companies} ${companies === 1 ? "virksomhed" : "virksomheder"}`
+      : null,
+    `${documents} ${documents === 1 ? "kilde" : "kilder"}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
 
 export default async function SignalPage({
   params,
@@ -63,7 +80,7 @@ export default async function SignalPage({
           </>
         ) : null}
         Publiceret {formatDateTime(signal.published_at)} · {signal.claim_count}{" "}
-        godkendte claims som faktagrundlag
+        godkendte fakta som grundlag
       </p>
 
       {/* Fakta, analyse og anbefaling adskilles semantisk og visuelt
@@ -80,33 +97,8 @@ export default async function SignalPage({
         <h2 className="section-title">
           Fakta <span className="section-tag">Dokumenteret fakta</span>
         </h2>
-        {signal.claims.length === 0 ? (
-          <p className="cell-sub">Ingen claims tilknyttet.</p>
-        ) : (
-          <div className="claim-list">
-            {signal.claims.map((claim) => (
-              <article className="claim-card" key={claim.id}>
-                <p className="claim-statement">
-                  <b>{claim.subject_name ?? "(ukendt subjekt)"}</b>{" "}
-                  <span className="claim-predicate">{claim.predicate}</span>{" "}
-                  {claim.object_name ?? claim.object_text ?? (
-                    <i>Ikke dokumenteret</i>
-                  )}
-                </p>
-                {claim.evidence.map((evidence) => (
-                  <blockquote className="evidence-quote" key={evidence.id}>
-                    &#8220;{evidence.supporting_excerpt}&#8221;
-                    {evidence.source_type_snapshot ? (
-                      <footer className="cell-sub">
-                        Kildetype: {evidence.source_type_snapshot}
-                      </footer>
-                    ) : null}
-                  </blockquote>
-                ))}
-              </article>
-            ))}
-          </div>
-        )}
+        <p className="cell-sub">{factSummary(signal)}</p>
+        <FactGroups claims={signal.claims} />
       </section>
 
       {signal.analysis ? (
@@ -130,26 +122,6 @@ export default async function SignalPage({
             Anbefaling <span className="section-tag">Næste skridt</span>
           </h2>
           <p>{signal.recommendation}</p>
-        </section>
-      ) : null}
-
-      {signal.companies.length > 0 || signal.technologies.length > 0 ? (
-        <section className="signal-section" aria-label="Relaterede entiteter">
-          <h2 className="section-title">Relateret</h2>
-          <p>
-            {signal.companies.length > 0 ? (
-              <>
-                Virksomheder: {signal.companies.map((c) => c.name).join(", ")}
-                .{" "}
-              </>
-            ) : null}
-            {signal.technologies.length > 0 ? (
-              <>
-                Teknologier: {signal.technologies.map((t) => t.name).join(", ")}
-                .
-              </>
-            ) : null}
-          </p>
         </section>
       ) : null}
     </>

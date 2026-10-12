@@ -11,6 +11,7 @@ import {
   type Claim,
   type Company,
 } from "../../lib/api";
+import { predicateLabel } from "../../lib/labels";
 
 export function CreateCaseForm({
   companies,
@@ -136,7 +137,9 @@ export function CreateCaseForm({
                 onChange={() => toggleClaim(claim.id)}
               />
               <span>
-                <span className="claim-predicate">{claim.predicate}</span>{" "}
+                <span className="claim-predicate" title={claim.predicate}>
+                  {predicateLabel(claim.predicate)}
+                </span>{" "}
                 {claim.object_name ?? claim.object_text ?? ""}
               </span>
             </label>

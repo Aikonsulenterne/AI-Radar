@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getTechnology, type TechnologyDetail } from "../../lib/api";
 import { HorizonBadge } from "../../../components/states/horizon-badge";
 import { ApiErrorAlert } from "../../../components/states/api-error";
+import { FactGroups } from "../../../components/facts/fact-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -106,22 +107,7 @@ export default async function TechnologyPage({
           <h2 className="section-title">
             Evidens <span className="section-tag">Uddrag fra kilder</span>
           </h2>
-          <div className="claim-list">
-            {technology.claims.map((claim) => (
-              <article className="claim-card" key={claim.id}>
-                <p className="claim-statement">
-                  <b>{claim.subject_name ?? "(ukendt)"}</b>{" "}
-                  <span className="claim-predicate">{claim.predicate}</span>{" "}
-                  {technology.name}
-                </p>
-                {claim.evidence.map((evidence) => (
-                  <blockquote className="evidence-quote" key={evidence.id}>
-                    &#8220;{evidence.supporting_excerpt}&#8221;
-                  </blockquote>
-                ))}
-              </article>
-            ))}
-          </div>
+          <FactGroups claims={technology.claims} />
         </section>
       ) : null}
     </>

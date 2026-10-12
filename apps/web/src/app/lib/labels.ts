@@ -46,6 +46,39 @@ export const SOURCE_TYPE_LABELS: Record<string, string> = {
   early_signal: "Tidligt signal",
 };
 
+// Claim-predicates på dansk. Rækkefølgen er visningsrækkefølgen i en
+// faktagruppe: tilbud, brug, fase, effekt, problemer, organisering.
+export const PREDICATE_LABELS: Record<string, string> = {
+  OFFERS_CAPABILITY: "Tilbyder",
+  OFFERS_IN_MARKET: "Sælger i",
+  SUPPORTS_LANGUAGE: "Understøtter sprog",
+  USES_CAPABILITY: "Bruger",
+  USES_TECHNOLOGY: "Bruger teknologi",
+  USES_VENDOR: "Bruger leverandør",
+  USES_FOR: "Bruger AI til",
+  ADOPTION_STAGE: "Fase",
+  REPORTED_EFFECT: "Rapporteret effekt",
+  REPORTS_BARRIER: "Barriere",
+  REPORTS_NEGATIVE_OUTCOME: "Negativt udfald",
+  ABANDONED_OR_REPLACED: "Stoppet eller udskiftet",
+  USES_GOVERNANCE_MODEL: "Styring",
+  USES_HUMAN_REVIEW: "Menneskelig kontrol",
+  REPORTS_ADOPTION_APPROACH: "Tilgang til indførelse",
+  REPORTS_DATA_FOUNDATION: "Datagrundlag",
+};
+
+export function predicateLabel(predicate: string): string {
+  return PREDICATE_LABELS[predicate] ?? predicate;
+}
+
+export const STAGE_LABELS: Record<string, string> = {
+  Experiment: "Eksperiment",
+  Pilot: "Pilot",
+  Production: "I drift",
+  Scale: "Skaleret",
+  Unknown: "Ukendt",
+};
+
 /** Leverandørens egne ord — tal og påstande er leverandørens. */
 export function isVendorSource(sourceType: string | null): boolean {
   return sourceType === "vendor_case" || sourceType === "vendor_claim";

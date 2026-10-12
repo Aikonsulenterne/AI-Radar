@@ -11,7 +11,7 @@ import {
   type DocumentationLevel,
   type Signal,
 } from "../../lib/api";
-import { DOCUMENTATION_LABELS } from "../../lib/labels";
+import { DOCUMENTATION_LABELS, predicateLabel } from "../../lib/labels";
 
 const LEVELS: DocumentationLevel[] = [
   "strong",
@@ -147,7 +147,9 @@ export function CreateSignalForm({
               />
               <span>
                 <b>{claim.subject_name}</b>{" "}
-                <span className="claim-predicate">{claim.predicate}</span>{" "}
+                <span className="claim-predicate" title={claim.predicate}>
+                  {predicateLabel(claim.predicate)}
+                </span>{" "}
                 {claim.object_name ?? claim.object_text ?? ""}
               </span>
             </label>

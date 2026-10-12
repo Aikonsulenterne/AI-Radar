@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Claim, DocumentReview, Evidence } from "../../../lib/api";
 import { ClaimActions, DuplicateCandidates } from "./ReviewControls";
 import { AiPublishedBadge } from "../../../../components/states/ai-badge";
+import { predicateLabel } from "../../../lib/labels";
 
 const REVIEW_STATUS_LABELS: Record<Claim["review_status"], string> = {
   proposed: "Foreslået",
@@ -158,7 +159,9 @@ function ClaimCard({
 
       <p className="claim-statement">
         <b>{claim.subject_name ?? "(ukendt subjekt)"}</b>{" "}
-        <span className="claim-predicate">{claim.predicate}</span>{" "}
+        <span className="claim-predicate" title={claim.predicate}>
+          {predicateLabel(claim.predicate)}
+        </span>{" "}
         {claim.object_name ?? claim.object_text ?? <i>Ikke dokumenteret</i>}
       </p>
 

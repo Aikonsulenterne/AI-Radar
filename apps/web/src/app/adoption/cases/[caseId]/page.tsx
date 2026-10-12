@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCase, type AdoptionCaseDetail } from "../../../lib/api";
 import { AiPublishedBadge } from "../../../../components/states/ai-badge";
 import { ApiErrorAlert } from "../../../../components/states/api-error";
+import { FactGroups } from "../../../../components/facts/fact-groups";
 
 export const dynamic = "force-dynamic";
 
@@ -93,31 +94,7 @@ export default async function CasePage({
         <h2 className="section-title">
           Evidens <span className="section-tag">Uddrag fra kilder</span>
         </h2>
-        <div className="claim-list">
-          {adoptionCase.claims.map((claim) => (
-            <article className="claim-card" key={claim.id}>
-              <p className="claim-statement">
-                <span className="claim-predicate">{claim.predicate}</span>{" "}
-                {claim.object_name ?? claim.object_text ?? (
-                  <i>Ikke dokumenteret</i>
-                )}{" "}
-                <span className="cell-sub">
-                  Reviewstatus: {claim.review_status}
-                </span>
-              </p>
-              {claim.evidence.map((evidence) => (
-                <blockquote className="evidence-quote" key={evidence.id}>
-                  &#8220;{evidence.supporting_excerpt}&#8221;
-                  {evidence.source_type_snapshot ? (
-                    <footer className="cell-sub">
-                      Kildetype: {evidence.source_type_snapshot}
-                    </footer>
-                  ) : null}
-                </blockquote>
-              ))}
-            </article>
-          ))}
-        </div>
+        <FactGroups claims={adoptionCase.claims} />
       </section>
 
       {adoptionCase.summary ? (

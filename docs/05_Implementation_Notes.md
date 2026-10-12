@@ -504,3 +504,14 @@ Hentes månedligt med web_fetch; ikke verificeret live fra udviklingsmiljøet.
   Briefing (`/signals?internal=false`); de vises på beslutningsoplægget som
   intern analyse. Kilder markeres som interne under Admin → Kilder.
 - **Drift og data:** notat til IT i `docs/06_Drift_og_Data.md`.
+
+## Indsigter (2026-10-12)
+
+Modulet *Indsigter* (`/indsigter`) samler OK's egne data adskilt fra
+markedsviden: fund fra beslutningsoplægget og interne analyser (signaler fra
+kilder med access class `restricted`). Admin kan uploade en intern eksport
+(TXT, CSV, Markdown, PDF) efter at have bekræftet, at den ikke indeholder
+kundedata; den lægges i kilden "Interne data (OK)" (oprettes ved første
+upload). Interne dokumenter springer markedsfilteret over, udtrækkes med en
+intern scope-note (OK som subjekt, ingen persondata) og genlæses ikke for
+leverandørtilbud.

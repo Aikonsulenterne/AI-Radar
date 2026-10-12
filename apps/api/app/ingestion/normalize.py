@@ -112,7 +112,7 @@ def _extract_pdf(data: bytes) -> NormalizedContent:
 def extract_text(mime_type: str, data: bytes) -> NormalizedContent:
     """Udtræk normaliseret tekst. Ukendte formater giver text=None (ikke et gæt)."""
     mime = mime_type.split(";")[0].strip().lower()
-    if mime == "text/plain":
+    if mime in ("text/plain", "text/csv", "text/markdown"):
         text = normalize_whitespace(data.decode("utf-8", errors="replace"))
         return NormalizedContent(text=text or None, title=None)
     if mime in ("text/html", "application/xhtml+xml"):

@@ -18,6 +18,8 @@ from app.storage import StorageAdapter
 
 _EXTENSIONS = {
     "text/plain": ".txt",
+    "text/csv": ".csv",
+    "text/markdown": ".md",
     "text/html": ".html",
     "application/xhtml+xml": ".html",
     "application/pdf": ".pdf",

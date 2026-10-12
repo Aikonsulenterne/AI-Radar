@@ -33,6 +33,7 @@ from app.config import get_settings
 from app.enums import (
     ADOPTION_STAGES,
     PREDICATES_BY_CLAIM_TYPE,
+    AccessClass,
     ClaimCreatedBy,
     ClaimType,
     EntityType,
@@ -212,15 +213,23 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
     prompt_text = text[:_MAX_PROMPT_CHARS]
     source = db.get(Source, document.source_id)
 
+    # Interne kilder (Indsigter) handler om OK selv: de er relevante per
+    # definition og skal ikke gennem markedsfilteret.
+    internal = source is not None and source.access_class == AccessClass.restricted
+
     try:
-        relevance = call_with_schema(
-            provider,
-            prompt_id=RELEVANCE_PROMPT_ID,
-            prompt_version=RELEVANCE_PROMPT_VERSION,
-            system=RELEVANCE_SYSTEM,
-            user=prompt_text,
-            result_model=RelevanceResult,
-            document_id=document.id,
+        relevance = (
+            RelevanceResult(relevant=True, reason="Intern kilde")
+            if internal
+            else call_with_schema(
+                provider,
+                prompt_id=RELEVANCE_PROMPT_ID,
+                prompt_version=RELEVANCE_PROMPT_VERSION,
+                system=RELEVANCE_SYSTEM,
+                user=prompt_text,
+                result_model=RelevanceResult,
+                document_id=document.id,
+            )
         )
         if not relevance.relevant:
             document.processing_status = ProcessingStatus.classified_irrelevant
@@ -235,7 +244,7 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             prompt_id=EXTRACTION_PROMPT_ID,
             prompt_version=EXTRACTION_PROMPT_VERSION,
             system=EXTRACTION_SYSTEM,
-            user=extraction_user_message(capabilities(db), prompt_text),
+            user=extraction_user_message(capabilities(db), prompt_text, internal=internal),
             result_model=ExtractionResult,
             document_id=document.id,
         )

@@ -9,6 +9,7 @@ type NavItem = { href: string; label: string };
 export const primaryNav: NavItem[] = [
   { href: "/", label: "Overblik" },
   { href: "/muligheder", label: "Muligheder" },
+  { href: "/indsigter", label: "Indsigter" },
   { href: "/beslutningsoplaeg", label: "Beslutningsoplæg" },
   { href: "/vendors", label: "Leverandører" },
   { href: "/signals", label: "Signaler" },

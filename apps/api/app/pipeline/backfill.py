@@ -23,7 +23,7 @@ from app.ai.prompts import (
 from app.ai.provider import AIDocumentRejected, AIProvider, AIProviderRejected, AIRefusal
 from app.ai.schemas import AISchemaError, ExtractedClaim, ExtractionResult, call_with_schema
 from app.config import get_settings
-from app.enums import VENDOR_PREDICATES, Predicate, ProcessingStatus
+from app.enums import VENDOR_PREDICATES, AccessClass, Predicate, ProcessingStatus
 from app.errors import ApiError
 from app.models import Document, Source
 from app.models_claims import Claim, ClaimEvidence
@@ -48,7 +48,10 @@ def documents_to_reread(db: Session, limit: int) -> list[Document]:
     return list(
         db.scalars(
             select(Document)
+            .join(Source, Source.id == Document.source_id)
             .where(
+                # Interne dokumenter (Indsigter) genlæses ikke for leverandørtilbud.
+                Source.access_class != AccessClass.restricted,
                 Document.vendor_extracted_at.is_(None),
                 Document.processing_status.in_(_REREAD_STATUSES),
                 Document.normalized_text.is_not(None),

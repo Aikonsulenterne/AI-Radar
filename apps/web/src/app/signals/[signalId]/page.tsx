@@ -52,6 +52,13 @@ export default async function SignalPage({
             <AiPublishedBadge />{" "}
           </>
         ) : null}
+        {signal.internal ? (
+          <>
+            <span className="badge badge-candidate">
+              Intern analyse · OK&#8217;s egne data
+            </span>{" "}
+          </>
+        ) : null}
         Publiceret {formatDateTime(signal.published_at)} ·{" "}
         {signal.claim_count} godkendte claims som faktagrundlag
       </p>

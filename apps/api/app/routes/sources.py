@@ -35,7 +35,8 @@ from app.storage import get_storage
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
-_ALLOWED_UPLOAD_MIME = {"text/plain", "text/html", "application/pdf"}
+# CSV og Markdown behandles som tekst (fx eksporter til Indsigter).
+_ALLOWED_UPLOAD_MIME = {"text/plain", "text/csv", "text/markdown", "text/html", "application/pdf"}
 
 
 def _get_source_or_404(db: Session, source_id: uuid.UUID) -> Source:

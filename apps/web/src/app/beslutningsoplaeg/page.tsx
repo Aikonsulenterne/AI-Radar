@@ -118,7 +118,12 @@ export default async function DecisionBriefPage() {
             : ""}
         </p>
 
-        <h2>Det har vi fundet i egne data</h2>
+        <h2>
+          Det har vi fundet i egne data{" "}
+          <Link href="/indsigter" className="no-print">
+            (Indsigter →)
+          </Link>
+        </h2>
         {brief.internal_findings.length === 0 && internal.length === 0 ? (
           <p>
             <Missing>Ingen interne fund indtastet endnu.</Missing>

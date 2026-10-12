@@ -143,14 +143,32 @@ VENDOR_ONLY_NOTE = (
 )
 
 
+INTERNAL_NOTE = (
+    "SCOPE: this is an INTERNAL document about OK's own customer service (for "
+    "example an export or an analysis of OK's mailboxes, calls or tickets). Extract "
+    'measured facts about OK\'s own operations with "OK a.m.b.a." as the subject: '
+    "problems and volumes (REPORTS_BARRIER), measured effects (REPORTED_EFFECT), "
+    "tools and vendors in use (USES_TECHNOLOGY / USES_VENDOR) and use cases (USES_FOR). "
+    "Never extract personal data: no names, addresses, phone numbers, customer numbers "
+    "or e-mail addresses of private persons — skip any claim that would contain them."
+)
+
+
 def extraction_user_message(
-    capabilities: list[tuple[str, str]], document_text: str, *, vendor_only: bool = False
+    capabilities: list[tuple[str, str]],
+    document_text: str,
+    *,
+    vendor_only: bool = False,
+    internal: bool = False,
 ) -> str:
     """Kuraterede capabilities (navn, definition) foran dokumentteksten, så
     modellen bruger radarens egne navne og claims lander på teknologierne.
-    vendor_only begrænser svaret ved genlæsning (kortere og billigere svar)."""
+    vendor_only begrænser svaret ved genlæsning (kortere og billigere svar);
+    internal markerer et internt OK-dokument (Indsigter)."""
     lines = "\n".join(f"- {name}: {definition}" for name, definition in capabilities)
     scope = f"{VENDOR_ONLY_NOTE}\n\n" if vendor_only else ""
+    if internal:
+        scope = f"{INTERNAL_NOTE}\n\n"
     return f"{scope}CAPABILITIES:\n{lines or '- (ingen)'}\n\nDOCUMENT:\n{document_text}"
 
 

@@ -15,7 +15,9 @@ MIGRATION = (
 
 
 def test_every_guard_statement_is_in_the_migration() -> None:
-    migration = " ".join(MIGRATION.read_text().split()).lower()
+    migration = " ".join(
+        " ".join(path.read_text() for path in sorted(MIGRATION.parent.glob("*.sql"))).split()
+    ).lower()
     for statement in VENDOR_MIGRATION_STATEMENTS:
         assert " ".join(statement.split()).lower() in migration, statement
 

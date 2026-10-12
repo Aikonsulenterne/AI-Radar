@@ -489,3 +489,18 @@ fundet ved research — bl.a. Puzzels cases med Andel Energi, Norlys og Aalborg
 Forsyning, Nuuday (voicebot Josefine, Cognigy), Alm. Brand (ALBOT), Tryg
 (boost.ai), 3 Danmark (Genesys), Capturi og SupWiz (begge opkøbt af Puzzel).
 Hentes månedligt med web_fetch; ikke verificeret live fra udviklingsmiljøet.
+
+## Beslutningsoplæg og interne analyser (2026-10-12)
+
+- **Beslutningsoplæg** (`/beslutningsoplaeg`, printbar A4): OK's egne tal,
+  interne fund, markedets tilbud til OK's udfordringer, hvad andre har gjort,
+  regneeksempel og ønsket med stopkriterium. Tal indtastes under
+  Admin → OK-tal & oplæg (`GET/PUT /decision-brief`, gemt i `app_settings`;
+  migration `20261012090000_app_settings.sql`, sikret ved opstart).
+  Regneeksemplet bruger kun indtastede tal og scenarieprocenter og er mærket
+  som antagelser. "Indsæt mit forslag" udfylder tomme felter med et udkast.
+- **Interne analyser:** signaler, hvis evidens kommer fra en kilde med access
+  class `restricted`, er `internal` og holdes ude af Overblik, Signaler og
+  Briefing (`/signals?internal=false`); de vises på beslutningsoplægget som
+  intern analyse. Kilder markeres som interne under Admin → Kilder.
+- **Drift og data:** notat til IT i `docs/06_Drift_og_Data.md`.

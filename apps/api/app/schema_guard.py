@@ -27,6 +27,10 @@ VENDOR_MIGRATION_STATEMENTS: tuple[str, ...] = (
     "alter table technologies alter column horizon drop not null",
     "alter table documents add column if not exists vendor_extracted_at timestamptz null",
     "alter table worker_runs add column if not exists documents_reread integer not null default 0",
+    # Beslutningsoplæggets indstillinger (20261012090000_app_settings.sql).
+    "create table if not exists app_settings ( key text primary key, value jsonb not null, "
+    "updated_at timestamptz not null default now(), updated_by_user_id uuid null )",
+    "alter table app_settings enable row level security",
     # Teknologien Virtual Agent (data, også idempotent).
     "with inserted as ( insert into technologies (name, slug, definition, horizon) values ( "
     "'Virtual Agent', 'virtual-agent', 'Chat- og voicebots, der selv besvarer og løser "
@@ -337,6 +341,7 @@ _REQUIRED_COLUMNS = (
     ("technologies", "discovered_at"),
     ("documents", "vendor_extracted_at"),
     ("worker_runs", "documents_reread"),
+    ("app_settings", "value"),
 )
 _REQUIRED_PREDICATES = ("OFFERS_CAPABILITY", "OFFERS_IN_MARKET", "SUPPORTS_LANGUAGE")
 

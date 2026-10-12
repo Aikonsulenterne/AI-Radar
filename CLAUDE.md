@@ -114,3 +114,7 @@ Direktørvisningen *Muligheder* (`/muligheder`, `GET /opportunity-map`) går fra
 OK's problemliste til capabilities, leverandører, dokumenteret brug, effekt
 og næste skridt; koblingen problem → capability er kurateret i
 `app/routes/opportunity_map.py`.
+Beslutningsoplægget (`/beslutningsoplaeg`, `GET/PUT /decision-brief`) samler
+OK's indtastede tal, interne fund og ønsket med radarens dokumentation.
+Signaler fra kilder med access class `restricted` er interne analyser og
+vises aldrig som markedsviden. IT-notat: `docs/06_Drift_og_Data.md`.

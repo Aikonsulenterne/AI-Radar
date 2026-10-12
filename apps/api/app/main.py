@@ -19,6 +19,7 @@ from app.errors import register_exception_handlers
 from app.routes import (
     audit,
     catalog,
+    decision_brief,
     documents,
     opportunities,
     opportunity_map,
@@ -95,6 +96,7 @@ app.include_router(opportunities.router, prefix=API_PREFIX)
 app.include_router(audit.router, prefix=API_PREFIX)
 app.include_router(runs.router, prefix=API_PREFIX)
 app.include_router(opportunity_map.router, prefix=API_PREFIX)
+app.include_router(decision_brief.router, prefix=API_PREFIX)
 
 
 class HealthResponse(BaseModel):

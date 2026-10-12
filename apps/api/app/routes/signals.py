@@ -9,13 +9,14 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.orm import Session
 
 from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, get_current_user, require_role
 from app.db import get_db
 from app.enums import (
+    AccessClass,
     EntityType,
     ProcessingStatus,
     ReviewStatus,
@@ -24,8 +25,8 @@ from app.enums import (
     UserRole,
 )
 from app.errors import ApiError
-from app.models import Document
-from app.models_claims import Claim, Company, Technology
+from app.models import Document, Source
+from app.models_claims import Claim, ClaimEvidence, Company, Technology
 from app.models_signals import Signal, SignalClaim
 from app.routes.documents import _claim_out
 from app.schemas import Paginated
@@ -54,9 +55,24 @@ def _claim_count(db: Session, signal_id: uuid.UUID) -> int:
     )
 
 
+def _internal_signal_ids() -> Select[tuple[uuid.UUID]]:
+    """Signaler med mindst ét claim, hvis evidens kommer fra en intern kilde."""
+    return (
+        select(SignalClaim.signal_id)
+        .join(ClaimEvidence, ClaimEvidence.claim_id == SignalClaim.claim_id)
+        .join(Document, Document.id == ClaimEvidence.document_id)
+        .join(Source, Source.id == Document.source_id)
+        .where(Source.access_class == AccessClass.restricted)
+        .distinct()
+    )
+
+
 def _signal_out(db: Session, signal: Signal) -> SignalOut:
     out = SignalOut.model_validate(signal)
-    return out.model_copy(update={"claim_count": _claim_count(db, signal.id)})
+    internal = signal.id in set(
+        db.scalars(_internal_signal_ids().where(SignalClaim.signal_id == signal.id)).all()
+    )
+    return out.model_copy(update={"claim_count": _claim_count(db, signal.id), "internal": internal})
 
 
 def _get_signal_or_404(db: Session, signal_id: uuid.UUID) -> Signal:
@@ -86,12 +102,20 @@ def list_signals(
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
     status: SignalStatus | None = Query(default=None),
+    internal: bool | None = Query(
+        default=None,
+        description="false: kun markedsviden; true: kun interne analyser; udeladt: alle.",
+    ),
     db: Session = Depends(get_db),
     user: CurrentUser = Depends(get_current_user),
 ) -> Paginated[SignalOut]:
     stmt = select(Signal).order_by(
         Signal.published_at.desc().nulls_last(), Signal.created_at.desc()
     )
+    if internal is True:
+        stmt = stmt.where(Signal.id.in_(_internal_signal_ids()))
+    elif internal is False:
+        stmt = stmt.where(Signal.id.not_in(_internal_signal_ids()))
     if user.role in _REVIEWER:
         if status is not None:
             stmt = stmt.where(Signal.status == status)
@@ -258,9 +282,13 @@ def dashboard(
     db: Session = Depends(get_db),
     _user: CurrentUser = Depends(require_role(UserRole.reader)),
 ) -> DashboardOut:
+    # Overblikket viser markedsviden; interne analyser tælles ikke med.
+    market = Signal.id.not_in(_internal_signal_ids())
     published = (
         db.scalar(
-            select(func.count()).select_from(Signal).where(Signal.status == SignalStatus.published)
+            select(func.count())
+            .select_from(Signal)
+            .where(Signal.status == SignalStatus.published, market)
         )
         or 0
     )
@@ -300,7 +328,7 @@ def dashboard(
 
     latest = db.scalars(
         select(Signal)
-        .where(Signal.status == SignalStatus.published)
+        .where(Signal.status == SignalStatus.published, market)
         .order_by(Signal.published_at.desc())
         .limit(5)
     ).all()

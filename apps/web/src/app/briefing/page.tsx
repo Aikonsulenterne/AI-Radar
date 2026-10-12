@@ -64,7 +64,8 @@ export default async function BriefingPage() {
       getVendorLandscape(),
       listTechnologies(),
     ]);
-    signals = signalPage.items.filter((s) => s.status === "published");
+    // Briefingen er markedsviden; interne analyser holdes ude.
+    signals = signalPage.items.filter((s) => s.status === "published" && !s.internal);
     cases = casePage.items;
     opportunities = oppPage.items;
     const since = Date.now() - RECENT_DAYS * 24 * 60 * 60 * 1000;

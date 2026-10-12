@@ -183,6 +183,17 @@ export function createSource(input: SourceCreateInput): Promise<Source> {
   });
 }
 
+export function updateSource(
+  sourceId: string,
+  input: { access_class?: AccessClass; active?: boolean },
+): Promise<Source> {
+  return request<Source>(`/sources/${sourceId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+}
+
 export function runSource(sourceId: string): Promise<RunResult> {
   return request<RunResult>(`/sources/${sourceId}/run`, { method: "POST" });
 }
@@ -409,6 +420,8 @@ export interface Signal {
   claim_count: number;
   /** Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH). */
   auto_published: boolean;
+  /** Bygger på en intern kilde (fx OK's egne data) — intern analyse, ikke markedsviden. */
+  internal: boolean;
 }
 
 export interface SignalDetail extends Signal {
@@ -446,7 +459,12 @@ export function listSignals(status?: SignalStatus): Promise<Paginated<Signal>> {
 
 /** Alle publicerede signaler, nyeste først (Signaler-siden). */
 export function listPublishedSignals(): Promise<Paginated<Signal>> {
-  return request<Paginated<Signal>>("/signals?status=published&limit=200");
+  return request<Paginated<Signal>>("/signals?status=published&internal=false&limit=200");
+}
+
+/** Publicerede signaler, der bygger på interne kilder. */
+export function listInternalSignals(): Promise<Paginated<Signal>> {
+  return request<Paginated<Signal>>("/signals?status=published&internal=true&limit=50");
 }
 
 export function getSignal(signalId: string): Promise<SignalDetail> {
@@ -811,4 +829,62 @@ export interface ProblemOpportunity {
 
 export function getOpportunityMap(): Promise<{ problems: ProblemOpportunity[] }> {
   return request<{ problems: ProblemOpportunity[] }>("/opportunity-map");
+}
+
+export interface DecisionFinding {
+  title: string;
+  figure: string | null;
+  description: string | null;
+}
+
+export interface PeerCall {
+  organization: string;
+  status: string | null;
+  notes: string | null;
+}
+
+export interface DecisionBrief {
+  title: string;
+  contact_center_system: string | null;
+  contract_renewal: string | null;
+  budget_deadline: string | null;
+  fte: number | null;
+  cost_per_fte: number | null;
+  contacts_per_year: { phone: number | null; mail: number | null; chat: number | null };
+  aht_minutes: number | null;
+  scenario_low_pct: number | null;
+  scenario_high_pct: number | null;
+  internal_findings: DecisionFinding[];
+  ask: string | null;
+  kill_criterion: string | null;
+  data_promise: string | null;
+  peer_calls: PeerCall[];
+}
+
+export interface DecisionCalculation {
+  total_contacts: number | null;
+  annual_cost: number | null;
+  cost_per_contact: number | null;
+  handling_hours: number | null;
+  saving_low: number | null;
+  saving_high: number | null;
+  missing: string[];
+}
+
+export interface DecisionBriefData {
+  brief: DecisionBrief;
+  calculation: DecisionCalculation;
+  updated_at: string | null;
+}
+
+export function getDecisionBrief(): Promise<DecisionBriefData> {
+  return request<DecisionBriefData>("/decision-brief");
+}
+
+export function saveDecisionBrief(brief: DecisionBrief): Promise<DecisionBriefData> {
+  return request<DecisionBriefData>("/decision-brief", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(brief),
+  });
 }

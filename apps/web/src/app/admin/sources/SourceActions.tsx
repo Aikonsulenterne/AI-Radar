@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ApiClientError,
   runSource,
+  updateSource,
   uploadDocument,
   type RunFailure,
   type RunResult,
@@ -24,10 +25,15 @@ function runSummary(result: RunResult): string {
     parts.push(`${documents(result.unchanged_count)} uændret`);
   }
   if (result.failures.length > 0) {
-    const links = result.failures.length === 1 ? "1 link" : `${result.failures.length} links`;
+    const links =
+      result.failures.length === 1
+        ? "1 link"
+        : `${result.failures.length} links`;
     parts.push(`${links} kunne ikke hentes`);
   }
-  return parts.length > 0 ? `${parts.join(", ")}.` : "Kørslen gav ingen dokumenter.";
+  return parts.length > 0
+    ? `${parts.join(", ")}.`
+    : "Kørslen gav ingen dokumenter.";
 }
 
 export function SourceActions({ source }: { source: Source }) {
@@ -63,6 +69,28 @@ export function SourceActions({ source }: { source: Source }) {
     }
   }
 
+  async function handleUpdate(
+    input: Parameters<typeof updateSource>[1],
+    done: string,
+  ) {
+    setBusy(true);
+    setError(null);
+    setMessage(null);
+    try {
+      await updateSource(source.id, input);
+      setMessage(done);
+      router.refresh();
+    } catch (err) {
+      setError(
+        err instanceof ApiClientError
+          ? err.message
+          : "Ændringen kunne ikke gemmes.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleUpload(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -79,9 +107,7 @@ export function SourceActions({ source }: { source: Source }) {
       );
       router.refresh();
     } catch (err) {
-      setError(
-        err instanceof ApiClientError ? err.message : "Upload fejlede.",
-      );
+      setError(err instanceof ApiClientError ? err.message : "Upload fejlede.");
     } finally {
       setBusy(false);
       if (fileInput.current) fileInput.current.value = "";
@@ -91,6 +117,42 @@ export function SourceActions({ source }: { source: Source }) {
   return (
     <div className="source-actions">
       <div className="source-actions-buttons">
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={busy}
+          title="Interne kilder (fx OK's egne data) vises som intern analyse, aldrig som markedsviden."
+          onClick={() =>
+            void handleUpdate(
+              {
+                access_class:
+                  source.access_class === "restricted"
+                    ? "public"
+                    : "restricted",
+              },
+              source.access_class === "restricted"
+                ? "Kilden er nu offentlig."
+                : "Kilden er nu intern: dens signaler vises ikke som markedsviden.",
+            )
+          }
+        >
+          {source.access_class === "restricted"
+            ? "Gør offentlig"
+            : "Markér som intern"}
+        </button>{" "}
+        <button
+          type="button"
+          className="btn btn-secondary"
+          disabled={busy}
+          onClick={() =>
+            void handleUpdate(
+              { active: !source.active },
+              source.active ? "Kilden er slået fra." : "Kilden er slået til.",
+            )
+          }
+        >
+          {source.active ? "Slå fra" : "Slå til"}
+        </button>{" "}
         {canRun ? (
           <button
             type="button"
@@ -103,7 +165,10 @@ export function SourceActions({ source }: { source: Source }) {
         ) : null}
         {source.active ? (
           <>
-            <label className="btn btn-secondary" htmlFor={`upload-${source.id}`}>
+            <label
+              className="btn btn-secondary"
+              htmlFor={`upload-${source.id}`}
+            >
               Upload fil
             </label>
             <input
@@ -127,7 +192,9 @@ export function SourceActions({ source }: { source: Source }) {
         <ul className="run-failures">
           {failures.map((failure, index) => (
             <li key={`${failure.url}-${index}`}>
-              <span className="run-failure-url">{failure.url || "Entry uden link"}</span>
+              <span className="run-failure-url">
+                {failure.url || "Entry uden link"}
+              </span>
               <span className="run-failure-message">{failure.message}</span>
             </li>
           ))}

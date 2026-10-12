@@ -28,6 +28,7 @@ class AuditEntity(StrEnum):
     adoption_case = "adoption_case"
     opportunity = "opportunity"
     technology = "technology"
+    setting = "setting"
 
 
 class AuditAction(StrEnum):

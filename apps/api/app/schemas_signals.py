@@ -47,6 +47,9 @@ class SignalOut(BaseModel):
     claim_count: int = 0
     # Publiceret af AI uden menneskelig kontrol (AUTO_PUBLISH).
     auto_published: bool = False
+    # Bygger på en intern kilde (access class restricted, fx OK's egne
+    # data). Vises som intern analyse, aldrig som markedsviden.
+    internal: bool = False
 
 
 class RelatedEntityOut(BaseModel):

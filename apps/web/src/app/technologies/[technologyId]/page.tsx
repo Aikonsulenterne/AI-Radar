@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { getTechnology, type TechnologyDetail } from "../../lib/api";
 import { HorizonBadge } from "../../../components/states/horizon-badge";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
-
 
 export default async function TechnologyPage({
   params,
@@ -12,19 +12,22 @@ export default async function TechnologyPage({
 }) {
   const { technologyId } = await params;
   let technology: TechnologyDetail | null = null;
+  let loadError: unknown = null;
   try {
     technology = await getTechnology(technologyId);
-  } catch {
+  } catch (error) {
     technology = null;
+    loadError = error;
   }
 
   if (technology === null) {
     return (
       <>
         <h1>Teknologi</h1>
-        <div className="alert-error" role="alert">
-          Teknologien kunne ikke hentes.
-        </div>
+        <ApiErrorAlert
+          error={loadError}
+          notFound="Teknologien findes ikke (den kan være afvist eller slået sammen med en anden)."
+        />
         <p>
           <Link href="/technologies">Tilbage til Teknologiradar</Link>
         </p>
@@ -39,8 +42,7 @@ export default async function TechnologyPage({
       </p>
       <h1>{technology.name}</h1>
       <p className="page-lead">
-        <HorizonBadge technology={technology} />{" "}
-        {technology.definition}
+        <HorizonBadge technology={technology} /> {technology.definition}
       </p>
 
       <section
@@ -48,8 +50,7 @@ export default async function TechnologyPage({
         aria-label="Leverandører"
       >
         <h2 className="section-title">
-          Leverandører{" "}
-          <span className="section-tag">Kun godkendte claims</span>
+          Leverandører <span className="section-tag">Kun godkendte claims</span>
         </h2>
         {technology.vendors.length === 0 ? (
           <p className="cell-sub">

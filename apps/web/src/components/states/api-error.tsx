@@ -9,10 +9,20 @@ import { SessionRecovery } from "../auth/session-recovery";
 export function ApiErrorAlert({
   error,
   requiredRole,
+  notFound,
 }: {
   error: unknown;
   requiredRole?: "Reviewer eller Admin";
+  /** Tekst ved 404 — fx at elementet er arkiveret eller ikke publiceret. */
+  notFound?: string;
 }) {
+  if (notFound && error instanceof ApiClientError && error.status === 404) {
+    return (
+      <div className="alert-error" role="alert">
+        {notFound}
+      </div>
+    );
+  }
   if (error instanceof ApiClientError && error.status === 401) {
     return <SessionRecovery />;
   }

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getOpportunity, type OpportunityDetail } from "../../lib/api";
 import { OpportunityActions, STATUS_LABELS } from "../OpportunityControls";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -11,19 +12,22 @@ export default async function OpportunityPage({
 }) {
   const { opportunityId } = await params;
   let opportunity: OpportunityDetail | null = null;
+  let loadError: unknown = null;
   try {
     opportunity = await getOpportunity(opportunityId);
-  } catch {
+  } catch (error) {
     opportunity = null;
+    loadError = error;
   }
 
   if (opportunity === null) {
     return (
       <>
         <h1>Opportunity</h1>
-        <div className="alert-error" role="alert">
-          Opportunity&#8217;en kunne ikke hentes.
-        </div>
+        <ApiErrorAlert
+          error={loadError}
+          notFound="Opportunity'en findes ikke (den kan være lukket eller slettet)."
+        />
         <p>
           <Link href="/opportunities">Tilbage til Opportunities</Link>
         </p>
@@ -66,9 +70,7 @@ export default async function OpportunityPage({
         </h2>
         <p>{opportunity.relevance_hypothesis}</p>
         {opportunity.evidence_gaps ? (
-          <p className="cell-sub">
-            Evidenshuller: {opportunity.evidence_gaps}
-          </p>
+          <p className="cell-sub">Evidenshuller: {opportunity.evidence_gaps}</p>
         ) : null}
       </section>
 
@@ -91,8 +93,7 @@ export default async function OpportunityPage({
           Ekstern evidens{" "}
           <span className="section-tag">Dokumenteret fakta</span>
         </h2>
-        {opportunity.signals.length === 0 &&
-        opportunity.claims.length === 0 ? (
+        {opportunity.signals.length === 0 && opportunity.claims.length === 0 ? (
           <p className="cell-sub">
             Ingen evidens tilknyttet endnu — kobl signaler eller claims til
             kandidaten.

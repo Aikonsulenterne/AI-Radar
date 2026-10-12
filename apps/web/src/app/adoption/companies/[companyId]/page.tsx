@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getCompany, type CompanyDetail } from "../../../lib/api";
+import { ApiErrorAlert } from "../../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -10,19 +11,19 @@ export default async function CompanyPage({
 }) {
   const { companyId } = await params;
   let company: CompanyDetail | null = null;
+  let loadError: unknown = null;
   try {
     company = await getCompany(companyId);
-  } catch {
+  } catch (error) {
     company = null;
+    loadError = error;
   }
 
   if (company === null) {
     return (
       <>
         <h1>Virksomhed</h1>
-        <div className="alert-error" role="alert">
-          Virksomheden kunne ikke hentes.
-        </div>
+        <ApiErrorAlert error={loadError} notFound="Virksomheden findes ikke." />
         <p>
           <Link href="/adoption">Tilbage til AI-adoption</Link>
         </p>

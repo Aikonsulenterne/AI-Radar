@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getDocument, type DocumentReview } from "../../../lib/api";
 import { DocumentControls } from "./ReviewControls";
 import { ReviewWorkbench } from "./ReviewWorkbench";
+import { ApiErrorAlert } from "../../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -12,20 +13,22 @@ export default async function ReviewDocumentPage({
 }) {
   const { documentId } = await params;
   let doc: DocumentReview | null = null;
+  let loadError: unknown = null;
   try {
     doc = await getDocument(documentId);
-  } catch {
+  } catch (error) {
     doc = null;
+    loadError = error;
   }
 
   if (doc === null) {
     return (
       <>
         <h1>Review</h1>
-        <div className="alert-error" role="alert">
-          Dokumentet kunne ikke hentes. Kontrollér at API&#8217;et kører, og at
-          din rolle giver adgang.
-        </div>
+        <ApiErrorAlert
+          error={loadError}
+          notFound="Dokumentet findes ikke (det kan være slettet)."
+        />
         <p>
           <Link href="/admin/review">Tilbage til dokumentlisten</Link>
         </p>

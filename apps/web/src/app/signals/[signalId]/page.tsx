@@ -6,6 +6,7 @@ import {
   formatDateTime,
 } from "../../lib/labels";
 import { AiPublishedBadge } from "../../../components/states/ai-badge";
+import { ApiErrorAlert } from "../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -16,20 +17,22 @@ export default async function SignalPage({
 }) {
   const { signalId } = await params;
   let signal: SignalDetail | null = null;
+  let loadError: unknown = null;
   try {
     signal = await getSignal(signalId);
-  } catch {
+  } catch (error) {
     signal = null;
+    loadError = error;
   }
 
   if (signal === null) {
     return (
       <>
         <h1>Signal</h1>
-        <div className="alert-error" role="alert">
-          Signalet kunne ikke hentes — det findes ikke, er ikke publiceret,
-          eller API&#8217;et kører ikke.
-        </div>
+        <ApiErrorAlert
+          error={loadError}
+          notFound="Signalet findes ikke, er arkiveret eller er ikke publiceret endnu."
+        />
         <p>
           <Link href="/">Tilbage til Overblik</Link>
         </p>
@@ -59,8 +62,8 @@ export default async function SignalPage({
             </span>{" "}
           </>
         ) : null}
-        Publiceret {formatDateTime(signal.published_at)} ·{" "}
-        {signal.claim_count} godkendte claims som faktagrundlag
+        Publiceret {formatDateTime(signal.published_at)} · {signal.claim_count}{" "}
+        godkendte claims som faktagrundlag
       </p>
 
       {/* Fakta, analyse og anbefaling adskilles semantisk og visuelt
@@ -70,7 +73,10 @@ export default async function SignalPage({
         <p>{signal.summary}</p>
       </section>
 
-      <section className="signal-section section-fact" aria-label="Fakta og evidens">
+      <section
+        className="signal-section section-fact"
+        aria-label="Fakta og evidens"
+      >
         <h2 className="section-title">
           Fakta <span className="section-tag">Dokumenteret fakta</span>
         </h2>
@@ -104,7 +110,10 @@ export default async function SignalPage({
       </section>
 
       {signal.analysis ? (
-        <section className="signal-section signal-analysis" aria-label="Analyse">
+        <section
+          className="signal-section signal-analysis"
+          aria-label="Analyse"
+        >
           <h2 className="section-title">
             Analyse <span className="section-tag">Analyse, ikke fakta</span>
           </h2>
@@ -129,10 +138,16 @@ export default async function SignalPage({
           <h2 className="section-title">Relateret</h2>
           <p>
             {signal.companies.length > 0 ? (
-              <>Virksomheder: {signal.companies.map((c) => c.name).join(", ")}. </>
+              <>
+                Virksomheder: {signal.companies.map((c) => c.name).join(", ")}
+                .{" "}
+              </>
             ) : null}
             {signal.technologies.length > 0 ? (
-              <>Teknologier: {signal.technologies.map((t) => t.name).join(", ")}.</>
+              <>
+                Teknologier: {signal.technologies.map((t) => t.name).join(", ")}
+                .
+              </>
             ) : null}
           </p>
         </section>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getCase, type AdoptionCaseDetail } from "../../../lib/api";
 import { AiPublishedBadge } from "../../../../components/states/ai-badge";
+import { ApiErrorAlert } from "../../../../components/states/api-error";
 
 export const dynamic = "force-dynamic";
 
@@ -20,20 +21,22 @@ export default async function CasePage({
 }) {
   const { caseId } = await params;
   let adoptionCase: AdoptionCaseDetail | null = null;
+  let loadError: unknown = null;
   try {
     adoptionCase = await getCase(caseId);
-  } catch {
+  } catch (error) {
     adoptionCase = null;
+    loadError = error;
   }
 
   if (adoptionCase === null) {
     return (
       <>
         <h1>Adoption case</h1>
-        <div className="alert-error" role="alert">
-          Casen kunne ikke hentes — den findes ikke, er ikke publiceret, eller
-          API&#8217;et kører ikke.
-        </div>
+        <ApiErrorAlert
+          error={loadError}
+          notFound="Casen findes ikke, er arkiveret eller er ikke publiceret endnu."
+        />
         <p>
           <Link href="/adoption">Tilbage til AI-adoption</Link>
         </p>
@@ -118,7 +121,10 @@ export default async function CasePage({
       </section>
 
       {adoptionCase.summary ? (
-        <section className="signal-section signal-analysis" aria-label="Analyse">
+        <section
+          className="signal-section signal-analysis"
+          aria-label="Analyse"
+        >
           <h2 className="section-title">
             Potentiel læring{" "}
             <span className="section-tag">Analyse, ikke fakta</span>

@@ -21,6 +21,7 @@ from app.routes import (
     catalog,
     decision_brief,
     documents,
+    insights,
     opportunities,
     opportunity_map,
     runs,
@@ -97,6 +98,7 @@ app.include_router(audit.router, prefix=API_PREFIX)
 app.include_router(runs.router, prefix=API_PREFIX)
 app.include_router(opportunity_map.router, prefix=API_PREFIX)
 app.include_router(decision_brief.router, prefix=API_PREFIX)
+app.include_router(insights.router, prefix=API_PREFIX)
 
 
 class HealthResponse(BaseModel):

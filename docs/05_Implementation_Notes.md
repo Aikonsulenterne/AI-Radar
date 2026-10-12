@@ -515,3 +515,21 @@ kundedata; den lægges i kilden "Interne data (OK)" (oprettes ved første
 upload). Interne dokumenter springer markedsfilteret over, udtrækkes med en
 intern scope-note (OK som subjekt, ingen persondata) og genlæses ikke for
 leverandørtilbud.
+
+## Indsigter på tværs af fund (2026-10-12)
+
+Indsigter er nu primært **mønstre på tværs af radarens fund** (prompt
+`insight_synthesis` 1.0.0, `app/pipeline/insights.py`): de op til 250 nyeste
+godkendte claims fra ikke-interne kilder sendes som en nummereret
+evidensliste sammen med OK's problemliste. Modellen returnerer 3–8 indsigter
+(type: adoption, vendor_move, effect, barrier, gap, new_tech) med fakta,
+analyse og anbefaling adskilt og de citerede claim-numre. Serveren kasserer
+indsigter, der citerer ukendte claims eller færre end to dokumenter, og
+beregner selv evidensstyrken: *stærk* ved ≥ 3 dokumenter med mindst én
+ikke-leverandørkilde, *moderat* ved ≥ 2 dokumenter. Ved læsning slås
+evidensen op igen; falder en indsigt under to dokumenter (afviste claims),
+vises den ikke. Gemmes i `app_settings` (`insights`) og genereres efter hver
+kørsel med ny viden samt via `POST /insights/generate` (Admin).
+Beslutningsoplægget viser de tre stærkeste. OK's egne data ligger som
+underafsnit på siden og indgår aldrig i indsigterne.
+

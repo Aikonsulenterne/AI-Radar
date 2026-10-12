@@ -27,7 +27,7 @@ import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.ai.provider import AIProvider, get_ai_provider
+from app.ai.provider import AIProvider, AIProviderRejected, get_ai_provider
 from app.config import get_settings
 from app.db import get_engine
 from app.enums import (
@@ -44,6 +44,7 @@ from app.models import Document, Source
 from app.models_runs import WorkerRun
 from app.pipeline.autopublish import autopublish_document
 from app.pipeline.backfill import documents_to_reread, reread_document
+from app.pipeline.insights import generate_insights
 from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.storage import get_storage
 
@@ -189,6 +190,9 @@ def run_once(
 
             _reread_backlog(db, provider, result, progress)
 
+            if result.documents_processed or result.documents_reread:
+                _refresh_insights(db, provider)
+
     logger.info(
         "worker_run sources=%d created=%d unchanged=%d failures=%d processed=%d",
         result.sources_checked,
@@ -198,6 +202,20 @@ def run_once(
         result.documents_processed,
     )
     return result
+
+
+def _refresh_insights(db: Session, provider: AIProvider) -> None:
+    """Ny viden → nye indsigter. En fejl her må ikke vælte kørslen: de
+    hentede og behandlede dokumenter er allerede gemt."""
+    try:
+        generate_insights(db, provider)
+        db.commit()
+    except AIProviderRejected as exc:
+        db.rollback()
+        raise RunAborted(str(exc)) from exc
+    except Exception:  # noqa: BLE001
+        db.rollback()
+        logger.exception("insights_generation_failed")
 
 
 def _reread_backlog(

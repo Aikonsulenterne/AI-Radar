@@ -6,7 +6,7 @@ til manuel opfølgning (Technical Master §10).
 
 import json
 import uuid
-from typing import TypeVar
+from typing import Literal, TypeVar
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -54,6 +54,20 @@ class SignalDraft(BaseModel):
     summary: str = Field(min_length=1, max_length=1500)
     analysis: str = Field(default="", max_length=2000)
     recommendation: str = Field(default="", max_length=1500)
+
+
+class InsightDraft(BaseModel):
+    type: Literal["adoption", "vendor_move", "effect", "barrier", "gap", "new_tech"]
+    title: str = Field(min_length=1, max_length=160)
+    finding: str = Field(min_length=1, max_length=1200)
+    implication: str = Field(default="", max_length=1200)
+    recommendation: str = Field(default="", max_length=800)
+    problem: str | None = Field(default=None, max_length=200)
+    claims: list[int] = Field(min_length=1, max_length=40)
+
+
+class InsightResult(BaseModel):
+    insights: list[InsightDraft] = Field(default_factory=list, max_length=12)
 
 
 class AISchemaError(Exception):

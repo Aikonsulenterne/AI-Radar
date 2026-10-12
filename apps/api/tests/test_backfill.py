@@ -101,7 +101,12 @@ def test_run_rereads_old_document_and_adds_only_vendor_claims(
     # USES_VENDOR fandtes allerede og dubleres ikke; tilbuddet er nyt og godkendt.
     assert predicates == ["OFFERS_CAPABILITY", "USES_VENDOR"]
     assert all(claim["review_status"] == "approved" for claim in document["claims"])
-    assert "SCOPE:" in provider.prompts[-1]
+    extraction_prompts = [
+        prompt
+        for call, prompt in zip(provider.calls, provider.prompts, strict=True)
+        if call == "claim_extraction"
+    ]
+    assert extraction_prompts[-1].startswith("SCOPE:")
 
     assert client.get("/api/v1/signals", headers=admin_headers).json()["total"] == signals_before
     assert (

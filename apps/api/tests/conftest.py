@@ -229,11 +229,13 @@ class FakeProvider:
         extraction: dict[str, Any] | None = None,
         invalid_json: bool = False,
         opportunity: dict[str, Any] | None = None,
+        insights: dict[str, Any] | None = None,
     ) -> None:
         self.relevance = relevance or {"relevant": True, "reason": "AI-adoption omtalt"}
         self.extraction = extraction or EXTRACTION_RESPONSE
         self.invalid_json = invalid_json
         self.opportunity = opportunity
+        self.insights = insights or {"insights": []}
         self.calls: list[str] = []
         self.prompts: list[str] = []
 
@@ -256,6 +258,8 @@ class FakeProvider:
             return json.dumps(self.opportunity or {"proposal": None, "reason": "intet match"})
         if prompt_id == "signal_draft":
             return json.dumps(SIGNAL_RESPONSE)
+        if prompt_id == "insight_synthesis":
+            return json.dumps(self.insights)
         return json.dumps(self.extraction)
 
 

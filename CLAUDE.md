@@ -118,6 +118,8 @@ Beslutningsoplægget (`/beslutningsoplaeg`, `GET/PUT /decision-brief`) samler
 OK's indtastede tal, interne fund og ønsket med radarens dokumentation.
 Signaler fra kilder med access class `restricted` er interne analyser og
 vises aldrig som markedsviden. IT-notat: `docs/06_Drift_og_Data.md`.
-*Indsigter* (`/indsigter`) er modulet for OK's egne data: interne fund og
-analyser fra `restricted`-kilder; interne dokumenter springer markedsfilteret
-over og udtrækkes uden persondata.
+*Indsigter* (`/indsigter`, `GET /insights`) viser mønstre på tværs af
+radarens godkendte claims (prompt `insight_synthesis`; mindst to dokumenter
+pr. indsigt, evidensstyrke beregnet af serveren, interne kilder indgår
+aldrig). OK's egne data ligger som underafsnit: interne dokumenter springer
+markedsfilteret over og udtrækkes uden persondata.

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import {
   getDecisionBrief,
+  getInsights,
   getOpportunityMap,
   listInternalSignals,
   type DecisionBriefData,
+  type Insight,
   type ProblemOpportunity,
   type Signal,
 } from "../lib/api";
@@ -27,13 +29,22 @@ export default async function DecisionBriefPage() {
   let data: DecisionBriefData | null = null;
   let problems: ProblemOpportunity[] = [];
   let internal: Signal[] = [];
+  let insights: Insight[] = [];
   let loadError: unknown = null;
   try {
-    const [brief, map, internalPage] = await Promise.all([
+    const [brief, map, internalPage, insightData] = await Promise.all([
       getDecisionBrief(),
       getOpportunityMap(),
       listInternalSignals(),
+      getInsights(),
     ]);
+    // Stærkeste først; kun indsigter med mindst moderat evidens.
+    insights = insightData.items
+      .filter((i) => i.strength !== "svag")
+      .sort((a, b) =>
+        a.strength === b.strength ? 0 : a.strength === "stærk" ? -1 : 1,
+      )
+      .slice(0, 3);
     data = brief;
     problems = map.problems.filter(
       (p) => p.vendors.length > 0 || p.references.length > 0,
@@ -145,6 +156,28 @@ export default async function DecisionBriefPage() {
             ))}
           </ul>
         )}
+
+        {insights.length > 0 ? (
+          <>
+            <h2>
+              Det viser markedet samlet set{" "}
+              <Link href="/indsigter" className="no-print">
+                (Indsigter →)
+              </Link>
+            </h2>
+            <ul>
+              {insights.map((insight) => (
+                <li key={insight.id}>
+                  <strong>{insight.title}.</strong> {insight.finding}{" "}
+                  <span className="cell-sub">
+                    ({insight.strength} evidens, {insight.document_count} kilder
+                    {insight.vendor_only ? ", kun leverandørkilder" : ""})
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : null}
 
         <h2>Det tilbyder markedet — til netop vores udfordringer</h2>
         {top.length === 0 ? (

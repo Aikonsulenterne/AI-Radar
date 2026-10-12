@@ -888,3 +888,52 @@ export function saveDecisionBrief(brief: DecisionBrief): Promise<DecisionBriefDa
     body: JSON.stringify(brief),
   });
 }
+
+export interface InsightEvidence {
+  claim_id: string;
+  document_id: string | null;
+  statement: string;
+  excerpt: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  vendor_source: boolean;
+}
+
+export type InsightType =
+  | "adoption"
+  | "vendor_move"
+  | "effect"
+  | "barrier"
+  | "gap"
+  | "new_tech";
+
+export interface Insight {
+  id: string;
+  type: InsightType;
+  title: string;
+  finding: string;
+  implication: string;
+  recommendation: string;
+  problem: string | null;
+  /** Beregnet af serveren ud fra antal dokumenter og kildetyper. */
+  strength: "stærk" | "moderat" | "svag";
+  vendor_only: boolean;
+  document_count: number;
+  evidence: InsightEvidence[];
+}
+
+export interface InsightsData {
+  generated_at: string | null;
+  prompt_version: string | null;
+  evidence_count: number;
+  discarded: number;
+  items: Insight[];
+}
+
+export function getInsights(): Promise<InsightsData> {
+  return request<InsightsData>("/insights");
+}
+
+export function generateInsights(): Promise<InsightsData> {
+  return request<InsightsData>("/insights/generate", { method: "POST" });
+}

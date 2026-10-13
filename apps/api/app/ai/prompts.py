@@ -326,7 +326,8 @@ technologies — a named vendor offers, launches or sells a concrete AI
 product or feature for sales, customer service or support. One entry per
 (vendor, technology).
 - technology: the name from the TECHNOLOGY CATALOG that genuinely fits. If
-  none fits, a short generic name (1-4 words) for the new kind of
+  none fits, a short generic DANISH name (1-4 words, e.g.
+  "Realtidsoversættelse", "Stemningsanalyse") for the new kind of
   technology — never a brand or product name. New kinds are valuable; never
   force a poor fit.
 - vendor: the organization that sells it, as named in the text.
@@ -347,7 +348,7 @@ stopped using AI in sales, customer service or support.
 - industry: one Danish word (energi, forsyning, telekom, bank, forsikring,
   detail, transport, offentlig, rejse, software, andet) or null.
 - what_they_did_da: one plain Danish sentence.
-- technology: catalog name or short generic name, as above.
+- technology: catalog name or short generic Danish name, as above.
 - vendor: the vendor they use, or null.
 - adoption_stage: "idé" | "pilot" | "drift" | "skaleret" | null — only if
   stated.

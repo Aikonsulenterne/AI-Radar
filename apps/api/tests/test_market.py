@@ -316,3 +316,11 @@ def test_generate_ok_brief_requires_admin(
     response = client.post("/api/v1/ok-brief/generate", headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["case_count"] == 0
+
+
+def test_me_reports_role(
+    client: TestClient, admin_headers: dict[str, str], reader_headers: dict[str, str]
+) -> None:
+    assert client.get("/api/v1/me", headers=admin_headers).json()["role"] == "admin"
+    assert client.get("/api/v1/me", headers=reader_headers).json()["role"] == "reader"
+    assert client.get("/api/v1/me").status_code == 401

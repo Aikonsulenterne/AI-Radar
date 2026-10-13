@@ -937,3 +937,164 @@ export function getInsights(): Promise<InsightsData> {
 export function generateInsights(): Promise<InsightsData> {
   return request<InsightsData>("/insights/generate", { method: "POST" });
 }
+
+// --- Den forenklede radar: Til OK, Teknologier, Sådan gør andre ---
+
+export type MarketArea = "salg" | "kundeservice" | "support";
+export type MarketRegion = "danmark" | "norden" | "verden";
+
+export interface MarketSourceRef {
+  name: string;
+  url: string | null;
+  title: string | null;
+  vendor_source: boolean;
+}
+
+export interface MarketTechnologyRef {
+  id: string;
+  label: string;
+}
+
+export interface MarketVendorOffer {
+  company_id: string | null;
+  name: string;
+  product: string | null;
+  danish_supported: boolean | null;
+  quote: string | null;
+  source: MarketSourceRef | null;
+  item_ids: string[];
+  via_case: boolean;
+}
+
+export interface MarketTechnology {
+  id: string;
+  label: string;
+  areas: MarketArea[];
+  what: string | null;
+  value: string | null;
+  is_new: boolean;
+  vendors: MarketVendorOffer[];
+  case_count: number;
+  latest_at: string | null;
+}
+
+export interface MarketCase {
+  id: string;
+  item_ids: string[];
+  company: string;
+  company_id: string | null;
+  country: string | null;
+  region: MarketRegion;
+  region_label: string;
+  industry: string | null;
+  areas: MarketArea[];
+  what_they_did: string | null;
+  technology: MarketTechnologyRef | null;
+  technology_name: string | null;
+  vendor: string | null;
+  stage: string | null;
+  stage_label: string | null;
+  scope: string | null;
+  effect: string | null;
+  kpi: string | null;
+  kpi_label: string | null;
+  effect_source: string | null;
+  effect_source_label: string | null;
+  lesson: string | null;
+  quote: string;
+  source: MarketSourceRef;
+  also_reported_by: string[];
+  observed_at: string;
+}
+
+export interface OkBriefProblem {
+  key: string;
+  area: MarketArea;
+  area_label: string;
+  name: string;
+  description: string;
+  technologies: MarketTechnologyRef[];
+  cases: { case: MarketCase; why: string }[];
+  effects: {
+    company: string;
+    effect: string;
+    kpi_label: string | null;
+    effect_source_label: string | null;
+    source_url: string | null;
+  }[];
+  contacts: {
+    name: string;
+    kind: "leverandør" | "reference";
+    danish_supported: boolean | null;
+  }[];
+  next_step: string;
+}
+
+export interface OkBrief {
+  generated_at: string | null;
+  prompt_version: string | null;
+  technology_count: number;
+  case_count: number;
+  top_now: {
+    text: string;
+    cases: { id: string; company: string; source_url: string | null }[];
+    technologies: MarketTechnologyRef[];
+  }[];
+  problems: OkBriefProblem[];
+}
+
+export interface Me {
+  user_id: string | null;
+  role: "reader" | "reviewer" | "admin";
+}
+
+function query(params: Record<string, string | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value) search.set(key, value);
+  }
+  const text = search.toString();
+  return text ? `?${text}` : "";
+}
+
+export function getMe(): Promise<Me> {
+  return request<Me>("/me");
+}
+
+export function getOkBrief(area?: MarketArea): Promise<OkBrief> {
+  return request<OkBrief>(`/ok-brief${query({ area })}`);
+}
+
+export function generateOkBrief(): Promise<OkBrief> {
+  return request<OkBrief>("/ok-brief/generate", { method: "POST" });
+}
+
+export function getMarketTechnologies(area?: MarketArea): Promise<{
+  items: MarketTechnology[];
+  areas: { area: MarketArea; label: string; count: number }[];
+}> {
+  return request(`/market/technologies${query({ area })}`);
+}
+
+export function getMarketCases(filters: {
+  area?: MarketArea;
+  region?: MarketRegion;
+  technology_id?: string;
+}): Promise<{
+  items: MarketCase[];
+  total: number;
+  technologies: MarketTechnologyRef[];
+}> {
+  return request(`/market/cases${query(filters)}`);
+}
+
+export function setMarketItemHidden(
+  itemId: string,
+  hidden: boolean,
+): Promise<{ id: string; hidden: boolean }> {
+  return request(`/market/items/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hidden }),
+  });
+}

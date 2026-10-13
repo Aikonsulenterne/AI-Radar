@@ -5,36 +5,22 @@ import { usePathname } from "next/navigation";
 
 type NavItem = { href: string; label: string };
 
-// Primær navigation jf. UI Master §6.
+// Den forenklede radar (2026-10-13): tre spørgsmål, tre sider. Kilder er
+// konsulentens værktøj og vises kun for Admin.
 export const primaryNav: NavItem[] = [
-  { href: "/", label: "Overblik" },
-  { href: "/muligheder", label: "Muligheder" },
-  { href: "/indsigter", label: "Indsigter" },
-  { href: "/beslutningsoplaeg", label: "Beslutningsoplæg" },
-  { href: "/vendors", label: "Leverandører" },
-  { href: "/signals", label: "Signaler" },
-  { href: "/adoption", label: "AI-adoption" },
-  { href: "/technologies", label: "Teknologiradar" },
-  { href: "/opportunities", label: "Opportunities" },
-  { href: "/briefing", label: "Briefing" },
-  { href: "/sources", label: "Kilder & metode" },
+  { href: "/", label: "Til OK" },
+  { href: "/teknologier", label: "Teknologier" },
+  { href: "/cases", label: "Sådan gør andre" },
 ];
 
-export const adminNav: NavItem[] = [
-  { href: "/admin/review", label: "Review" },
-  { href: "/admin/signals", label: "Signaler" },
-  { href: "/admin/cases", label: "Cases" },
-  { href: "/admin/technologies", label: "Teknologier" },
-  { href: "/admin/beslutningsoplaeg", label: "OK-tal & oplæg" },
-  { href: "/admin/sources", label: "Sources" },
-];
+export const adminNav: NavItem[] = [{ href: "/admin/sources", label: "Kilder" }];
 
 export function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function Sidebar() {
+export function Sidebar({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
 
   return (
@@ -42,7 +28,7 @@ export function Sidebar() {
       <Link href="/" className="sidebar-brand">
         AI Radar
       </Link>
-      <p className="sidebar-sub">Technology Intelligence</p>
+      <p className="sidebar-sub">Salg · Kundeservice · Support</p>
       {primaryNav.map((item) => (
         <Link
           key={item.href}
@@ -53,18 +39,22 @@ export function Sidebar() {
           {item.label}
         </Link>
       ))}
-      <div className="sidebar-section">Administration</div>
-      {adminNav.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className="sidebar-link"
-          aria-current={isActive(pathname, item.href) ? "page" : undefined}
-        >
-          {item.label}
-        </Link>
-      ))}
-      <div className="sidebar-foot">Internt beslutningsprodukt · evidens før AI</div>
+      {isAdmin ? (
+        <>
+          <div className="sidebar-section">Administration</div>
+          {adminNav.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="sidebar-link"
+              aria-current={isActive(pathname, item.href) ? "page" : undefined}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </>
+      ) : null}
+      <div className="sidebar-foot">OK a.m.b.a. · hvert fund har en kilde</div>
     </nav>
   );
 }

@@ -553,3 +553,15 @@ underafsnit på siden og indgår aldrig i indsigterne.
 - Render free tier holdes vågen i arbejdstiden af et pg_cron-job, som
   API'et selv planlægger (se docs/04).
 
+## Forenklet radar (2026-10-13)
+
+- Markedsfund gemmes i én tabel (`market_items`) med felterne fra AI-udtrækket
+  i JSON frem for et claim pr. felt. Sporbarheden er kilde → dokument → fund
+  → ordret citat; det atomare claim-lag bruges ikke i den forenklede visning.
+- Testsuiten for den gamle claim-pipeline kører med `MARKET_PIPELINE=false`
+  (conftest); `tests/test_market.py` dækker den nye.
+- Problemlisten til Til OK er en startliste i koden (11 problemer fordelt på
+  salg, kundeservice og support), ikke `problem_taxonomy`. Den skal
+  tilpasses OK's egne KPI'er.
+- Ny kildepakke til salg, support og danske energi- og teleselskaber
+  (`SALES_PACK` i `schema_guard.py`), indsat én gang ved opstart.

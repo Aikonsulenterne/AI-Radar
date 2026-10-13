@@ -40,10 +40,11 @@ export default async function AdminSourcesPage() {
 
   return (
     <>
-      <h1>Source Registry</h1>
+      <h1>Kilder</h1>
       <p className="page-lead">
-        Kuraterede kilder med type, hentemetode, access class og seneste
-        kontrol. Hver observation skal kunne spores tilbage hertil.
+        Her styrer du, hvad radaren læser. Radaren opdateres hver mandag;
+        “Opdatér radaren” henter og analyserer nu. Til OK skrives igen, når der
+        er nye fund.
       </p>
 
       <RunPanel />

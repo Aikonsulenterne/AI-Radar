@@ -787,3 +787,31 @@ MVP er teknisk færdig, når denne kæde fungerer i staging:
 ## 23. Regel ved uklarheder
 
 Claude Code må træffe lokale implementeringsvalg, når de ikke ændrer produktadfærd, låst arkitektur, sikkerhed eller provenance. Ved væsentlige konflikter skal Claude Code stoppe og beskrive konflikten frem for at gætte.
+
+## 24. Den forenklede radar (2026-10-13)
+
+Pipeline pr. dokument (`app/pipeline/market.py`, styret af
+`MARKET_PIPELINE`, standard til): relevans 2.2.0 (billig model; dækker salg,
+kundeservice og support) → `market_extraction` 1.0.0, der returnerer
+teknologier og cases som JSON. Hvert fund gemmes i `market_items` (kind,
+dokument, teknologi, virksomhed, leverandør, områder, felter i `data`,
+ordret `quote`, `hidden`). Validering på serveren: citatet skal stå ordret i
+dokumentet; tal i effekt og omfang skal stå i dokumentet (ellers nulstilles
+feltet); en leverandør er aldrig sin egen case; ukendte værdier normaliseres
+til null. Teknologinavne slås op i kataloget (navn, dansk betegnelse,
+aliaser); ukendte bliver kandidat-teknologier. Interne kilder springes over.
+
+Kørsler analyserer nye dokumenter og op til `MARKET_BACKFILL_PER_RUN` (30)
+ældre. Med nye fund skrives Til OK igen (`ok_brief` 1.0.0, gemt i
+`app_settings.ok_brief`); modellen henviser med id'er (P/T/C), og serveren
+kasserer ukendte henvisninger og slår alle fund op på ny ved læsning, så
+skjulte fund aldrig vises. Effekter og kontakter på Til OK udledes
+deterministisk af de citerede cases og teknologier.
+
+Endpoints: `GET /me`, `GET /market/technologies?area=`,
+`GET /market/cases?area=&region=&technology_id=`,
+`PATCH /market/items/{id}` (Admin, audit), `GET /ok-brief?area=`,
+`POST /ok-brief/generate` (Admin). Migration
+`20261013090000_market_items.sql`; opstartssikringen gentager den.
+Claim-pipelinen, signaler, cases og opportunities er bevaret, men bruges
+ikke af den forenklede visning.

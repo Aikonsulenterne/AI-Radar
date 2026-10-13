@@ -123,3 +123,10 @@ radarens godkendte claims (prompt `insight_synthesis`; mindst to dokumenter
 pr. indsigt, evidensstyrke beregnet af serveren, interne kilder indgår
 aldrig). OK's egne data ligger som underafsnit: interne dokumenter springer
 markedsfilteret over og udtrækkes uden persondata.
+**Den forenklede radar (2026-10-13)** er nu brugerens visning: radaren er til
+direktøren for Salg, Kundeservice og Support og har fire menupunkter — Til OK
+(`/`), Teknologier, Sådan gør andre (`/cases`) og Kilder (kun Admin). Kørsler
+bruger markedsudtrækket (`app/pipeline/market.py`, `market_items`) i stedet
+for claim-pipelinen; Til OK skrives af prompten `ok_brief`. Katalog og
+problemliste: `app/market/catalog.py`. Se Product Master §18 og Technical
+Master §24.

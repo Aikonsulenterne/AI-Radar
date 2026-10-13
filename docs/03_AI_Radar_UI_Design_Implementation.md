@@ -933,3 +933,14 @@ Stage brand tokens i kodebasen med det samme. Vent ikke på en separat CSS-uploa
 Byg ikke prototypefunktioner, der er eksplicit ude af MVP. Bevar designet og den centrale oplevelse:
 
 **Opdag → Forstå → Kontrollér dokumentation → Vurdér → Prioritér → Handl**
+
+## 29. Den forenklede radar (2026-10-13)
+
+Navigation: Til OK (`/`), Teknologier (`/teknologier`), Sådan gør andre
+(`/cases`) og Kilder (`/admin/sources`, kun Admin via `GET /me`). Ældre ruter
+findes stadig, men linkes ikke. Filtre er links i URL'en (`?omraade=`,
+`?region=`, `?teknologi=`), så visninger kan deles. Komponenter i
+`src/components/market/`: `FilterTabs`, `CaseCard`, `HideButton` (Admin),
+`AiNote`, `GenerateBriefButton`, `TechnologySelect`. Effekt vises med grøn
+venstrekant, næste skridt (anbefaling) med rød; teksten bærer altid
+betydningen. Print: én side pr. område.

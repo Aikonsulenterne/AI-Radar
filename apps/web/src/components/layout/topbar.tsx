@@ -8,12 +8,6 @@ function pageTitle(pathname: string): string {
   const match = [...adminNav, ...primaryNav].find((item) =>
     isActive(pathname, item.href),
   );
-  if (pathname.startsWith("/signals/")) return "Signal";
-  if (pathname === "/signals") return "Signaler";
-  if (pathname.startsWith("/adoption/cases/")) return "Adoption case";
-  if (pathname.startsWith("/adoption/companies/")) return "Virksomhed";
-  if (pathname.startsWith("/technologies/")) return "Teknologi";
-  if (pathname.startsWith("/opportunities/")) return "Opportunity";
   if (pathname === "/login") return "Log ind";
   return match?.label ?? "AI Radar";
 }

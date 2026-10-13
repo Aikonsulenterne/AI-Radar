@@ -46,6 +46,17 @@ Area = Literal["salg", "kundeservice", "support"]
 Region = Literal["danmark", "norden", "verden"]
 
 
+class MeOut(BaseModel):
+    user_id: uuid.UUID | None
+    role: UserRole
+
+
+@router.get("/me", response_model=MeOut)
+def get_me(user: CurrentUser = Depends(require_role(UserRole.reader))) -> MeOut:
+    """Den indloggede brugers rolle — frontend viser kun admin-værktøjer til Admin."""
+    return MeOut(user_id=user.user_id, role=user.role)
+
+
 class AreaCount(BaseModel):
     area: str
     label: str

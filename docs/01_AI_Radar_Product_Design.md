@@ -387,3 +387,39 @@ Hvis en ny idé modsiger masteren:
 3. Anbefal én retning.
 4. Træf beslutning ved væsentlige ændringer.
 5. Opdatér begge masterfiler konsistent.
+
+## 18. Beslutning 2026-10-13: den forenklede radar
+
+**Primær bruger:** direktøren for Salg, Kundeservice og Support i OK a.m.b.a.
+Sekundær bruger: AI-konsulenten, der driver radaren (kilder, opdatering,
+skjul forkerte fund). Beslutningen erstatter navigation og begreber fra
+§§ 5–11 i brugerens visning; datamodel og gamle moduler bliver liggende.
+
+Radaren besvarer tre spørgsmål inden for **Salg, Kundeservice og Support**:
+
+1. Hvilken AI-teknologi findes der på markedet, som OK kan bruge?
+2. Hvordan bruger andre virksomheder AI, og hvordan har de indført den?
+3. Hvad kan OK lære af det, og hvad er næste skridt?
+
+Navigation (højst fire punkter): **Til OK** (forside), **Teknologier**,
+**Sådan gør andre** og **Kilder** (kun Admin). Et områdefilter (Alle / Salg
+/ Kundeservice / Support) går igen på alle sider.
+
+- **Til OK:** "Det vigtigste lige nu" (højst tre punkter med kilde) og ét
+  kort pr. problem på OK's problemliste: teknologier, effekt hos andre,
+  sammenlignelige cases, hvem man kan tale med og ét lille næste skridt.
+  Kan printes med én side pr. område.
+- **Teknologier:** ét kort pr. teknologi med dansk forklaring,
+  forretningsværdi, leverandører (markeret "Dansk", når kilden siger det) og
+  antal cases. Nye teknologier står under "Nyt i markedet".
+- **Sådan gør andre:** ét kort pr. case: virksomhed, land, branche, hvad de
+  gjorde, teknologi, leverandør, fase, omfang, effekt (ordret, med KPI og
+  hvem der siger det), læring og kilde. Danske og nordiske cases og cases med
+  effekt står først.
+
+Regler: hver påstand har en kilde; AI-indhold publiceres automatisk og
+mærkes "AI-sammenfattet · tjek kilden"; ukendt er "Ikke oplyst";
+leverandørens egne tal markeres; interne OK-dokumenter vises aldrig som
+markedsviden; konsulenten kan skjule et forkert fund (intet slettes, alt
+står i audit-loggen). Problemlisten og teknologikataloget er kuratering i
+`apps/api/app/market/catalog.py`.

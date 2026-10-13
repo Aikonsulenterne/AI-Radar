@@ -11,7 +11,7 @@ import {
 
 const TRIGGER_LABELS: Record<WorkerRun["trigger"], string> = {
   schedule: "Ugentlig",
-  manual: "Kør nu",
+  manual: "Manuel",
   cli: "Kommandolinje",
 };
 
@@ -49,11 +49,11 @@ function summary(run: WorkerRun): string {
   const parts = [
     `${run.sources_checked} kilder kontrolleret`,
     `${run.documents_created} nye dokumenter`,
-    `${run.documents_processed} AI-behandlet`,
+    `${run.documents_processed} nye analyseret`,
   ];
   if (run.documents_published > 0) parts.push(`${run.documents_published} publiceret automatisk`);
   if (run.documents_reread > 0)
-    parts.push(`${run.documents_reread} ældre genlæst for leverandørtilbud`);
+    parts.push(`${run.documents_reread} ældre dokumenter analyseret`);
   if (run.fetch_failures > 0) parts.push(`${run.fetch_failures} hentefejl`);
   if (run.processing_skipped_no_ai) parts.push("AI ikke konfigureret");
   return parts.join(" · ");
@@ -124,14 +124,12 @@ export function RunPanel() {
   return (
     <section className="card" aria-labelledby="run-panel-title">
       <h2 className="form-title" id="run-panel-title">
-        Automatisk kørsel
+        Opdatér radaren
       </h2>
       <p className="page-lead">
-        Henter RSS- og web-kilder og AI-behandler nye dokumenter. Kører
-        automatisk hver mandag morgen for kilder, hvis frekvens er forfalden;
-        &#8220;Kør nu&#8221; henter alle aktive kilder med det samme. Med
-        automatisk publicering godkender og publicerer AI selv claims, cases
-        og signaler — alt sådant indhold er mærket &#8220;AI-publiceret&#8221;.
+        Henter alle aktive kilder, finder teknologier og cases i de nye artikler
+        og analyserer op til 30 ældre artikler pr. gang. Til OK skrives igen,
+        når der er nye fund. Kører også automatisk hver mandag morgen.
       </p>
 
       <button
@@ -140,7 +138,7 @@ export function RunPanel() {
         onClick={handleStart}
         disabled={busy || running}
       >
-        {running ? "Kører…" : busy ? "Starter…" : "Kør nu"}
+        {running ? "Opdaterer…" : busy ? "Starter…" : "Opdatér radaren"}
       </button>
 
       {error ? (

@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/zen-019de266-3265-73c4-a55c-afc9c140914d/colors_and_type.css">
+<script src="_ds/zen-019de266-3265-73c4-a55c-afc9c140914d/_ds_bundle.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:var(--ok-cream);font-family:var(--font-body);color:var(--ok-ink);-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  button,input,select{font-family:inherit}
+  a{color:var(--ok-red-deep);text-decoration:none}
+  a:hover{color:var(--ok-red-dark);text-decoration:underline}
+  :focus-visible{outline:2px solid var(--ok-red);outline-offset:2px}
+  @keyframes arIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @media print{[data-noprint]{display:none !important}body{background:#fff}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-direction:column">
+
+  <header data-noprint="1" style="background:var(--ok-burgundy);color:var(--ok-cream);position:sticky;top:0;z-index:20">
+    <div style="max-width:1160px;margin:0 auto;padding:0 20px;display:flex;align-items:center;gap:8px 28px;flex-wrap:wrap;min-height:64px">
+      <div style="display:flex;align-items:baseline;gap:10px;padding:12px 0">
+        <span style="font-family:var(--font-display);font-size:24px;line-height:1">AI Radar</span>
+        <span style="font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ok-red-mid)">Kundecenter</span>
+      </div>
+      <nav aria-label="Hovedmenu" style="display:flex;gap:4px;flex-wrap:wrap;flex:1">
+        <sc-for list="{{ nav }}" as="n" hint-placeholder-count="4">
+          <button type="button" onClick="{{ n.go }}" aria-current="{{ n.cur }}" style="border:0;background:transparent;cursor:pointer;padding:20px 12px 17px;font-size:14.5px;color:{{ n.fg }};font-weight:{{ n.fw }};border-bottom:3px solid {{ n.line }};display:flex;align-items:center;gap:7px;white-space:nowrap" style-hover="color:#fff">
+            <span>{{ n.label }}</span>
+            <sc-if value="{{ n.admin }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px;font-weight:600;color:var(--ok-stone-soft);border:1px solid var(--border-on-dark);border-radius:999px;padding:1px 7px">Admin</span></sc-if>
+          </button>
+        </sc-for>
+      </nav>
+      <div style="font-size:12px;color:var(--ok-stone-soft);padding:8px 0">Opdateret {{ lastUpdate }}</div>
+    </div>
+  </header>
+
+  <sc-if value="{{ showBanner }}" hint-placeholder-val="{{ true }}">
+    <div data-noprint="1" style="background:var(--ok-cream-warm);border-bottom:1px solid var(--border);font-size:12.5px;color:var(--ok-ink-soft)">
+      <div style="max-width:1160px;margin:0 auto;padding:8px 20px">Testdata: virksomheder, citater og links på disse sider er opdigtede og bruges kun til at vise, hvordan radaren fungerer.</div>
+    </div>
+  </sc-if>
+
+  <main style="flex:1;width:100%;max-width:1160px;margin:0 auto;padding:28px 20px 72px">
+
+    <!-- ============ TIL OK ============ -->
+    <sc-if value="{{ pOk }}" hint-placeholder-val="{{ true }}">
+      <div style="animation:arIn 260ms cubic-bezier(0.2,0,0.2,1)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+          <div>
+            <div style="font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ok-red)">Til OK · oktober 2026</div>
+            <h1 style="font-family:var(--font-display);font-weight:400;font-size:34px;line-height:1.12;margin:6px 0 0">AI i kundecentret – det korte overblik</h1>
+          </div>
+          <button type="button" data-noprint="1" onClick="{{ onPrint }}" style="padding:10px 16px;border:1px solid var(--ok-burgundy);border-radius:8px;background:#fff;color:var(--ok-burgundy);font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap" style-hover="background:var(--ok-red-pale)">Print / gem som PDF</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:30px">
+          <section style="background:var(--ok-burgundy);border-radius:12px;padding:20px 22px;grid-column:1 / -1">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:22px;color:var(--ok-cream);margin:0 0 12px">Det skal du vide</h2>
+            <ol style="list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px 22px">
+              <sc-for list="{{ mustKnow }}" as="m" hint-placeholder-count="3">
+                <li style="border-top:1px solid var(--border-on-dark);padding-top:10px;display:flex;gap:12px">
+                  <span style="font-family:var(--font-display);font-size:24px;line-height:1;color:var(--ok-red-mid)">{{ m.n }}</span>
+                  <span style="font-size:15px;line-height:1.45;color:var(--ok-cream)">{{ m.text }} <a href="{{ m.url }}" target="_blank" rel="noopener" style="color:var(--ok-red-mid);font-size:12.5px;white-space:nowrap">Kilde →</a></span>
+                </li>
+              </sc-for>
+            </ol>
+            <div style="font-size:11.5px;color:var(--ok-stone-soft);margin-top:12px">AI-sammenfattet · tjek kilden</div>
+          </section>
+
+          <section style="background:#fff;border:1px solid var(--border);border-left:4px solid var(--ok-red);border-radius:10px;padding:18px 20px">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:21px;margin:0 0 10px">Det foreslår vi</h2>
+            <ol style="margin:0;padding:0 0 0 18px;display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ recs }}" as="r" hint-placeholder-count="3">
+                <li style="font-size:14.5px;line-height:1.4">{{ r.action }}<div style="font-size:12.5px;color:var(--ok-ink-mute);margin-top:2px">{{ r.owner }} · {{ r.duration }}</div></li>
+              </sc-for>
+            </ol>
+          </section>
+
+          <section style="background:#fff;border:1px solid var(--border);border-left:4px solid var(--ok-burgundy);border-radius:10px;padding:18px 20px">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:21px;margin:0 0 10px">Det skal du tage stilling til</h2>
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="2">
+                <div style="display:flex;gap:10px;align-items:flex-start">
+                  <span style="font-size:11.5px;font-weight:600;color:var(--ok-burgundy);border:1px solid var(--ok-burgundy);border-radius:6px;padding:2px 7px;white-space:nowrap;margin-top:2px">Ja / nej</span>
+                  <span style="font-size:14.5px;line-height:1.4">{{ d.q }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </div>
+
+        <sc-for list="{{ areas }}" as="ar" hint-placeholder-count="2">
+          <section style="margin-bottom:26px;break-inside:avoid">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:24px;margin:0 0 10px">{{ ar.name }}</h2>
+            <div style="background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);overflow:hidden">
+              <div data-noprint="1" style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) 28px;gap:16px;padding:9px 18px;background:var(--ok-cream-warm);font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone)">
+                <span>Problem</span><span>Bedste teknologi</span><span>Stærkeste bevis</span><span>Næste skridt</span><span></span>
+              </div>
+              <sc-for list="{{ ar.rows }}" as="p" hint-placeholder-count="2">
+                <div style="border-top:1px solid var(--border)">
+                  <button type="button" onClick="{{ p.toggle }}" aria-expanded="{{ p.exp }}" style="width:100%;text-align:left;border:0;background:transparent;cursor:pointer;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr) minmax(0,1.4fr) minmax(0,1.3fr) 28px;gap:16px;padding:14px 18px;align-items:start" style-hover="background:var(--ok-cream-cool)">
+                    <span style="font-size:14.5px;font-weight:600;line-height:1.35;color:var(--ok-ink)">{{ p.title }}</span>
+                    <span style="display:flex;flex-direction:column;gap:5px;align-items:flex-start">
+                      <span style="font-size:13.5px;color:var(--ok-ink)">{{ p.tech }}</span>
+                      <span style="font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 9px;white-space:nowrap;color:{{ p.stFg }};background:{{ p.stBg }}">{{ p.status }}</span>
+                    </span>
+                    <span style="border-left:3px solid var(--ok-burgundy);padding-left:10px">
+                      <span style="display:block;font-size:13.5px;line-height:1.4;color:var(--ok-ink)">{{ p.proof }}</span>
+                      <span style="display:block;font-size:11.5px;color:var(--ok-stone);margin-top:3px">{{ p.proofKind }}</span>
+                    </span>
+                    <span style="font-size:13.5px;line-height:1.4;color:var(--ok-ink);border-left:3px solid var(--ok-red);padding-left:10px">{{ p.next }}</span>
+                    <span data-noprint="1" style="font-size:16px;color:var(--ok-stone);text-align:center">{{ p.chev }}</span>
+                  </button>
+                  <sc-if value="{{ p.isOpen }}" hint-placeholder-val="{{ false }}">
+                    <div data-noprint="1" style="padding:4px 18px 18px;display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px">
+                      <div style="border:1px dashed var(--ok-stone-soft);background:var(--ok-cream-cool);border-radius:8px;padding:12px 14px">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:5px">Hvorfor beviset ligner OK</div>
+                        <div style="font-size:13px;line-height:1.45;color:var(--ok-ink-soft)">{{ p.because }}</div>
+                        <a href="{{ p.url }}" target="_blank" rel="noopener" style="font-size:12px;display:inline-block;margin-top:6px">Kilde: {{ p.sourceTitle }} →</a>
+                      </div>
+                      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:6px">Flere cases</div>
+                        <div style="display:flex;flex-direction:column;gap:6px">
+                          <sc-for list="{{ p.more }}" as="c" hint-placeholder-count="1">
+                            <div style="font-size:13px;line-height:1.4"><span style="font-weight:600">{{ c.company }}</span> · {{ c.country }} – {{ c.what }} <a href="{{ c.url }}" target="_blank" rel="noopener" style="font-size:12px">Kilde</a></div>
+                          </sc-for>
+                          <sc-if value="{{ p.noMore }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;color:var(--ok-ink-mute)">Ingen flere endnu.</div></sc-if>
+                        </div>
+                      </div>
+                      <div style="border:1px solid var(--border);border-radius:8px;padding:12px 14px">
+                        <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:6px">Hvem kan vi tale med</div>
+                        <div style="font-size:13px;line-height:1.5"><span style="color:var(--ok-ink-mute)">Leverandører:</span> {{ p.vendors }}</div>
+                        <div style="font-size:13px;line-height:1.5"><span style="color:var(--ok-ink-mute)">Reference:</span> {{ p.ref }}</div>
+                      </div>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </section>
+        </sc-for>
+
+        <sc-if value="{{ hasUndoc }}" hint-placeholder-val="{{ true }}">
+          <section style="border:1px dashed var(--ok-stone-soft);border-radius:10px;padding:14px 18px;display:flex;gap:10px 18px;flex-wrap:wrap;align-items:baseline">
+            <span style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone)">Endnu ikke dokumenteret</span>
+            <sc-for list="{{ undoc }}" as="u" hint-placeholder-count="2">
+              <span style="font-size:13.5px;color:var(--ok-ink-soft)">{{ u.title }} <span style="color:var(--ok-stone)">({{ u.area }})</span></span>
+            </sc-for>
+          </section>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ============ TEKNOLOGIER ============ -->
+    <sc-if value="{{ pTech }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:arIn 260ms cubic-bezier(0.2,0,0.2,1)">
+        <div style="max-width:760px;margin-bottom:22px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ok-red)">Teknologier</div>
+          <h1 style="font-family:var(--font-display);font-weight:400;font-size:36px;line-height:1.12;margin:8px 0 8px">Hvilke AI-teknologier findes der på markedet – og hvem sælger dem?</h1>
+          <p style="margin:0;font-size:15.5px;line-height:1.5;color:var(--ok-ink-soft)">Det nyeste først. Derefter alle teknologier og de leverandører, der tilbyder dem.</p>
+        </div>
+
+        <section style="margin-bottom:34px">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:26px;margin:0">Nyeste på markedet</h2>
+            <span style="font-size:13px;color:var(--ok-ink-mute)">Lanceret eller annonceret de seneste 90 dage</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px">
+            <sc-for list="{{ newTech }}" as="t" hint-placeholder-count="4">
+              <article style="background:#fff;border:1px solid var(--border);border-top:3px solid var(--ok-red);border-radius:10px;box-shadow:var(--shadow-sm);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <span style="font-size:11px;font-weight:600;color:#fff;background:var(--ok-red);border-radius:999px;padding:2px 9px">Nyt</span>
+                  <span style="font-size:12px;color:var(--ok-ink-mute)">{{ t.found }}</span>
+                </div>
+                <div>
+                  <h3 style="font-family:var(--font-display);font-weight:400;font-size:20px;margin:0 0 5px;line-height:1.2">{{ t.name }}</h3>
+                  <p style="margin:0;font-size:13.5px;line-height:1.5;color:var(--ok-ink)">{{ t.what }}</p>
+                </div>
+                <div style="border:1px dashed var(--ok-stone-soft);background:var(--ok-cream-cool);border-radius:8px;padding:9px 11px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:3px">Hvorfor værd at kende</div>
+                  <div style="font-size:13px;line-height:1.45;color:var(--ok-ink-soft)">{{ t.why }}</div>
+                </div>
+                <div style="margin-top:auto;border-top:1px solid var(--border);padding-top:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:6px">Tilbydes af</div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                    <sc-for list="{{ t.vendors }}" as="v" hint-placeholder-count="3">
+                      <span style="font-size:12.5px;font-weight:600;border:1px solid var(--border);border-radius:999px;padding:3px 10px;background:var(--ok-cream-cool);white-space:nowrap">{{ v }}</span>
+                    </sc-for>
+                    <a href="{{ t.url }}" target="_blank" rel="noopener" style="font-size:12px;margin-left:auto">Kilde →</a>
+                  </div>
+                </div>
+                <div style="font-size:11.5px;color:var(--ok-stone)">AI-sammenfattet · tjek kilden</div>
+              </article>
+            </sc-for>
+          </div>
+        </section>
+
+        <section style="margin-bottom:34px">
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:26px;margin:0">Alle teknologier</h2>
+            <span style="font-size:13px;color:var(--ok-ink-mute)">{{ techIntro }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px">
+            <sc-for list="{{ techs }}" as="t" hint-placeholder-count="6">
+              <article style="background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:16px 18px;display:flex;flex-direction:column;gap:11px">
+                <div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:5px">
+                    <h3 style="font-family:var(--font-display);font-weight:400;font-size:20px;margin:0">{{ t.name }}</h3>
+                    <span style="font-size:11.5px;font-weight:600;white-space:nowrap;border-radius:999px;padding:2px 9px;color:{{ t.stFg }};background:{{ t.stBg }}">{{ t.status }}</span>
+                  </div>
+                  <p style="margin:0;font-size:13.5px;line-height:1.5;color:var(--ok-ink-soft)">{{ t.what }}</p>
+                </div>
+                <div style="border-top:1px solid var(--border);padding-top:10px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:7px">Leverandører</div>
+                  <div style="display:flex;flex-direction:column;gap:6px">
+                    <sc-for list="{{ t.vendors }}" as="v" hint-placeholder-count="3">
+                      <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;flex-wrap:wrap">
+                        <span style="font-weight:600">{{ v.n }}</span>
+                        <span style="font-size:12.5px;color:var(--ok-ink-mute)">{{ v.product }}</span>
+                        <sc-if value="{{ v.dk }}" hint-placeholder-val="{{ false }}">
+                          <span style="font-size:11px;font-weight:600;color:#006626;background:#CFFDE1;border:1px solid #9FE0B8;border-radius:6px;padding:1px 6px;white-space:nowrap">✓ Dansk</span>
+                        </sc-if>
+                        <a href="{{ v.url }}" target="_blank" rel="noopener" style="font-size:12px;margin-left:auto">Kilde</a>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <button type="button" onClick="{{ t.openCases }}" style="margin-top:auto;text-align:left;border:0;border-top:1px solid var(--border);background:transparent;padding:10px 0 0;cursor:pointer;font-size:13px;color:var(--ok-red-deep)">{{ t.countLabel }}</button>
+              </article>
+            </sc-for>
+          </div>
+        </section>
+
+        <section>
+          <div style="display:flex;align-items:baseline;gap:12px;margin-bottom:12px;flex-wrap:wrap">
+            <h2 style="font-family:var(--font-display);font-weight:400;font-size:26px;margin:0">Leverandører på markedet</h2>
+            <span style="font-size:13px;color:var(--ok-ink-mute)">Hvem tilbyder hvad · ✓ Dansk = kilden siger, at løsningen understøtter dansk</span>
+          </div>
+          <div style="background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px">
+              <thead><tr style="background:var(--ok-cream-warm)">
+                <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Leverandør</th>
+                <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Type</th>
+                <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Teknologier</th>
+                <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Dansk</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{ vendorRows }}" as="v" hint-placeholder-count="10">
+                  <tr style="border-top:1px solid var(--border);vertical-align:top">
+                    <th scope="row" style="text-align:left;padding:11px 16px;font-weight:600;white-space:nowrap">{{ v.n }}</th>
+                    <td style="padding:11px 16px;color:var(--ok-ink-soft);white-space:nowrap">{{ v.type }}</td>
+                    <td style="padding:9px 16px"><div style="display:flex;gap:5px;flex-wrap:wrap"><sc-for list="{{ v.techs }}" as="x" hint-placeholder-count="3"><span style="font-size:12px;border:1px solid var(--border);border-radius:999px;padding:2px 9px;white-space:nowrap">{{ x }}</span></sc-for></div></td>
+                    <td style="padding:11px 16px;white-space:nowrap;color:{{ v.dkFg }}">{{ v.dkLabel }}</td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- ============ SÅDAN GØR ANDRE ============ -->
+    <sc-if value="{{ pCases }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:arIn 260ms cubic-bezier(0.2,0,0.2,1)">
+        <div style="max-width:720px;margin-bottom:18px">
+          <div style="font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ok-red)">Sådan gør andre</div>
+          <h1 style="font-family:var(--font-display);font-weight:400;font-size:36px;line-height:1.12;margin:8px 0 8px">Hvordan bruger andre kundecentre AI?</h1>
+          <p style="margin:0;font-size:15.5px;line-height:1.5;color:var(--ok-ink-soft)">Kun organisationer, der selv bruger AI. Effekt og læring står, som kilden skriver dem.</p>
+        </div>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+          <div role="group" aria-label="Område" style="display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff">
+            <sc-for list="{{ regions }}" as="r" hint-placeholder-count="4">
+              <button type="button" onClick="{{ r.set }}" aria-pressed="{{ r.on }}" style="border:0;border-right:1px solid var(--border);padding:9px 14px;font-size:13.5px;font-weight:600;cursor:pointer;white-space:nowrap;background:{{ r.bg }};color:{{ r.fg }}">{{ r.label }}</button>
+            </sc-for>
+          </div>
+          <select value="{{ techSel }}" onChange="{{ onTech }}" aria-label="Teknologi" style="max-width:300px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:13.5px;background:#fff">
+            <sc-for list="{{ techOptions }}" as="o" hint-placeholder-count="8"><option>{{ o }}</option></sc-for>
+          </select>
+          <span style="font-size:13px;color:var(--ok-ink-mute)">{{ caseCountLabel }}</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px">
+          <sc-for list="{{ cases }}" as="c" hint-placeholder-count="6">
+            <article style="background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                  <h2 style="font-family:var(--font-display);font-weight:400;font-size:21px;margin:0">{{ c.company }}</h2>
+                  <span style="font-size:12.5px;color:var(--ok-ink-mute);white-space:nowrap">{{ c.country }} · {{ c.industry }}</span>
+                </div>
+                <p style="margin:6px 0 0;font-size:14px;line-height:1.5;color:var(--ok-ink)">{{ c.what }}</p>
+                <div style="font-size:11.5px;color:var(--ok-stone);margin-top:4px">AI-sammenfattet · tjek kilden</div>
+              </div>
+
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <span style="font-size:12.5px;font-weight:600;color:var(--ok-burgundy);background:var(--ok-cream-warm);border-radius:999px;padding:3px 10px;white-space:nowrap">{{ c.tech }}</span>
+                <span style="font-size:12.5px;color:var(--ok-ink-soft);border:1px solid var(--border);border-radius:999px;padding:3px 10px;white-space:nowrap">Leverandør: {{ c.vendor }}</span>
+              </div>
+
+              <div style="border-top:1px solid var(--border);padding-top:11px">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:8px">Sådan indførte de det</div>
+                <div style="display:flex;gap:4px;margin-bottom:8px">
+                  <sc-for list="{{ c.steps }}" as="s" hint-placeholder-count="4">
+                    <div style="flex:1;text-align:center;font-size:11.5px;font-weight:600;padding:5px 2px;border-radius:5px;background:{{ s.bg }};color:{{ s.fg }}">{{ s.label }}</div>
+                  </sc-for>
+                </div>
+                <div style="display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:13px">
+                  <span style="color:var(--ok-ink-mute)">Start</span><span>{{ c.start }}</span>
+                  <span style="color:var(--ok-ink-mute)">Omfang</span><span>{{ c.scope }}</span>
+                </div>
+              </div>
+
+              <div style="border-left:4px solid var(--ok-burgundy);background:var(--ok-cream-cool);border-radius:0 8px 8px 0;padding:10px 12px">
+                <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:4px">Effekt</div>
+                <div style="font-size:13.5px;line-height:1.45;color:{{ c.effectColor }}">{{ c.effectText }}</div>
+              </div>
+
+              <sc-if value="{{ c.hasLesson }}" hint-placeholder-val="{{ false }}">
+                <div style="border:1px dashed var(--ok-stone-soft);border-radius:8px;padding:10px 12px">
+                  <div style="font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ok-stone);margin-bottom:4px">Læring ifølge kilden</div>
+                  <div style="font-size:13.5px;line-height:1.45;color:var(--ok-ink-soft)">{{ c.lesson }}</div>
+                </div>
+              </sc-if>
+
+              <a href="{{ c.url }}" target="_blank" rel="noopener" style="margin-top:auto;font-size:13px;border-top:1px solid var(--border);padding-top:10px">Kilde: {{ c.sourceTitle }} · {{ c.sourceDate }} →</a>
+            </article>
+          </sc-for>
+        </div>
+        <sc-if value="{{ casesEmpty }}" hint-placeholder-val="{{ false }}">
+          <div style="border:1px dashed var(--ok-stone-soft);border-radius:10px;padding:36px;text-align:center;font-size:14px;color:var(--ok-ink-mute)">Ingen cases fundet for dette valg endnu.</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ============ KILDER ============ -->
+    <sc-if value="{{ pSrc }}" hint-placeholder-val="{{ false }}">
+      <div style="animation:arIn 260ms cubic-bezier(0.2,0,0.2,1)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+          <div style="max-width:640px">
+            <div style="font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ok-red)">Kilder · kun admin</div>
+            <h1 style="font-family:var(--font-display);font-weight:400;font-size:36px;line-height:1.12;margin:8px 0 8px">Hvor henter radaren sin viden?</h1>
+            <p style="margin:0;font-size:15.5px;line-height:1.5;color:var(--ok-ink-soft)">Radaren læser disse kilder og opdaterer siderne automatisk. Interne OK-dokumenter indgår ikke som markedsviden.</p>
+          </div>
+          <button type="button" onClick="{{ onUpdate }}" disabled="{{ updating }}" style="padding:12px 20px;border:0;border-radius:8px;background:var(--ok-red);color:#fff;font-size:14.5px;font-weight:600;cursor:pointer;min-width:190px" style-hover="background:var(--ok-red-dark)">{{ updateLabel }}</button>
+        </div>
+        <div style="background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:var(--shadow-sm);overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13.5px;min-width:560px">
+            <thead><tr style="background:var(--ok-cream-warm)">
+              <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Kilde</th>
+              <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Type</th>
+              <th scope="col" style="text-align:left;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Senest læst</th>
+              <th scope="col" style="text-align:right;padding:11px 16px;font-weight:600;color:var(--ok-ink-soft)">Relevante artikler</th>
+            </tr></thead>
+            <tbody>
+              <sc-for list="{{ sources }}" as="s" hint-placeholder-count="8">
+                <tr style="border-top:1px solid var(--border)">
+                  <td style="padding:11px 16px;font-weight:600">{{ s.name }}</td>
+                  <td style="padding:11px 16px;color:var(--ok-ink-soft)">{{ s.type }}</td>
+                  <td style="padding:11px 16px;color:var(--ok-ink-mute)">{{ s.last }}</td>
+                  <td style="padding:11px 16px;text-align:right">{{ s.count }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </sc-if>
+  </main>
+
+  <div data-noprint="1" aria-live="polite" style="position:fixed;bottom:20px;right:20px;z-index:50;display:flex;flex-direction:column;gap:8px;max-width:340px">
+    <sc-for list="{{ toasts }}" as="t" hint-placeholder-count="0">
+      <div style="background:var(--ok-burgundy);color:var(--ok-cream);border-radius:9px;padding:12px 15px;box-shadow:var(--shadow-lg);animation:arIn 200ms cubic-bezier(0.2,0,0.2,1)">
+        <div style="font-size:13.5px;font-weight:600">{{ t.title }}</div>
+        <div style="font-size:12.5px;color:var(--ok-stone-soft);margin-top:2px">{{ t.body }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;rolle&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Admin&quot;,&quot;Medarbejder&quot;],&quot;default&quot;:&quot;Admin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;testdataBanner&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  TECHS = [
+    { name: 'AI-agenter, der løser hele henvendelsen', status: 'Nyt', what: 'Forstår kundens behov, slår op i systemerne og udfører opgaven – fx flytning eller ændring af aftale – med menneskelig godkendelse, hvor det kræves.', vendors: [['Salesforce', 'Agentforce', null], ['Sierra', 'Agent OS', null], ['Decagon', 'AI-agent', null], ['Microsoft', 'Copilot Studio', true]] },
+    { name: 'Stemmeagenter med naturlig tale', status: 'Nyt', what: 'Fører en telefonsamtale i naturligt tempo, kan afbrydes og forstår løst formulerede spørgsmål. Afløser for taste-menuer og stive voicebots.', vendors: [['PolyAI', 'Voice agents', null], ['Parloa', 'AI-agentplatform', null], ['Puzzel', 'Voicebot', true], ['Boost.ai', 'Voice', true]] },
+    { name: 'Agent Assist', status: 'Udbredt', what: 'Giver medarbejderen forslag til svar og relevant viden, mens samtalen foregår.', vendors: [['Microsoft', 'Copilot for Service', true], ['Genesys', 'Genesys Cloud AI', null], ['NICE', 'CXone', null], ['Salesforce', 'Service Cloud', null]] },
+    { name: 'Chatbot / virtuel agent', status: 'Modent', what: 'Svarer kunder i chat på hjemmesiden eller i appen og sender videre til en medarbejder, når den ikke kan hjælpe.', vendors: [['Boost.ai', 'Virtuel agent', true], ['Zendesk', 'AI-agenter', null], ['Puzzel', 'Chatbot', true]] },
+    { name: 'Samtaleopsummering', status: 'Udbredt', what: 'Skriver automatisk et resumé af opkaldet eller chatten, så medarbejderen ikke skal notere bagefter.', vendors: [['Microsoft', 'Copilot for Service', true], ['Genesys', 'Genesys Cloud AI', null], ['Puzzel', 'Opsummering', null]] },
+    { name: 'Kvalitetssikring af samtaler', status: 'Udbredt', what: 'Gennemgår alle samtaler i stedet for stikprøver og markerer dem, en teamleder bør se på.', vendors: [['NICE', 'Enlighten', null], ['Genesys', 'Quality', null], ['Puzzel', 'Kvalitet', null]] },
+    { name: 'Automatisk kategorisering af henvendelser', status: 'Modent', what: 'Læser mails og beskeder og sorterer dem efter emne og hast, så de lander hos det rette team.', vendors: [['Zendesk', 'Intelligent triage', null], ['Salesforce', 'Einstein', null], ['Microsoft', 'Dynamics 365', true]] },
+    { name: 'Videnssøgning til medarbejdere', status: 'Udbredt', what: 'Lader medarbejderen spørge med egne ord og få svaret fra interne vejledninger med henvisning til, hvor det står.', vendors: [['Microsoft', 'Copilot', true], ['Google', 'Agentspace', null], ['Zendesk', 'Knowledge', null]] }
+  ];
+  NEW = [
+    { name: 'AI-agenter, der udfører opgaven – ikke kun svarer', what: 'Flere leverandører lancerer agenter, der selv opretter sager, ændrer aftaler og sender bekræftelse, mens medarbejderen kun godkender.', why: 'Flytter AI fra at hjælpe med svaret til at klare selve opgaven. Det er den største ændring i markedet lige nu.', vendors: ['Salesforce', 'Sierra', 'Decagon', 'Microsoft'], found: 'Annonceret sep. 2026' },
+    { name: 'Stemmeagenter, der kan tage hele opkaldet', what: 'Ny generation af stemme-AI, der taler naturligt, tåler afbrydelser og kan håndtere flere emner i samme opkald.', why: 'Telefonen er den dyreste kanal. Her er teknologien rykket mest det seneste år.', vendors: ['PolyAI', 'Parloa', 'Puzzel'], found: 'Lanceret aug. 2026' },
+    { name: 'Live-oversættelse i opkald', what: 'Oversætter samtalen mellem kunde og medarbejder, mens den foregår, så flere sprog kan betjenes uden tolk.', why: 'Gør det muligt at betjene kunder på andre sprog uden særlige medarbejdere.', vendors: ['Genesys', 'Microsoft'], found: 'Lanceret okt. 2026' },
+    { name: 'Kvalitetstjek af AI-agenter', what: 'Værktøjer, der løbende tester og overvåger, om AI-agenterne svarer korrekt og følger reglerne.', why: 'Bliver nødvendigt, så snart AI taler direkte med kunder.', vendors: ['NICE', 'Salesforce'], found: 'Annonceret sep. 2026' }
+  ];
+  VENDORS = [
+    ['Microsoft', 'Platform', true], ['Salesforce', 'Platform', null], ['Google', 'Platform', null], ['Genesys', 'Kundecenterplatform', null], ['NICE', 'Kundecenterplatform', null],
+    ['Puzzel', 'Kundecenterplatform', true], ['Zendesk', 'Kundeservicesystem', null], ['Boost.ai', 'Specialist', true], ['PolyAI', 'Specialist', null], ['Parloa', 'Specialist', null], ['Sierra', 'Specialist', null], ['Decagon', 'Specialist', null]
+  ];
+  CASES = [
+    { company: 'Vestkyst Forsyning', country: 'Danmark', industry: 'Energi og forsyning', what: 'Indførte en voicebot, der svarer på opkald om flytning og måleraflæsning.', tech: 'Stemmeagenter med naturlig tale', vendor: 'Puzzel', stage: 'drift', start: 'Marts 2025', scope: 'Flytning og aflæsning, telefon', effect: 'Voicebotten løser i dag hvert fjerde opkald om flytning uden en medarbejder.', lesson: 'Det var afgørende at starte med ét emne og først udvide, da det virkede.', src: 'Kundecase, Vestkyst Forsyning', date: '12. aug. 2026' },
+    { company: 'Fjordnet Telecom', country: 'Danmark', industry: 'Telekommunikation', what: 'Afprøver svarforslag til medarbejdere i erhvervssupporten.', tech: 'Agent Assist', vendor: 'Microsoft', stage: 'pilot', start: 'Juni 2026', scope: '40 medarbejdere i erhvervssupport', effect: null, lesson: null, src: 'Pressemeddelelse, Fjordnet', date: '3. sep. 2026' },
+    { company: 'Nordisk Forsikring', country: 'Danmark', industry: 'Forsikring', what: 'Bruger automatisk opsummering af alle opkald i skadeafdelingen.', tech: 'Samtaleopsummering', vendor: 'Genesys', stage: 'drift', start: 'November 2024', scope: 'Hele skadeafdelingen', effect: 'Tiden på efterbehandling er halveret.', lesson: 'Medarbejderne var selv med til at bestemme, hvad et godt resumé skal indeholde.', src: 'Artikel i fagmedie', date: '20. jun. 2026' },
+    { company: 'Kvik Retail', country: 'Danmark', industry: 'Detailhandel', what: 'Har en chatbot på webshop og i app, der svarer på spørgsmål om ordrer og returnering.', tech: 'Chatbot / virtuel agent', vendor: 'Zendesk', stage: 'skaleret', start: '2023', scope: 'Webshop og app', effect: null, lesson: 'Kunderne skal altid kunne komme videre til et menneske.', src: 'Konferenceoplæg', date: '14. maj 2026' },
+    { company: 'Søndergaard El', country: 'Danmark', industry: 'Energi og forsyning', what: 'Sorterer alle indkommende mails automatisk efter emne.', tech: 'Automatisk kategorisering af henvendelser', vendor: 'Salesforce', stage: 'drift', start: 'Januar 2026', scope: 'Alle indkommende mails', effect: 'Langt flere mails lander hos det rigtige team første gang.', lesson: null, src: 'Leverandørcase, Salesforce', date: '28. jul. 2026' },
+    { company: 'Svea Energi', country: 'Sverige', industry: 'Energi og forsyning', what: 'Gennemgår alle kundesamtaler med AI og markerer dem, teamlederen skal lytte til.', tech: 'Kvalitetssikring af samtaler', vendor: 'NICE', stage: 'drift', start: 'September 2025', scope: 'Telefon, privatkunder', effect: null, lesson: 'Teamlederne brugte de første måneder på at lære at stole på markeringerne.', src: 'Interview i svensk fagmedie', date: '2. sep. 2026' },
+    { company: 'Bergen Kraft', country: 'Norge', industry: 'Energi og forsyning', what: 'Tester en voicebot, der informerer om strømafbrud.', tech: 'Stemmeagenter med naturlig tale', vendor: 'Boost.ai', stage: 'pilot', start: 'August 2026', scope: 'Opkald om strømafbrud', effect: null, lesson: null, src: 'Leverandørcase, Boost.ai', date: '19. sep. 2026' },
+    { company: 'Suomi Telko', country: 'Finland', industry: 'Telekommunikation', what: 'Giver medarbejderne en søgning, der finder svar i interne vejledninger.', tech: 'Videnssøgning til medarbejdere', vendor: 'Google', stage: 'drift', start: 'Februar 2025', scope: 'Hele kundeservice', effect: 'Nye medarbejdere er klar til telefonen to uger tidligere end før.', lesson: null, src: 'Årsrapport, Suomi Telko', date: '30. mar. 2026' },
+    { company: 'Brightline Utilities', country: 'Storbritannien', industry: 'Energi og forsyning', what: 'Giver alle medarbejdere svarforslag under opkald.', tech: 'Agent Assist', vendor: 'Salesforce', stage: 'skaleret', start: '2024', scope: '1.200 medarbejdere', effect: 'Kortere opkald og færre viderestillinger.', lesson: 'Vidensbasen skulle ryddes op, før AI\u2019en gav gode forslag.', src: 'Kundecase, Brightline', date: '11. jul. 2026' },
+    { company: 'Kaltwasser Stadtwerke', country: 'Tyskland', industry: 'Energi og forsyning', what: 'Afprøver automatiske resuméer af opkald.', tech: 'Samtaleopsummering', vendor: 'Microsoft', stage: 'pilot', start: 'Maj 2026', scope: 'Et team på 25 medarbejdere', effect: null, lesson: null, src: 'Artikel i tysk fagmedie', date: '9. sep. 2026' }
+  ];
+  PROBLEMS = [
+    { area: 'Kundeservice', title: 'Lang ventetid i telefonen ved spidsbelastning', tech: 'Stemmeagenter med naturlig tale', best: ['Vestkyst Forsyning', 'Dansk forsyningsselskab med de samme opkald om flytning og aflæsning som OK.'], more: ['Bergen Kraft'], vendors: 'Puzzel, Boost.ai, PolyAI', ref: 'Vestkyst Forsyning, kundecenterchef', next: 'Find de fem hyppigste opkaldsemner, en stemmeagent kunne klare.' },
+    { area: 'Kundeservice', title: 'Medarbejderne bruger lang tid på at notere efter samtalen', tech: 'Samtaleopsummering', best: ['Nordisk Forsikring', 'Dansk kundecenter med lange samtaler, der skal dokumenteres.'], more: ['Kaltwasser Stadtwerke'], vendors: 'Microsoft, Genesys', ref: 'Nordisk Forsikring, skadeafdelingen', next: 'Afprøv opsummering med fem medarbejdere i to uger.' },
+    { area: 'Kundeservice', title: 'Kvalitetssikring dækker kun få stikprøver', tech: 'Kvalitetssikring af samtaler', best: ['Svea Energi', 'Nordisk energiselskab med privatkunder på telefon.'], more: [], vendors: 'NICE, Genesys', ref: 'Svea Energi, teamledere', next: 'Bed to leverandører vise løsningen på 100 anonymiserede samtaler.' },
+    { area: 'Support', title: 'Det er svært at finde det rigtige svar hurtigt', tech: 'Videnssøgning til medarbejdere', best: ['Suomi Telko', 'Mange produkter og hyppige ændringer, ligesom hos OK.'], more: ['Brightline Utilities', 'Fjordnet Telecom'], vendors: 'Microsoft, Google', ref: 'Suomi Telko, kundeservice', next: 'Test videnssøgning på 30 typiske spørgsmål.' },
+    { area: 'Support', title: 'Mails lander hos det forkerte team', tech: 'Automatisk kategorisering af henvendelser', best: ['Søndergaard El', 'Dansk elselskab med de samme mails om regninger og flytning.'], more: [], vendors: 'Salesforce, Zendesk', ref: 'Søndergaard El, kundeservice', next: 'Tæl i én uge, hvor mange mails der flyttes mellem teams.' },
+    { area: 'Salg', title: 'Mersalg i kundeservicesamtaler udnyttes ikke', tech: 'Agent Assist', best: null },
+    { area: 'Salg', title: 'Kunder opsiger uden varsel', tech: 'Kvalitetssikring af samtaler', best: null }
+  ];
+  MUST = [
+    ['Stemmeagenter klarer nu enkle opkald: et dansk forsyningsselskab løser hvert fjerde flytteopkald uden medarbejder.', 'Vestkyst Forsyning'],
+    ['Automatisk opsummering er den hurtigste gevinst: et dansk forsikringsselskab har halveret tiden på efterbehandling.', 'Nordisk Forsikring'],
+    ['Det nye i markedet er AI, der selv udfører opgaven. Der er endnu ingen danske eksempler i drift.', 'agenter']
+  ];
+  RECS = [
+    ['Afprøv automatisk opsummering med fem medarbejdere.', 'Kundeservice', '2 uger'],
+    ['Find de fem hyppigste opkaldsemner, en stemmeagent kunne klare.', 'Kundecenter, analyse', '3 uger'],
+    ['Test videnssøgning på 30 typiske spørgsmål fra support.', 'Support', '4 uger']
+  ];
+  DECISIONS = [
+    'Må vi starte et forsøg på to uger med automatisk opsummering i ét team?',
+    'Skal vi bede to leverandører om at vise en stemmeagent på vores egne opkald?'
+  ];
+  SOURCES = [
+    ['Puzzel – nyheder og kundecases', 'Leverandør', 9], ['Boost.ai – kundecases', 'Leverandør', 6], ['Microsoft – kundehistorier', 'Leverandør', 7],
+    ['Genesys – nyheder', 'Leverandør', 5], ['Computerworld Danmark', 'Fagmedie', 8], ['Version2', 'Fagmedie', 3],
+    ['CX Today', 'Fagmedie', 11], ['Dansk Erhverv – kundeservice', 'Brancheorganisation', 2], ['Virksomhedernes pressemeddelelser', 'Virksomhed', 6]
+  ];
+  REGION = { 'Danmark': 'Danmark', 'Sverige': 'Norden', 'Norge': 'Norden', 'Finland': 'Norden' };
+
+  state = { open: {}, page: 'ok', region: 'Alle', techSel: 'Alle teknologier', updating: false, lastUpdate: '13. okt. kl. 07:00', toasts: [], tid: 0 };
+
+  componentDidMount() { window.__arGo = (p) => this.setState({ page: p }); }
+
+  toast(title, body) {
+    const id = this.state.tid + 1;
+    this.setState(s => ({ tid: id, toasts: [...s.toasts, { id, title, body }] }));
+    setTimeout(() => this.setState(s => ({ toasts: s.toasts.filter(t => t.id !== id) })), 4000);
+  }
+  slug(s) { return s.toLowerCase().replace(/[^a-zæøå0-9]+/g, '-'); }
+  url(s) { return 'https://eksempel.dk/kilde/' + this.slug(s); }
+  effectText(c) { return c.effect ? '\u00bb' + c.effect + '\u00ab' : 'Ikke oplyst'; }
+  goCases(tech) { this.setState({ page: 'cases', techSel: tech, region: 'Alle' }); }
+
+  renderVals() {
+    const s = this.state;
+    const isAdmin = (this.props.rolle ?? 'Admin') === 'Admin';
+    const page = (!isAdmin && s.page === 'src') ? 'ok' : s.page;
+    const items = [['tech', 'Teknologier'], ['cases', 'Sådan gør andre'], ['ok', 'Til OK']].concat(isAdmin ? [['src', 'Kilder']] : []);
+    const nav = items.map(([k, label]) => {
+      const on = page === k;
+      return { label, admin: k === 'src', cur: on ? 'page' : undefined, fg: on ? '#FFFFFF' : 'rgba(247,239,235,0.78)', fw: on ? '600' : '400', line: on ? 'var(--ok-red)' : 'transparent', go: () => this.setState({ page: k }) };
+    });
+
+    const techMap = {};
+    this.TECHS.forEach(t => { techMap[t.name] = t; });
+    const ST = { 'Nyt': ['#fff', 'var(--ok-red)'], 'Udbredt': ['#006626', '#CFFDE1'], 'Modent': ['var(--ok-ink-soft)', 'var(--ok-cream-warm)'] };
+    const techs = this.TECHS.map(t => {
+      const n = this.CASES.filter(c => c.tech === t.name).length;
+      return {
+        name: t.name, what: t.what, status: t.status, stFg: ST[t.status][0], stBg: ST[t.status][1],
+        vendors: t.vendors.map(([v, product, dk]) => ({ n: v, product, dk: dk === true, url: this.url(v + '-' + t.name) })),
+        countLabel: n === 0 ? 'Ingen cases fundet endnu' : n === 1 ? '1 case fundet – se den →' : n + ' cases fundet – se dem →',
+        openCases: () => this.goCases(t.name)
+      };
+    });
+    const vendorRows = this.VENDORS.map(([n, type, dk]) => ({ n, type, dkLabel: dk ? '✓ Ja' : 'Ikke oplyst', dkFg: dk ? '#006626' : 'var(--ok-ink-mute)', techs: this.TECHS.filter(t => t.vendors.some(v => v[0] === n)).map(t => t.name) }));
+    const filtered = this.CASES.filter(c => {
+      const reg = this.REGION[c.country] || 'Resten af verden';
+      if (s.region === 'Danmark' && reg !== 'Danmark') return false;
+      if (s.region === 'Norden' && reg === 'Resten af verden') return false;
+      if (s.region === 'Resten af verden' && reg !== 'Resten af verden') return false;
+      if (s.techSel !== 'Alle teknologier' && c.tech !== s.techSel) return false;
+      return true;
+    });
+    const STAGES = ['idé', 'pilot', 'drift', 'skaleret'];
+    const cases = filtered.map(c => {
+      const at = STAGES.indexOf(c.stage);
+      return {
+        ...c, effectText: this.effectText(c), effectColor: c.effect ? 'var(--ok-ink)' : 'var(--ok-ink-mute)',
+        hasLesson: !!c.lesson, lesson: c.lesson ? '\u00bb' + c.lesson + '\u00ab' : '',
+        sourceTitle: c.src, sourceDate: c.date, url: this.url(c.company),
+        steps: STAGES.map((st, i) => ({ label: st.charAt(0).toUpperCase() + st.slice(1), bg: i <= at ? 'var(--ok-burgundy)' : 'var(--ok-cream-warm)', fg: i <= at ? 'var(--ok-cream)' : 'var(--ok-stone)' }))
+      };
+    });
+    const regions = ['Alle', 'Danmark', 'Norden', 'Resten af verden'].map(r => {
+      const on = s.region === r;
+      return { label: r, on: on ? 'true' : 'false', bg: on ? 'var(--ok-burgundy)' : '#fff', fg: on ? 'var(--ok-cream)' : 'var(--ok-ink-soft)', set: () => this.setState({ region: r }) };
+    });
+
+    const status = (name) => {
+      const cs = this.CASES.filter(c => c.tech === name);
+      const live = cs.filter(c => c.stage === 'drift' || c.stage === 'skaleret').length;
+      const indep = cs.some(c => !/^Leverandørcase/.test(c.src));
+      if (live >= 1 && indep && cs.length >= 1 && live >= Math.min(2, cs.length)) return 'Klar nu';
+      if (cs.length >= 1) return 'Værd at afprøve';
+      return 'Hold øje med';
+    };
+    const STC = { 'Klar nu': ['#006626', '#CFFDE1'], 'Værd at afprøve': ['#8A5A10', '#FBF0DC'], 'Hold øje med': ['var(--ok-burgundy)', 'var(--ok-cream-warm)'] };
+    const find = (co) => this.CASES.find(x => x.company === co);
+    const kind = (c) => /^Leverandørcase/.test(c.src) ? 'Leverandørens tal' : 'Uafhængig kilde';
+    const doc = this.PROBLEMS.filter(p => p.best);
+    const areas = ['Kundeservice', 'Support', 'Salg'].map(name => ({
+      name,
+      rows: doc.filter(p => p.area === name).map(p => {
+        const c = find(p.best[0]); const st = status(p.tech); const open = !!s.open[p.title];
+        const more = p.more.map(find);
+        return {
+          title: p.title, tech: p.tech, status: st, stFg: STC[st][0], stBg: STC[st][1],
+          proof: c.company + ': ' + (c.effect || c.what), proofKind: (c.effect ? kind(c) : 'Effekt ikke oplyst') + ' · ' + c.country,
+          next: p.next, because: p.best[1], sourceTitle: c.src, url: this.url(c.company),
+          more: more.map(m => ({ company: m.company, country: m.country, what: m.what, url: this.url(m.company) })), noMore: more.length === 0,
+          vendors: p.vendors, ref: p.ref, isOpen: open, exp: open ? 'true' : 'false', chev: open ? '−' : '+',
+          toggle: () => this.setState(st2 => ({ open: { ...st2.open, [p.title]: !st2.open[p.title] } }))
+        };
+      })
+    })).filter(a => a.rows.length);
+    const undoc = this.PROBLEMS.filter(p => !p.best).map(p => ({ title: p.title, area: p.area }));
+    const mustKnow = this.MUST.map(([text, k], i) => ({ n: String(i + 1), text, url: this.url(k) }));
+    const dk = this.CASES.filter(c => c.country === 'Danmark').length;
+
+    return {
+      nav, lastUpdate: s.lastUpdate, showBanner: this.props.testdataBanner ?? true,
+      pOk: page === 'ok', pTech: page === 'tech', pCases: page === 'cases', pSrc: page === 'src',
+      areas, undoc, hasUndoc: undoc.length > 0, mustKnow, recs: this.RECS.map(([action, owner, duration]) => ({ action, owner, duration })), decisions: this.DECISIONS.map(q => ({ q })), onPrint: () => window.print(),
+      techs, vendorRows, techIntro: this.TECHS.length + ' teknologier · ' + this.VENDORS.length + ' leverandører',
+      newTech: this.NEW.map(t => ({ ...t, url: this.url(t.name) })),
+      regions, techSel: s.techSel, techOptions: ['Alle teknologier'].concat(this.TECHS.map(t => t.name)),
+      onTech: (e) => this.setState({ techSel: e.target.value }),
+      cases, casesEmpty: cases.length === 0,
+      caseCountLabel: cases.length + ' af ' + this.CASES.length + ' cases · ' + dk + ' fra Danmark',
+      sources: this.SOURCES.map(([name, type, count], i) => ({ name, type, count: String(count), last: s.updating ? 'Læser…' : (i < 5 ? s.lastUpdate : '12. okt.') })),
+      updating: s.updating, updateLabel: s.updating ? 'Opdaterer…' : 'Opdatér radaren',
+      onUpdate: () => {
+        this.setState({ updating: true });
+        setTimeout(() => {
+          const d = new Date();
+          this.setState({ updating: false, lastUpdate: '13. okt. kl. ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') });
+          this.toast('Radaren er opdateret', '3 nye artikler læst · 1 ny case fundet');
+        }, 1600);
+      },
+      toasts: s.toasts
+    };
+  }
+}
+</script>
+</body>
+</html>

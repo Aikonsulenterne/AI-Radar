@@ -423,3 +423,45 @@ leverandørens egne tal markeres; interne OK-dokumenter vises aldrig som
 markedsviden; konsulenten kan skjule et forkert fund (intet slettes, alt
 står i audit-loggen). Problemlisten og teknologikataloget er kuratering i
 `apps/api/app/market/catalog.py`.
+
+## 19. Beslutning 2026-10-13: designhandoff v2 (erstatter §18's visning)
+
+Kilde: `docs/design/design_handoff_ai_radar_v2/README.md` (godkendt
+produktbeslutning; Til OK er high-fidelity). Hovedpunkter:
+
+- Målet: en direktør, der ikke har set radaren før, kan besvare de tre
+  spørgsmål på **60 sekunder**. Der kommer **ikke** et Indsigter-modul;
+  indsigterne står i "Det skal du vide" på Til OK.
+- Navigation i en burgundy topbjælke: **Teknologier · Sådan gør andre · Til
+  OK · Kilder (Admin)**. Forsiden er Til OK.
+- **Fælles statusmodel**, beregnet af data og aldrig skrevet i hånden:
+  *Klar nu* (mindst 2 cases i drift eller skaleret og mindst én uafhængig
+  kilde), *Værd at afprøve* (cases findes, men kun i pilot eller kun med
+  leverandørens tal), *Hold øje med* (ingen cases). Sortering overalt: Klar
+  nu → Værd at afprøve → Hold øje med, derefter relevans for OK.
+- **Til OK:** Det skal du vide (3 punkter med kilde) · Det foreslår vi (højst
+  3 skridt med ejer og varighed) · Det skal du tage stilling til (højst 2
+  ja/nej-spørgsmål) · én tabel pr. område (Problem, Bedste teknologi +
+  status, Stærkeste bevis, Næste skridt; foldes ud med Hvorfor beviset ligner
+  OK, Flere cases, Hvem kan vi tale med) · Endnu ikke dokumenteret på én
+  linje. Hver case højst én gang på siden. Print højst 2 A4-sider.
+- **Teknologier:** Nyt på markedet (højst 3), derefter Klar nu / Værd at
+  afprøve / Hold øje med. Kort: navn, status, hvad den gør, "Det kan betyde
+  for OK" (analyse), højst 3 leverandører + "N flere", stærkeste bevis.
+  Produkter, links og "✓ Dansk" vises, når kortet foldes ud. Tabellen
+  Leverandører på markedet (type, teknologier, dansk). Ingen "Skjul" her.
+- **Sådan gør andre:** filtre Alle / Danmark / Norden (inkl. Danmark) /
+  Resten af verden + teknologi; sorteret efter lighed med OK. Kort med trin
+  idé → pilot → drift → skaleret og effekt ordret; læring, omfang, start og
+  kilde ved udfoldning.
+- **Kilder (Admin):** tabel med type, senest læst og relevante artikler; én
+  primær knap "Opdatér radaren" med toast bagefter; "Skjul" for cases og
+  leverandører ligger her.
+- Fakta (solid burgundy kant), analyse (stiplet ramme) og anbefaling (solid
+  rød kant) skelnes på form. "AI-sammenfattet · tjek kilden" én gang pr.
+  sektion. Ingen tomme kort, ingen emoji, højst 20 ord pr. sætning i
+  opsummeringer.
+
+Afvigelse fra handoffen, bevidst: radaren dækker fortsat salg og support ud
+over kundeservice (beslutning 2026-10-13, §18), så relevansfilteret og
+problemlisten omfatter salg.

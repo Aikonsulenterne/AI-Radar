@@ -1,0 +1,238 @@
+/* ============================================================
+   OK a.m.b.a — Colors & Type
+   Official brand fonts: OKfamily (display) + Fellix (body).
+   Official primary colors per OK brand guide:
+     200 - Varm Grå        #F7EFEB
+     600 - Nærværende Rød  #FF3C3C
+     800 - Jordnær Rød     #460019
+   ============================================================ */
+
+@font-face {
+  font-family: 'OKfamily';
+  src: url('fonts/OKfamily-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OKfamily';
+  src: url('fonts/OKfamily-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OKfamily';
+  src: url('fonts/OKfamily-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OKfamily';
+  src: url('fonts/OKfamily-Semibold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'OKfamily';
+  src: url('fonts/OKfamily-Bold.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fellix';
+  src: url('fonts/Fellix-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fellix';
+  src: url('fonts/Fellix-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fellix';
+  src: url('fonts/Fellix-SemiBold.otf') format('opentype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ============ PRIMARY COLORS (official brand guide) ============ */
+  --ok-200: #F7EFEB;          /* 200 — Varm Grå (warm grey/cream) */
+  --ok-600: #FF3C3C;          /* 600 — Nærværende Rød (present red) */
+  --ok-800: #460019;          /* 800 — Jordnær Rød (earthy red / burgundy) */
+
+  /* Friendly aliases */
+  --ok-cream: var(--ok-200);
+  --ok-red: var(--ok-600);
+  --ok-burgundy: var(--ok-800);
+
+  /* ============ SECONDARY / DEEP TINTS ============ */
+  --ok-red-deep: #AA2825;
+  --ok-red-dark: #8C0000;
+  --ok-red-pale: #FFF2F2;
+  --ok-red-tint: #FFE6E6;
+  --ok-red-soft: #FFBEBE;
+  --ok-red-mid:  #FF8C8C;
+
+  --ok-burgundy-deep: #23000D;
+  --ok-cream-warm: #F2E7E1;
+  --ok-cream-cool: #FFFAF7;
+
+  /* ============ NEUTRALS (warm-tinted) ============ */
+  --ok-ink: #1A1614;
+  --ok-ink-soft: #4D433E;
+  --ok-ink-mute: #736762;
+  --ok-stone: #998C85;
+  --ok-stone-soft: #BFB2AA;
+  --ok-stone-pale: #E6D9D2;
+  --ok-white: #FFFFFF;
+  --ok-black: #000000;
+
+  /* ============ DATA-VIZ ACCENTS ============ */
+  --ok-blue: #0071C2;
+  --ok-blue-mid: #4BB4FF;
+  --ok-blue-light: #CDEBFF;
+  --ok-blue-pale: #F2F9FF;
+  --ok-green: #006626;
+  --ok-green-light: #CFFDE1;
+
+  /* ============ SEMANTIC TOKENS ============ */
+  --bg: var(--ok-cream);
+  --bg-elev: var(--ok-white);
+  --bg-inverse: var(--ok-burgundy);
+  --bg-accent: var(--ok-red);
+
+  --fg: var(--ok-ink);
+  --fg-soft: var(--ok-ink-soft);
+  --fg-mute: var(--ok-ink-mute);
+  --fg-on-dark: var(--ok-cream);
+  --fg-on-accent: var(--ok-white);
+  --fg-accent: var(--ok-red);
+
+  --border: var(--ok-stone-pale);
+  --border-strong: var(--ok-stone);
+  --border-on-dark: rgba(247, 239, 235, 0.15);
+
+  --state-success: var(--ok-green);
+  --state-info: var(--ok-blue);
+  --state-warn: #D08A1F;
+  --state-danger: var(--ok-red-deep);
+
+  /* ============ TYPE FAMILIES ============
+     OKfamily — the brand display family. Used for titles, big numbers,
+     section labels. A serif-flavored display family (replaces Georgia
+     in older decks).
+     Fellix — the brand body family. Geometric humanist sans, replaces
+     Arial. Used for body copy, UI, captions. */
+  --font-display: 'OKfamily', Georgia, 'Times New Roman', serif;
+  --font-body:    'Fellix', 'Inter', 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-mono:    ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /* Legacy aliases for any existing usage */
+  --font-serif: var(--font-display);
+  --font-sans:  var(--font-body);
+
+  /* ============ TYPE SCALE ============ */
+  --t-display-1: clamp(56px, 6.6vw, 96px); /* @kind font */
+  --t-display-2: clamp(40px, 4.4vw, 64px); /* @kind font */
+  --t-h1: clamp(32px, 3.2vw, 44px); /* @kind font */
+  --t-h2: clamp(24px, 2.4vw, 32px); /* @kind font */
+  --t-h3: 20px;
+  --t-body-lg: 22px;
+  --t-body: 18px;
+  --t-body-sm: 15px;
+  --t-caption: 13px;
+  --t-eyebrow: 12px;
+
+  --lh-tight: 1.05; /* @kind font */
+  --lh-snug: 1.2; /* @kind font */
+  --lh-body: 1.45; /* @kind font */
+  --lh-loose: 1.6; /* @kind font */
+
+  --tracking-tight: -0.01em;
+  --tracking-eyebrow: 0.12em;
+
+  /* ============ SPACING & RADII ============ */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 24px; --space-6: 32px;
+  --space-7: 48px; --space-8: 64px; --space-9: 96px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-pill: 999px;
+  --radius-blob: 62% 38% 70% 30% / 50% 60% 40% 50%;
+
+  /* ============ SHADOWS ============ */
+  --shadow-sm: 0 1px 2px rgba(70, 0, 25, 0.06);
+  --shadow-md: 0 4px 12px rgba(70, 0, 25, 0.08), 0 1px 2px rgba(70, 0, 25, 0.05);
+  --shadow-lg: 0 12px 32px rgba(70, 0, 25, 0.12), 0 2px 4px rgba(70, 0, 25, 0.06);
+  --shadow-inset: inset 0 0 0 1px var(--border);
+}
+
+/* ============================================================
+   SEMANTIC TYPE CLASSES
+   ============================================================ */
+
+.ok-display-1 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--t-display-1); line-height: var(--lh-tight);
+  letter-spacing: var(--tracking-tight); color: var(--fg-on-dark);
+}
+.ok-display-2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--t-display-2); line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+}
+.ok-h1 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--t-h1); line-height: var(--lh-snug); color: var(--fg);
+}
+.ok-h2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--t-h2); line-height: var(--lh-snug); color: var(--fg);
+}
+.ok-h3 {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: var(--t-h3); line-height: var(--lh-snug); color: var(--fg);
+}
+.ok-body {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: var(--t-body); line-height: var(--lh-body); color: var(--fg);
+}
+.ok-body-lg {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: var(--t-body-lg); line-height: var(--lh-body); color: var(--fg);
+}
+.ok-body-sm {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: var(--t-body-sm); line-height: var(--lh-body); color: var(--fg-soft);
+}
+.ok-caption {
+  font-family: var(--font-body); font-weight: 400;
+  font-size: var(--t-caption); line-height: var(--lh-body); color: var(--fg-mute);
+}
+.ok-eyebrow {
+  font-family: var(--font-body); font-weight: 600;
+  font-size: var(--t-eyebrow); letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase; color: var(--ok-red);
+}
+.ok-quote {
+  font-family: var(--font-display); font-style: italic; font-weight: 400;
+  font-size: var(--t-h2); line-height: var(--lh-snug); color: var(--fg);
+}
+.ok-number {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: var(--t-display-1); line-height: 1;
+  color: var(--ok-red); letter-spacing: -0.02em;
+}

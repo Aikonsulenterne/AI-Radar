@@ -966,16 +966,42 @@ export interface MarketVendorOffer {
   via_case: boolean;
 }
 
+export type TechStatus = "klar_nu" | "vaerd_at_afproeve" | "hold_oeje";
+
+export interface MarketCaseSummary {
+  id: string;
+  company: string;
+  country: string | null;
+  region_label: string;
+  text: string;
+  kind_label: string;
+  source_url: string | null;
+  source_title: string;
+}
+
 export interface MarketTechnology {
   id: string;
   label: string;
   areas: MarketArea[];
   what: string | null;
   value: string | null;
+  for_ok: string | null;
   is_new: boolean;
+  status: TechStatus;
+  status_label: string;
   vendors: MarketVendorOffer[];
   case_count: number;
+  best_case: MarketCaseSummary | null;
   latest_at: string | null;
+  first_seen_at: string | null;
+  launched: string | null;
+}
+
+export interface MarketVendorRow {
+  name: string;
+  type: string;
+  technologies: string[];
+  danish: boolean | null;
 }
 
 export interface MarketCase {
@@ -984,6 +1010,7 @@ export interface MarketCase {
   company: string;
   company_id: string | null;
   country: string | null;
+  country_label: string | null;
   region: MarketRegion;
   region_label: string;
   industry: string | null;
@@ -1005,47 +1032,52 @@ export interface MarketCase {
   source: MarketSourceRef;
   also_reported_by: string[];
   observed_at: string;
+  start: string | null;
+  source_kind: "uafhængig" | "leverandør";
+  source_kind_label: string;
+  similarity: number;
 }
 
-export interface OkBriefProblem {
+export interface OkBriefRow {
   key: string;
-  area: MarketArea;
-  area_label: string;
-  name: string;
-  description: string;
-  technologies: MarketTechnologyRef[];
-  cases: { case: MarketCase; why: string }[];
-  effects: {
+  title: string;
+  technology: {
+    id: string;
+    label: string;
+    status: TechStatus;
+    status_label: string;
+  } | null;
+  proof: MarketCaseSummary;
+  because: string;
+  next_step: string;
+  more: {
+    id: string;
     company: string;
-    effect: string;
-    kpi_label: string | null;
-    effect_source_label: string | null;
+    country: string | null;
+    what: string;
     source_url: string | null;
   }[];
-  contacts: {
-    name: string;
-    kind: "leverandør" | "reference";
-    danish_supported: boolean | null;
-  }[];
-  next_step: string;
+  vendors: string[];
+  reference: string;
 }
 
 export interface OkBrief {
   generated_at: string | null;
+  month_label: string | null;
   prompt_version: string | null;
   technology_count: number;
   case_count: number;
-  top_now: {
-    text: string;
-    cases: { id: string; company: string; source_url: string | null }[];
-    technologies: MarketTechnologyRef[];
-  }[];
-  problems: OkBriefProblem[];
+  must_know: { n: number; text: string; source_url: string | null; href: string | null }[];
+  recommendations: { action: string; owner: string; duration: string }[];
+  decisions: string[];
+  areas: { area: MarketArea; label: string; rows: OkBriefRow[] }[];
+  undocumented: { title: string; area_label: string }[];
 }
 
 export interface Me {
   user_id: string | null;
   role: "reader" | "reviewer" | "admin";
+  last_updated: string | null;
 }
 
 function query(params: Record<string, string | undefined>): string {
@@ -1061,8 +1093,8 @@ export function getMe(): Promise<Me> {
   return request<Me>("/me");
 }
 
-export function getOkBrief(area?: MarketArea): Promise<OkBrief> {
-  return request<OkBrief>(`/ok-brief${query({ area })}`);
+export function getOkBrief(): Promise<OkBrief> {
+  return request<OkBrief>("/ok-brief");
 }
 
 export function generateOkBrief(): Promise<OkBrief> {
@@ -1072,6 +1104,8 @@ export function generateOkBrief(): Promise<OkBrief> {
 export function getMarketTechnologies(area?: MarketArea): Promise<{
   items: MarketTechnology[];
   areas: { area: MarketArea; label: string; count: number }[];
+  new_on_market: { technology: MarketTechnology; why: string | null; date_label: string }[];
+  vendors: MarketVendorRow[];
 }> {
   return request(`/market/technologies${query({ area })}`);
 }
@@ -1083,6 +1117,8 @@ export function getMarketCases(filters: {
 }): Promise<{
   items: MarketCase[];
   total: number;
+  all_total: number;
+  danish_total: number;
   technologies: MarketTechnologyRef[];
 }> {
   return request(`/market/cases${query(filters)}`);
@@ -1097,4 +1133,17 @@ export function setMarketItemHidden(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ hidden }),
   });
+}
+
+export interface MarketSource {
+  id: string;
+  name: string;
+  type: string;
+  active: boolean;
+  last_checked_at: string | null;
+  relevant_articles: number;
+}
+
+export function getMarketSources(): Promise<MarketSource[]> {
+  return request<MarketSource[]>("/market/sources");
 }

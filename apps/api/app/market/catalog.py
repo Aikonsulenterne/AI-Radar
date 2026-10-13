@@ -296,6 +296,38 @@ _NORDIC = {"SE", "NO", "FI", "IS", "FO", "GL", "AX"}
 REGION_LABELS = {"danmark": "Danmark", "norden": "Norden", "verden": "Resten af verden"}
 
 
+COUNTRY_NAMES = {
+    "DK": "Danmark",
+    "SE": "Sverige",
+    "NO": "Norge",
+    "FI": "Finland",
+    "IS": "Island",
+    "FO": "Færøerne",
+    "GL": "Grønland",
+    "DE": "Tyskland",
+    "GB": "Storbritannien",
+    "NL": "Holland",
+    "FR": "Frankrig",
+    "ES": "Spanien",
+    "IT": "Italien",
+    "IE": "Irland",
+    "BE": "Belgien",
+    "CH": "Schweiz",
+    "AT": "Østrig",
+    "PL": "Polen",
+    "US": "USA",
+    "CA": "Canada",
+    "AU": "Australien",
+    "IN": "Indien",
+}
+
+
+def country_name(country_code: str | None) -> str | None:
+    if not country_code:
+        return None
+    return COUNTRY_NAMES.get(country_code.strip().upper(), country_code)
+
+
 def region(country_code: str | None) -> str:
     code = (country_code or "").strip().upper()
     if code == "DK":

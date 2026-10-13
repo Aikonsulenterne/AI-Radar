@@ -1,108 +1,82 @@
-import Link from "next/link";
 import type { MarketCase } from "../../app/lib/api";
-import { AiNote } from "./ai-note";
-import { HideButton } from "./hide-button";
 
-const AREA_LABELS: Record<string, string> = {
-  salg: "Salg",
-  kundeservice: "Kundeservice",
-  support: "Support",
-};
+const STAGES = [
+  { key: "idé", label: "Idé" },
+  { key: "pilot", label: "Pilot" },
+  { key: "drift", label: "Drift" },
+  { key: "skaleret", label: "Skaleret" },
+];
 
-export function CaseCard({ item, isAdmin }: { item: MarketCase; isAdmin: boolean }) {
-  const technology = item.technology?.label ?? item.technology_name;
-  const origin = [item.country, item.industry].filter(Boolean).join(" · ");
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("da-DK", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "Europe/Copenhagen",
+  }).format(new Date(value));
+}
+
+/** Én case: virksomhed, land, teknologi, trin, hvad de gjorde og effekt.
+ * Læring, omfang, start og kilde står, når kortet foldes ud. */
+export function CaseCard({ item }: { item: MarketCase }) {
+  const at = STAGES.findIndex((s) => s.key === item.stage);
+  const technology = item.technology?.label ?? item.technology_name ?? "Ikke oplyst";
+  const origin = [item.country_label, item.industry].filter(Boolean).join(" · ");
   return (
-    <article className="market-card" id={`case-${item.id}`}>
-      <header className="market-card-head">
-        <div>
-          <h3 className="market-card-title">{item.company}</h3>
-          <p className="market-card-meta">
-            {origin ? `${origin} · ` : ""}
-            {item.region_label}
-          </p>
-        </div>
-        <span className="area-badges">
-          {item.areas.map((area) => (
-            <span key={area} className="badge badge-muted">
-              {AREA_LABELS[area] ?? area}
-            </span>
-          ))}
-        </span>
+    <article className="case-v2" id={`case-${item.id}`}>
+      <header className="case-v2-head">
+        <h2>{item.company}</h2>
+        {origin ? <span className="muted small">{origin}</span> : null}
       </header>
-
-      {item.what_they_did ? <p className="market-card-lead">{item.what_they_did}</p> : null}
-
-      <dl className="market-facts">
-        <div>
-          <dt>Teknologi</dt>
-          <dd>
-            {item.technology ? (
-              <Link href={`/teknologier#tech-${item.technology.id}`}>{technology}</Link>
-            ) : (
-              (technology ?? "Ikke oplyst")
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt>Leverandør</dt>
-          <dd>{item.vendor ?? "Ikke oplyst"}</dd>
-        </div>
-        <div>
-          <dt>Indført</dt>
-          <dd>{item.stage_label ?? "Ikke oplyst"}</dd>
-        </div>
-      </dl>
-      {item.scope ? (
-        <p className="market-lesson">
-          <span className="market-effect-label">Omfang</span> {item.scope}
-        </p>
-      ) : null}
-
-      <div className={item.effect ? "market-effect" : "market-effect market-effect-none"}>
-        <span className="market-effect-label">Effekt</span>
+      <div className="pill-list">
+        <span className="pill pill-tech">{technology}</span>
+        <span className="pill">Leverandør: {item.vendor ?? "Ikke oplyst"}</span>
+      </div>
+      <ol className="stage-steps" aria-label={`Status: ${item.stage_label ?? "Ikke oplyst"}`}>
+        {STAGES.map((s, i) => (
+          <li key={s.key} className={at >= 0 && i <= at ? "on" : undefined}>
+            {s.label}
+          </li>
+        ))}
+      </ol>
+      {item.what_they_did ? <p className="case-what">{item.what_they_did}</p> : null}
+      <div className="box-fact">
+        <span className="box-label">Effekt</span>
         {item.effect ? (
           <>
-            <strong>{item.effect}</strong>
-            <span className="cell-sub">
-              {[item.kpi_label, item.effect_source_label].filter(Boolean).join(" · ")}
-            </span>
+            <p>»{item.effect}«</p>
+            <p className="muted small">{item.source_kind_label}</p>
           </>
         ) : (
-          <span>Ikke oplyst</span>
+          <p className="muted">Ikke oplyst</p>
         )}
       </div>
-
-      {item.lesson ? (
-        <p className="market-lesson">
-          <span className="market-effect-label">Læring</span> {item.lesson}
-        </p>
-      ) : null}
-
-      <details className="market-quote">
-        <summary>Se citat fra kilden</summary>
+      <details className="case-more">
+        <summary>Læring, omfang og kilde</summary>
+        {item.lesson ? (
+          <div className="box-analysis">
+            <span className="box-label">Læring ifølge kilden</span>
+            <p>»{item.lesson}«</p>
+          </div>
+        ) : null}
+        <dl className="case-facts">
+          <dt>Start</dt>
+          <dd>{item.start ?? "Ikke oplyst"}</dd>
+          <dt>Omfang</dt>
+          <dd>{item.scope ?? "Ikke oplyst"}</dd>
+        </dl>
         <blockquote className="evidence-quote">{item.quote}</blockquote>
       </details>
-
-      <footer className="market-card-foot">
-        <span>
-          Kilde:{" "}
-          {item.source.url ? (
-            <a href={item.source.url} target="_blank" rel="noreferrer">
-              {item.source.name}
-            </a>
-          ) : (
-            item.source.name
-          )}
-          {item.source.vendor_source ? " (leverandør)" : ""}
-          {item.also_reported_by.length > 0
-            ? ` · også omtalt af ${item.also_reported_by.join(", ")}`
-            : ""}
-        </span>
-        <span className="market-card-tools">
-          <AiNote />
-          {isAdmin ? <HideButton itemIds={item.item_ids} /> : null}
-        </span>
+      <footer className="tech-foot">
+        {item.source.url ? (
+          <a href={item.source.url} target="_blank" rel="noreferrer">
+            Kilde: {item.source.title ?? item.source.name} · {formatDate(item.observed_at)} →
+          </a>
+        ) : (
+          <span>
+            Kilde: {item.source.name} · {formatDate(item.observed_at)}
+          </span>
+        )}
       </footer>
     </article>
   );

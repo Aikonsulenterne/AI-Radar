@@ -3,12 +3,12 @@ import {
   getMarketTechnologies,
   type MarketArea,
   type MarketTechnology,
+  type MarketVendorRow,
+  type TechStatus,
 } from "../lib/api";
-import { getRole } from "../lib/me";
 import { ApiErrorAlert } from "../../components/states/api-error";
 import { AREA_TABS, FilterTabs } from "../../components/market/area-tabs";
-import { AiNote } from "../../components/market/ai-note";
-import { HideButton } from "../../components/market/hide-button";
+import { StatusBadge } from "../../components/market/status-badge";
 
 export const dynamic = "force-dynamic";
 
@@ -18,63 +18,128 @@ const AREA_LABELS: Record<string, string> = {
   kundeservice: "Kundeservice",
   support: "Support",
 };
+const SECTIONS: { status: TechStatus; title: string; intro: string }[] = [
+  {
+    status: "klar_nu",
+    title: "Klar nu",
+    intro: "Mindst to cases i drift og mindst én uafhængig kilde.",
+  },
+  {
+    status: "vaerd_at_afproeve",
+    title: "Værd at afprøve",
+    intro: "Der findes cases, men kun i pilot eller med leverandørens egne tal.",
+  },
+  {
+    status: "hold_oeje",
+    title: "Hold øje med",
+    intro: "På markedet, men endnu ingen cases.",
+  },
+];
+const MAX_VENDORS = 3;
 
-function TechnologyCard({ tech, isAdmin }: { tech: MarketTechnology; isAdmin: boolean }) {
+function TechnologyCard({ tech, showAreas }: { tech: MarketTechnology; showAreas: boolean }) {
   const offers = tech.vendors.filter((v) => !v.via_case);
-  const fromCases = tech.vendors.filter((v) => v.via_case);
+  const named = (offers.length > 0 ? offers : tech.vendors).map((v) => v.name);
+  const visible = named.slice(0, MAX_VENDORS);
+  const more = named.length - visible.length;
   return (
-    <article className="market-card" id={`tech-${tech.id}`}>
-      <header className="market-card-head">
-        <h3 className="market-card-title">{tech.label}</h3>
-        <span className="area-badges">
-          {tech.is_new ? <span className="badge badge-candidate">Nyt i markedet</span> : null}
-          {tech.areas.map((area) => (
-            <span key={area} className="badge badge-muted">
-              {AREA_LABELS[area] ?? area}
-            </span>
-          ))}
-        </span>
+    <article className="tech-card" id={`tech-${tech.id}`}>
+      <header className="tech-card-head">
+        <h3>{tech.label}</h3>
+        <StatusBadge status={tech.status} label={tech.status_label} />
       </header>
-      {tech.what ? <p className="market-card-lead">{tech.what}</p> : null}
-      {tech.value ? <p className="market-value">{tech.value}</p> : null}
-
-      <h4 className="market-subhead">Leverandører</h4>
-      {offers.length === 0 && fromCases.length === 0 ? (
-        <p className="cell-sub">Ingen leverandører fundet i kilderne endnu.</p>
-      ) : (
-        <ul className="vendor-list">
-          {offers.map((v) => (
-            <li key={v.company_id ?? v.name}>
-              <strong>{v.name}</strong>
-              {v.product ? ` — ${v.product}` : ""}
-              {v.danish_supported ? <span className="badge badge-ok">Dansk</span> : null}{" "}
-              {v.source?.url ? (
-                <a href={v.source.url} target="_blank" rel="noreferrer" className="inline-source">
-                  kilde
-                </a>
-              ) : null}
-              {isAdmin && v.item_ids.length > 0 ? <HideButton itemIds={v.item_ids} /> : null}
-            </li>
-          ))}
-          {fromCases.length > 0 ? (
-            <li className="cell-sub">
-              Kendt fra kundecases: {fromCases.map((v) => v.name).join(", ")}
-            </li>
-          ) : null}
-        </ul>
-      )}
-
-      <footer className="market-card-foot">
+      {showAreas ? (
+        <p className="tech-areas">{tech.areas.map((a) => AREA_LABELS[a] ?? a).join(" · ")}</p>
+      ) : null}
+      {tech.what ? <p className="tech-what">{tech.what}</p> : null}
+      {tech.for_ok ? (
+        <div className="box-analysis">
+          <span className="box-label">Det kan betyde for OK</span>
+          <p>{tech.for_ok}</p>
+        </div>
+      ) : null}
+      <div className="tech-vendors">
+        <span className="box-label">Leverandører</span>
+        <p>
+          {visible.length > 0 ? visible.join(", ") : "Ikke oplyst"}
+          {more > 0 ? <span className="muted"> + {more} flere</span> : null}
+        </p>
+      </div>
+      <div className="tech-proof">
+        {tech.best_case ? (
+          <p>
+            {tech.best_case.company}: {tech.best_case.text}{" "}
+            <span className="muted small">· {tech.best_case.kind_label}</span>
+          </p>
+        ) : (
+          <p className="muted">Ingen cases endnu</p>
+        )}
+      </div>
+      {tech.vendors.length > 0 ? (
+        <details className="tech-more">
+          <summary>Vis leverandører og kilder</summary>
+          <ul>
+            {tech.vendors.map((v) => (
+              <li key={v.company_id ?? v.name}>
+                <strong>{v.name}</strong>
+                {v.product ? <span className="muted">{v.product}</span> : null}
+                {v.danish_supported ? <span className="dk-mark">✓ Dansk</span> : null}
+                {v.via_case ? <span className="muted small">fra kundecase</span> : null}
+                {v.source?.url ? (
+                  <a href={v.source.url} target="_blank" rel="noreferrer">
+                    Kilde
+                  </a>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+      <footer className="tech-foot">
         {tech.case_count > 0 ? (
           <Link href={`/cases?teknologi=${tech.id}`}>
-            {tech.case_count === 1 ? "1 case" : `${tech.case_count} cases`} →
+            {tech.case_count === 1 ? "1 case – se den →" : `${tech.case_count} cases – se dem →`}
           </Link>
         ) : (
-          <span className="cell-sub">Ingen cases fundet endnu</span>
+          <span className="muted">Ingen cases fundet endnu</span>
         )}
-        <AiNote />
       </footer>
     </article>
+  );
+}
+
+function VendorTable({ rows }: { rows: MarketVendorRow[] }) {
+  return (
+    <div className="table-card">
+      <table className="v2-table">
+        <thead>
+          <tr>
+            <th scope="col">Leverandør</th>
+            <th scope="col">Type</th>
+            <th scope="col">Teknologier</th>
+            <th scope="col">Dansk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((v) => (
+            <tr key={v.name}>
+              <th scope="row">{v.name}</th>
+              <td className="muted">{v.type}</td>
+              <td>
+                <span className="pill-list">
+                  {v.technologies.map((t) => (
+                    <span key={t} className="pill">
+                      {t}
+                    </span>
+                  ))}
+                </span>
+              </td>
+              <td className={v.danish ? "dk-yes" : "muted"}>{v.danish ? "✓ Ja" : "Ikke oplyst"}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -86,31 +151,27 @@ export default async function TechnologiesPage({
   const { omraade } = await searchParams;
   const area = AREAS.includes(omraade as MarketArea) ? (omraade as MarketArea) : undefined;
 
-  let items: MarketTechnology[] | null = null;
+  let data: Awaited<ReturnType<typeof getMarketTechnologies>> | null = null;
   let loadError: unknown = null;
-  const [result, role] = await Promise.all([
-    getMarketTechnologies(area).then(
-      (value) => ({ value }),
-      (error: unknown) => ({ error }),
-    ),
-    getRole(),
-  ]);
-  if ("value" in result) items = result.value.items;
-  else loadError = result.error;
-  const isAdmin = role === "admin";
+  try {
+    data = await getMarketTechnologies(area);
+  } catch (error) {
+    loadError = error;
+  }
 
-  const found = (items ?? []).filter((t) => t.vendors.length > 0 || t.case_count > 0);
-  const known = found.filter((t) => !t.is_new);
-  const fresh = found.filter((t) => t.is_new);
-  const missing = (items ?? []).filter((t) => !t.is_new && t.vendors.length === 0 && t.case_count === 0);
+  const found = (data?.items ?? []).filter((t) => t.vendors.length > 0 || t.case_count > 0);
+  const missing = (data?.items ?? []).filter(
+    (t) => !t.is_new && t.vendors.length === 0 && t.case_count === 0,
+  );
 
   return (
-    <>
-      <h1>Teknologier</h1>
-      <p className="page-lead">
-        Hvilken AI findes der på markedet til salg, kundeservice og support — og
-        hvem sælger den.
-      </p>
+    <div className="market-v2">
+      <div className="page-intro">
+        <p className="eyebrow">Teknologier</p>
+        <h1>Hvilke AI-teknologier findes der på markedet – og hvem sælger dem?</h1>
+        <p>Det nyeste først. Derefter alle teknologier og de leverandører, der tilbyder dem.</p>
+      </div>
+
       <FilterTabs
         label="Område"
         param="omraade"
@@ -120,46 +181,98 @@ export default async function TechnologiesPage({
         params={{}}
       />
 
-      {items === null ? (
+      {data === null ? (
         <ApiErrorAlert error={loadError} />
       ) : (
         <>
-          {known.length === 0 && fresh.length === 0 ? (
-            <div className="empty-state">
-              <p>
-                <strong>Ingen teknologier fundet i kilderne endnu.</strong>
-              </p>
-            </div>
-          ) : (
-            <div className="market-grid">
-              {known.map((t) => (
-                <TechnologyCard key={t.id} tech={t} isAdmin={isAdmin} />
-              ))}
-            </div>
-          )}
-
-          {fresh.length > 0 ? (
-            <section aria-label="Nyt i markedet">
-              <h2 className="section-title">Nyt i markedet</h2>
-              <p className="cell-sub">
-                Teknologier, radaren har fundet hos leverandører, og som ikke står på
-                listen endnu.
-              </p>
-              <div className="market-grid">
-                {fresh.map((t) => (
-                  <TechnologyCard key={t.id} tech={t} isAdmin={isAdmin} />
-                ))}
+          {data.new_on_market.length > 0 ? (
+            <section className="v2-section" aria-labelledby="new-title">
+              <div className="v2-section-head">
+                <h2 id="new-title">Nyt på markedet</h2>
+                <span className="muted">Lanceret, annonceret eller fundet de seneste 90 dage</span>
               </div>
+              <div className="card-grid-v2">
+                {data.new_on_market.map(({ technology: t, why, date_label }) => {
+                  const vendors = t.vendors.filter((v) => !v.via_case).slice(0, 3);
+                  const source = t.vendors.find((v) => v.source?.url)?.source;
+                  return (
+                    <article key={t.id} className="tech-card tech-card-new">
+                      <div className="new-meta">
+                        <span className="new-pill">Nyt</span>
+                        <span className="muted small">{date_label}</span>
+                      </div>
+                      <h3>{t.label}</h3>
+                      {t.what ? <p className="tech-what">{t.what}</p> : null}
+                      {why ? (
+                        <div className="box-analysis">
+                          <span className="box-label">Hvorfor værd at kende</span>
+                          <p>{why}</p>
+                        </div>
+                      ) : null}
+                      <div className="tech-foot">
+                        <span className="pill-list">
+                          {vendors.map((v) => (
+                            <span key={v.name} className="pill pill-strong">
+                              {v.name}
+                            </span>
+                          ))}
+                        </span>
+                        {source?.url ? (
+                          <a href={source.url} target="_blank" rel="noreferrer">
+                            Kilde →
+                          </a>
+                        ) : null}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <p className="ai-note">AI-sammenfattet · tjek kilden</p>
             </section>
           ) : null}
 
+          {SECTIONS.map((section) => {
+            const cards = found.filter((t) => t.status === section.status);
+            if (cards.length === 0) return null;
+            return (
+              <section
+                key={section.status}
+                className="v2-section"
+                aria-labelledby={`s-${section.status}`}
+              >
+                <div className="v2-section-head">
+                  <h2 id={`s-${section.status}`}>{section.title}</h2>
+                  <span className="muted">{section.intro}</span>
+                </div>
+                <div className="card-grid-v2">
+                  {cards.map((t) => (
+                    <TechnologyCard key={t.id} tech={t} showAreas={area === undefined} />
+                  ))}
+                </div>
+                <p className="ai-note">AI-sammenfattet · tjek kilden</p>
+              </section>
+            );
+          })}
+
           {missing.length > 0 ? (
-            <p className="cell-sub brief-gaps">
+            <p className="empty-line">
               Ikke fundet i kilderne endnu: {missing.map((t) => t.label).join(" · ")}
             </p>
           ) : null}
+
+          {data.vendors.length > 0 ? (
+            <section className="v2-section" aria-labelledby="vendors-title">
+              <div className="v2-section-head">
+                <h2 id="vendors-title">Leverandører på markedet</h2>
+                <span className="muted">
+                  Hvem tilbyder hvad · ✓ Ja = kilden siger, at løsningen understøtter dansk
+                </span>
+              </div>
+              <VendorTable rows={data.vendors} />
+            </section>
+          ) : null}
         </>
       )}
-    </>
+    </div>
   );
 }

@@ -22,6 +22,7 @@ from app.market.catalog import (
     REGION_LABELS,
     TECH_CATALOG,
     VENDOR_TYPES,
+    country_name,
     region,
 )
 from app.models import Document, Source
@@ -147,6 +148,7 @@ class CaseCard(BaseModel):
     company: str
     company_id: uuid.UUID | None
     country: str | None
+    country_label: str | None = None
     region: str
     region_label: str
     industry: str | None
@@ -271,6 +273,7 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         company=_company_name(db, primary.item.company_id) or "Ukendt organisation",
         company_id=primary.item.company_id,
         country=country,
+        country_label=country_name(country),
         region=reg,
         region_label=REGION_LABELS[reg],
         industry=industry,
@@ -363,7 +366,7 @@ def case_summary(card: CaseCard) -> CaseSummary:
     return CaseSummary(
         id=card.id,
         company=card.company,
-        country=card.country,
+        country=card.country_label,
         region_label=card.region_label,
         text=card.effect or card.what_they_did or card.technology_name or "",
         kind_label=card.source_kind_label if card.effect else "Effekt ikke oplyst",

@@ -1,12 +1,16 @@
 import { cache } from "react";
-import { getMe, type Me } from "./api";
+import { getMe as fetchMe, type Me } from "./api";
 
-/** Den indloggede brugers rolle, én gang pr. request (layout og side deler
- * svaret). null = ikke logget ind eller API'et svarer ikke. */
-export const getRole = cache(async (): Promise<Me["role"] | null> => {
+/** Den indloggede bruger én gang pr. request (layout og side deler svaret).
+ * null = ikke logget ind eller API'et svarer ikke. */
+export const getMe = cache(async (): Promise<Me | null> => {
   try {
-    return (await getMe()).role;
+    return await fetchMe();
   } catch {
     return null;
   }
 });
+
+export async function getRole(): Promise<Me["role"] | null> {
+  return (await getMe())?.role ?? null;
+}

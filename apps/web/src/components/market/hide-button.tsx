@@ -12,7 +12,7 @@ export function HideButton({ itemIds, label = "Skjul" }: { itemIds: string[]; la
   const [error, setError] = useState<string | null>(null);
 
   async function hide() {
-    if (!window.confirm("Skjul dette fund for alle? Det kan vises igen fra audit-loggen.")) return;
+    if (!window.confirm("Skjul dette fund på alle sider? Intet slettes.")) return;
     setBusy(true);
     setError(null);
     try {

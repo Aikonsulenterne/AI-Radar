@@ -441,7 +441,7 @@ def _brief_out(db: Session, value: dict[str, Any] | None) -> OkBriefOut:
                     MoreCase(
                         id=card.id,
                         company=card.company,
-                        country=card.country,
+                        country=card.country_label,
                         what=card.what_they_did or card.effect or "",
                         source_url=card.source.url,
                     )

@@ -944,3 +944,16 @@ findes stadig, men linkes ikke. Filtre er links i URL'en (`?omraade=`,
 `AiNote`, `GenerateBriefButton`, `TechnologySelect`. Effekt vises med grøn
 venstrekant, næste skridt (anbefaling) med rød; teksten bærer altid
 betydningen. Print: én side pr. område.
+
+## 30. Designhandoff v2 (2026-10-13)
+
+Reference: `docs/design/design_handoff_ai_radar_v2/` (prototype, tokens,
+godkendte skærmbilleder af Til OK). Sidebaren er erstattet af en burgundy
+topbjælke (`components/layout/top-nav.tsx`); sideindhold max 1160px.
+Komponenter i `components/market/`: `ProblemRow` (række, der foldes ud med
+`aria-expanded`), `StatusBadge`, `CaseCard` (trin + `<details>`),
+`UpdateRadarButton` (toast), `HideButton` (kun på Kilder), `FilterTabs`,
+`TechnologySelect`, `GenerateBriefButton`. Klasser for fakta/analyse/
+anbefaling: `.box-fact`, `.box-analysis`, `.box-recommendation`.
+Statusfarver som tokens (`--status-*` i `tokens.css`). Print: navigation,
+knapper og udfoldede rækker skjules.

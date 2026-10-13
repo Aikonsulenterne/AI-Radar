@@ -815,3 +815,23 @@ Endpoints: `GET /me`, `GET /market/technologies?area=`,
 `20261013090000_market_items.sql`; opstartssikringen gentager den.
 Claim-pipelinen, signaler, cases og opportunities er bevaret, men bruges
 ikke af den forenklede visning.
+
+## 25. Designhandoff v2 (2026-10-13)
+
+- Status beregnes i `app/market/views.py` (`technology_status`) ud fra de
+  synlige cases; en case er "leverandør", når kilden er en leverandørkilde,
+  eller AI'en angiver, at effekten kommer fra leverandøren
+  (`source_kind`). Lighed med OK (`similarity`): Danmark 3, Norden 2,
+  branche energi/forsyning/telekom/detail +2, drift/skaleret +1, effekt +1.
+- `market_extraction` 1.1.0 tilføjer `launched` (teknologier), `start` og
+  `source_kind` (cases). `ok_brief` 2.0.0 returnerer `must_know`,
+  `recommendations`, `decisions`, `per_problem` (best_technology,
+  best_case, why_comparable, more_cases, next_step) og `new_tech`. Serveren
+  håndhæver antal, kendte id'er og at hver case højst bruges én gang; status
+  og leverandører kommer aldrig fra modellen.
+- Nye/ændrede endpoints: `GET /ok-brief` (v2-struktur, ingen områdefilter),
+  `GET /market/technologies` (+ `new_on_market`, `vendors`),
+  `GET /market/cases` (Norden omfatter Danmark, `all_total`,
+  `danish_total`), `GET /market/sources` (Admin), `GET /me`
+  (+ `last_updated`). Leverandørtyper og "Det kan betyde for OK" er
+  kuratering i `app/market/catalog.py`.

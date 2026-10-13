@@ -130,3 +130,10 @@ bruger markedsudtrækket (`app/pipeline/market.py`, `market_items`) i stedet
 for claim-pipelinen; Til OK skrives af prompten `ok_brief`. Katalog og
 problemliste: `app/market/catalog.py`. Se Product Master §18 og Technical
 Master §24.
+**Designhandoff v2 (2026-10-13)** er gældende UI: burgundy topbjælke
+(Teknologier · Sådan gør andre · Til OK · Kilder), beregnet statusmodel (Klar
+nu / Værd at afprøve / Hold øje med), Til OK med Det skal du vide / Det
+foreslår vi / Det skal du tage stilling til og én tabel pr. område (hver case
+højst én gang), intet Indsigter-modul. Spec og prototype:
+`docs/design/design_handoff_ai_radar_v2/` — Product Master §19, Technical
+Master §25, UI Master §30.

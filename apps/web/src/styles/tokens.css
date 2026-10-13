@@ -60,8 +60,18 @@
   --state-warn-border: #EBD3A3;
   --state-danger: var(--ok-red-deep);
 
+  /* Fælles statusmodel (designhandoff v2 §3); teksten bærer betydningen. */
+  --status-ready-fg: var(--ok-green);
+  --status-ready-bg: var(--ok-green-light);
+  --status-try-fg: #8A5A10;
+  --status-try-bg: #FBF0DC;
+  --status-watch-fg: var(--ok-burgundy);
+  --status-watch-bg: var(--ok-cream-warm);
+
   --font-display: 'OKfamily', Georgia, 'Times New Roman', serif;
   --font-body: 'Fellix', Inter, 'Helvetica Neue', Arial, system-ui, sans-serif;
+  --font-sans: var(--font-body);
+  --font-serif: var(--font-display);
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --t-display-1: clamp(56px, 6.6vw, 96px);
@@ -97,8 +107,10 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
   --radius-pill: 999px;
+  --radius-blob: 62% 38% 70% 30% / 50% 60% 40% 50%;
 
   --shadow-sm: 0 1px 2px rgba(70, 0, 25, 0.06);
+  --shadow-inset: inset 0 0 0 1px var(--border);
   --shadow-md: 0 4px 12px rgba(70, 0, 25, 0.08), 0 1px 2px rgba(70, 0, 25, 0.05);
   --shadow-lg: 0 12px 32px rgba(70, 0, 25, 0.12), 0 2px 4px rgba(70, 0, 25, 0.06);
 }

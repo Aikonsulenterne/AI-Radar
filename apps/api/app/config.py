@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # (pipeline/backfill.py). Afgrænser tid og AI-forbrug pr. kørsel.
     reread_per_run: int = 25
 
+    # Den forenklede radar (2026-10-13): kørsler bruger markedsudtrækket
+    # (pipeline/market.py) i stedet for claim-pipelinen. False = den gamle
+    # claim-pipeline (bruges af dens testsuite).
+    market_pipeline: bool = True
+    # Ældre dokumenter, markedsudtrækket analyserer pr. kørsel.
+    market_backfill_per_run: int = 30
+
     # Delt hemmelighed, som den planlagte udløser (GitHub Actions) sender i
     # X-Worker-Token for at starte en kørsel. Tom = kun Admin-login kan.
     worker_trigger_token: str = ""

@@ -42,9 +42,16 @@ from app.errors import ApiError
 from app.ingestion.run import run_source_fetch
 from app.models import Document, Source
 from app.models_runs import WorkerRun
+from app.models_settings import AppSetting
 from app.pipeline.autopublish import autopublish_document
 from app.pipeline.backfill import documents_to_reread, reread_document
 from app.pipeline.insights import generate_insights
+from app.pipeline.market import (
+    OK_BRIEF_KEY,
+    documents_for_market,
+    generate_ok_brief,
+    process_market_document,
+)
 from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.storage import get_storage
 
@@ -159,6 +166,8 @@ def run_once(
 
         if provider is None:
             result.processing_skipped_no_ai = True
+        elif get_settings().market_pipeline:
+            _run_market(db, provider, result, progress)
         else:
             pending = db.scalars(
                 select(Document).where(Document.processing_status == ProcessingStatus.normalized)
@@ -202,6 +211,58 @@ def run_once(
         result.documents_processed,
     )
     return result
+
+
+def _run_market(
+    db: Session,
+    provider: AIProvider,
+    result: WorkerRunResult,
+    progress: Callable[[], None],
+) -> None:
+    """Den forenklede radar: nye dokumenter og et afgrænset antal ældre
+    gennem markedsudtrækket, og Til OK opdateres, når der er nye fund."""
+    found = 0
+    pending = db.scalars(
+        select(Document.id).where(Document.processing_status == ProcessingStatus.normalized)
+    ).all()
+    for document_id in pending:
+        try:
+            document, previous = begin_processing(db, document_id)
+        except ApiError:
+            db.rollback()
+            continue
+        try:
+            outcome = process_market_document(db, provider, document)
+        except AIProviderRejected as exc:
+            abort_processing(db, document, previous)
+            logger.error("ai_provider_rejected message=%s", exc)
+            raise RunAborted(str(exc)) from exc
+        db.commit()
+        found += outcome.technologies + outcome.cases
+        result.documents_processed += 1
+        progress()
+
+    for document in documents_for_market(db, get_settings().market_backfill_per_run):
+        try:
+            outcome = process_market_document(db, provider, document)
+        except AIProviderRejected as exc:
+            db.rollback()
+            raise RunAborted(str(exc)) from exc
+        db.commit()
+        found += outcome.technologies + outcome.cases
+        result.documents_reread += 1
+        progress()
+
+    if found or db.get(AppSetting, OK_BRIEF_KEY) is None:
+        try:
+            generate_ok_brief(db, provider)
+            db.commit()
+        except AIProviderRejected as exc:
+            db.rollback()
+            raise RunAborted(str(exc)) from exc
+        except Exception:  # noqa: BLE001 — fundene er gemt; forsiden prøves igen
+            db.rollback()
+            logger.exception("ok_brief_generation_failed")
 
 
 def _refresh_insights(db: Session, provider: AIProvider) -> None:

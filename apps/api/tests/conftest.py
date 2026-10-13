@@ -28,6 +28,9 @@ os.environ["STORAGE_BACKEND"] = "local"
 os.environ["STORAGE_LOCAL_ROOT"] = tempfile.mkdtemp(prefix="ai-radar-test-storage-")
 os.environ["DATABASE_URL"] = TEST_DATABASE_URL or "sqlite://"
 os.environ["SUPABASE_URL"] = "https://test-projekt.supabase.co"
+# Den gamle claim-pipeline har sin egen testsuite; markedsudtrækket slås
+# til i test_market.py.
+os.environ["MARKET_PIPELINE"] = "false"
 
 import time  # noqa: E402
 import uuid  # noqa: E402
@@ -230,12 +233,16 @@ class FakeProvider:
         invalid_json: bool = False,
         opportunity: dict[str, Any] | None = None,
         insights: dict[str, Any] | None = None,
+        market: dict[str, Any] | None = None,
+        ok_brief: dict[str, Any] | None = None,
     ) -> None:
         self.relevance = relevance or {"relevant": True, "reason": "AI-adoption omtalt"}
         self.extraction = extraction or EXTRACTION_RESPONSE
         self.invalid_json = invalid_json
         self.opportunity = opportunity
         self.insights = insights or {"insights": []}
+        self.market = market or {"technologies": [], "cases": []}
+        self.ok_brief = ok_brief or {"top_now": [], "problems": []}
         self.calls: list[str] = []
         self.prompts: list[str] = []
 
@@ -260,6 +267,10 @@ class FakeProvider:
             return json.dumps(SIGNAL_RESPONSE)
         if prompt_id == "insight_synthesis":
             return json.dumps(self.insights)
+        if prompt_id == "market_extraction":
+            return json.dumps(self.market)
+        if prompt_id == "ok_brief":
+            return json.dumps(self.ok_brief)
         return json.dumps(self.extraction)
 
 

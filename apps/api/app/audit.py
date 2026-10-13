@@ -29,6 +29,7 @@ class AuditEntity(StrEnum):
     opportunity = "opportunity"
     technology = "technology"
     setting = "setting"
+    market_item = "market_item"
 
 
 class AuditAction(StrEnum):

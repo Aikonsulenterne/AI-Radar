@@ -76,6 +76,62 @@ class AISchemaError(Exception):
 
 TModel = TypeVar("TModel", bound=BaseModel)
 
+
+class MarketTechnologyDraft(BaseModel):
+    technology: str = Field(min_length=1, max_length=120)
+    vendor: str = Field(min_length=1, max_length=200)
+    product: str | None = Field(default=None, max_length=200)
+    what_it_does_da: str | None = Field(default=None, max_length=400)
+    business_value_da: str | None = Field(default=None, max_length=400)
+    danish_supported: bool | None = None
+    area: list[str] = Field(default_factory=list, max_length=3)
+    quote: str = Field(min_length=1, max_length=1200)
+
+
+class MarketCaseDraft(BaseModel):
+    company: str = Field(min_length=1, max_length=200)
+    country: str | None = Field(default=None, max_length=60)
+    industry: str | None = Field(default=None, max_length=60)
+    what_they_did_da: str | None = Field(default=None, max_length=400)
+    technology: str | None = Field(default=None, max_length=120)
+    vendor: str | None = Field(default=None, max_length=200)
+    adoption_stage: str | None = Field(default=None, max_length=30)
+    scope: str | None = Field(default=None, max_length=300)
+    effect: str | None = Field(default=None, max_length=500)
+    kpi: str | None = Field(default=None, max_length=60)
+    effect_source: str | None = Field(default=None, max_length=30)
+    lesson: str | None = Field(default=None, max_length=500)
+    area: list[str] = Field(default_factory=list, max_length=3)
+    quote: str = Field(min_length=1, max_length=1200)
+
+
+class MarketExtractionResult(BaseModel):
+    technologies: list[MarketTechnologyDraft] = Field(default_factory=list, max_length=30)
+    cases: list[MarketCaseDraft] = Field(default_factory=list, max_length=30)
+
+
+class OkBriefPoint(BaseModel):
+    text: str = Field(min_length=1, max_length=400)
+    refs: list[str] = Field(default_factory=list, max_length=10)
+
+
+class OkBriefCaseRef(BaseModel):
+    ref: str = Field(min_length=1, max_length=20)
+    why: str = Field(default="", max_length=300)
+
+
+class OkBriefProblem(BaseModel):
+    problem: str = Field(min_length=1, max_length=20)
+    technologies: list[str] = Field(default_factory=list, max_length=10)
+    cases: list[OkBriefCaseRef] = Field(default_factory=list, max_length=10)
+    next_step: str = Field(default="", max_length=400)
+
+
+class OkBriefResult(BaseModel):
+    top_now: list[OkBriefPoint] = Field(default_factory=list, max_length=10)
+    problems: list[OkBriefProblem] = Field(default_factory=list, max_length=40)
+
+
 _RETRY_SUFFIX = (
     "\n\nYour previous answer was not valid JSON for the required schema. "
     "Return ONLY a valid JSON object matching the schema. No prose."

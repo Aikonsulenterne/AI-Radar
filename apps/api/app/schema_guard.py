@@ -32,6 +32,22 @@ VENDOR_MIGRATION_STATEMENTS: tuple[str, ...] = (
     "create table if not exists app_settings ( key text primary key, value jsonb not null, "
     "updated_at timestamptz not null default now(), updated_by_user_id uuid null )",
     "alter table app_settings enable row level security",
+    # Den forenklede radar (20261013090000_market_items.sql).
+    "alter table documents add column if not exists market_extracted_at timestamptz null",
+    "alter table documents add column if not exists market_relevant boolean null",
+    "create table if not exists market_items ( id uuid primary key default gen_random_uuid(), "
+    "kind text not null check (kind in ('technology', 'case')), document_id uuid not null "
+    "references documents (id) on delete cascade, technology_id uuid null references "
+    "technologies (id), company_id uuid null references companies (id), vendor_company_id "
+    "uuid null references companies (id), areas jsonb not null default '[]'::jsonb, data "
+    "jsonb not null default '{}'::jsonb, quote text not null, prompt_version text not null, "
+    "observed_at timestamptz not null, hidden boolean not null default false, hidden_at "
+    "timestamptz null, hidden_by_user_id uuid null, created_at timestamptz not null default "
+    "now() )",
+    "create index if not exists ix_market_items_kind on market_items (kind)",
+    "create index if not exists ix_market_items_document on market_items (document_id)",
+    "create index if not exists ix_market_items_technology on market_items (technology_id)",
+    "alter table market_items enable row level security",
     # Teknologien Virtual Agent (data, også idempotent).
     "with inserted as ( insert into technologies (name, slug, definition, horizon) values ( "
     "'Virtual Agent', 'virtual-agent', 'Chat- og voicebots, der selv besvarer og løser "
@@ -268,6 +284,69 @@ CASE_PAGES: tuple[tuple[str, str, str, str, str | None], ...] = (
 )
 
 
+# Salg- og support-kildepakken (2026-10-13): radaren er til direktøren for
+# Salg, Kundeservice og Support. Indsat én gang som kundecenter-pakken.
+SALES_PACK_MARKER = "Salg- og support-kildepakke 2026-10"
+SALES_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
+    (
+        "Bing News: AI salg og kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=AI+salg+kundeservice&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: kunstig intelligens kundesupport",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22kunstig+intelligens%22+kundesupport&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: danske energi- og teleselskaber og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28Norlys+OR+Andel+OR+%C3%98rsted+OR+Vattenfall+OR+TDC+OR+Telenor+OR+Telia%29+AI+kundeservice&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: AI sales assistant",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22AI+sales+assistant%22+OR+%22sales+copilot%22&format=rss",
+        None,
+    ),
+    (
+        "Bing News: conversation intelligence sales",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22conversation+intelligence%22+sales+AI&format=rss",
+        None,
+    ),
+    (
+        "Bing News: AI upsell customer service",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=AI+%22next+best+offer%22+OR+upsell+%22customer+service%22&format=rss",
+        None,
+    ),
+    (
+        "Bing News: AI churn prediction utilities telecom",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=AI+churn+prediction+utility+OR+telecom+OR+energy&format=rss",
+        None,
+    ),
+    (
+        "Bing News: AI customer support automation",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22customer+support%22+AI+automation+launches&format=rss",
+        None,
+    ),
+)
+
+
 def _ensure_pack(
     connection: Connection,
     *,
@@ -331,6 +410,13 @@ def _ensure_source_pack(connection: Connection) -> None:
         retrieval_method="web_fetch",
         frequency="monthly",
     )
+    _ensure_pack(
+        connection,
+        marker=SALES_PACK_MARKER,
+        pack=SALES_PACK,
+        retrieval_method="rss",
+        frequency="weekly",
+    )
 
 
 # Fejl fra seneste opstart (vises i /health, så de kan ses uden Render-loggen).
@@ -375,6 +461,8 @@ def _ensure_keepalive(connection: Connection) -> str:
 
 # Kolonner og enum-værdier, koden kræver. Bruges af /health.
 _REQUIRED_COLUMNS = (
+    ("documents", "market_extracted_at"),
+    ("market_items", "quote"),
     ("technologies", "is_candidate"),
     ("technologies", "discovered_at"),
     ("documents", "vendor_extracted_at"),

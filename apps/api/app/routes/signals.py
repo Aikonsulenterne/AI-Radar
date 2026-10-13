@@ -29,6 +29,7 @@ from app.errors import ApiError
 from app.models import Document, Source
 from app.models_claims import Claim, ClaimEvidence, Company, Technology
 from app.models_signals import Signal, SignalClaim
+from app.routes.catalog import count_map
 from app.routes.documents import claims_out
 from app.schemas import Paginated
 from app.schemas_signals import (
@@ -73,7 +74,7 @@ def _signals_out(db: Session, signals: Sequence[Signal]) -> list[SignalOut]:
     if not signals:
         return []
     ids = [signal.id for signal in signals]
-    counts = dict(
+    counts = count_map(
         db.execute(
             select(SignalClaim.signal_id, func.count())
             .where(SignalClaim.signal_id.in_(ids))

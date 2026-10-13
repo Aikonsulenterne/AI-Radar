@@ -5,7 +5,8 @@ Manglende fakta er null ("Ikke dokumenteret") — der gættes aldrig.
 """
 
 import uuid
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -66,12 +67,17 @@ def _approved_claims_for_company(db: Session, company_id: uuid.UUID) -> list[Cla
     )
 
 
+def count_map(rows: Iterable[Any]) -> dict[uuid.UUID, int]:
+    """(id, antal)-rækker fra en GROUP BY som opslag."""
+    return {key: int(count) for key, count in rows if key is not None}
+
+
 def _companies_out(db: Session, companies: Sequence[Company]) -> list[CompanyOut]:
     """Claim- og case-antal for mange virksomheder i to forespørgsler."""
     if not companies:
         return []
     ids = [company.id for company in companies]
-    approved = dict(
+    approved = count_map(
         db.execute(
             select(Claim.subject_entity_id, func.count())
             .where(
@@ -82,7 +88,7 @@ def _companies_out(db: Session, companies: Sequence[Company]) -> list[CompanyOut
             .group_by(Claim.subject_entity_id)
         ).all()
     )
-    cases = dict(
+    cases = count_map(
         db.execute(
             select(AdoptionCase.company_id, func.count())
             .where(
@@ -113,7 +119,7 @@ def _subject_counts(db: Session, ids: list[uuid.UUID], *, offers: bool) -> dict[
         if offers
         else Claim.predicate != Predicate.OFFERS_CAPABILITY
     )
-    return dict(
+    return count_map(
         db.execute(
             select(Claim.object_entity_id, func.count(func.distinct(Claim.subject_entity_id)))
             .where(
@@ -646,7 +652,8 @@ def prefetch_offering_sources(db: Session, claims: Sequence[Claim]) -> None:
 
 
 def _evidence_source(db: Session, claim: Claim) -> _EvidenceSource:
-    cached = db.info.get(_SOURCES_KEY, {}).get(claim.id)
+    cache: dict[uuid.UUID, _EvidenceSource] = db.info.get(_SOURCES_KEY, {})
+    cached = cache.get(claim.id)
     if cached is not None:
         return cached
     evidence = db.scalars(

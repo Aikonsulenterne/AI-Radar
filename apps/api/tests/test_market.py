@@ -154,18 +154,26 @@ def test_run_extracts_technologies_and_cases_with_verbatim_quotes(
 
     techs = client.get("/api/v1/market/technologies", headers=reader_headers).json()
     by_label = {t["label"]: t for t in techs["items"]}
-    chatbot = by_label["Chatbot og virtuel agent"]
+    chatbot = by_label["Chatbot / virtuel agent"]
     assert [v["name"] for v in chatbot["vendors"]] == ["Puzzel"]
     assert chatbot["vendors"][0]["danish_supported"] is True
     assert chatbot["vendors"][0]["source"]["name"] == "Energimedie"
+    assert chatbot["status"] == "hold_oeje"  # ingen cases endnu
+    assert chatbot["for_ok"]
     # Ny teknologi uden for kataloget = Nyt i markedet.
     assert by_label["Emotion Detection"]["is_new"] is True
+    assert [n["technology"]["label"] for n in techs["new_on_market"]] == ["Emotion Detection"]
     # Citatet, der ikke står i artiklen, blev kasseret.
-    assert by_label["Hjælp til medarbejderen under samtalen"]["vendors"] == []
-    # Voicebot kender Puzzel fra Norlys-casen.
-    voice = by_label["Voicebot og tale-AI"]
+    assert by_label["Agent Assist"]["vendors"] == []
+    # Voicebot kender Puzzel fra Norlys-casen; én case i drift = værd at afprøve.
+    voice = by_label["Stemmeagenter og voicebots"]
     assert voice["case_count"] == 1
+    assert voice["status"] == "vaerd_at_afproeve"
+    assert voice["best_case"]["company"] == "Norlys"
     assert voice["vendors"][0]["via_case"] is True
+    puzzel = next(v for v in techs["vendors"] if v["name"] == "Puzzel")
+    assert puzzel["type"] == "Kundecenterplatform"
+    assert puzzel["danish"] is True
 
     cases = client.get("/api/v1/market/cases", headers=reader_headers).json()
     assert [c["company"] for c in cases["items"]] == ["Norlys"]  # Zendesk er ikke sin egen case
@@ -173,8 +181,7 @@ def test_run_extracts_technologies_and_cases_with_verbatim_quotes(
     assert norlys["region"] == "danmark"
     assert norlys["stage_label"] == "I drift"
     assert norlys["effect"] == "30 % kortere ventetid"
-    assert norlys["kpi_label"] == "Ventetid"
-    assert norlys["effect_source_label"] == "Virksomhedens egne tal"
+    assert norlys["source_kind_label"] == "Uafhængig kilde"
     assert norlys["vendor"] == "Puzzel"
 
 
@@ -199,7 +206,8 @@ def test_filters_by_area_and_region(
     get = lambda q: client.get(f"/api/v1/market/cases{q}", headers=admin_headers).json()  # noqa: E731
     assert get("?area=kundeservice")["total"] == 1
     assert get("?area=salg")["total"] == 0
-    assert get("?region=norden")["total"] == 0
+    assert get("?region=norden")["total"] == 1  # Norden omfatter Danmark
+    assert get("?region=verden")["total"] == 0
     techs = client.get("/api/v1/market/technologies?area=salg", headers=admin_headers).json()
     assert all("salg" in t["areas"] for t in techs["items"])
     assert {a["area"] for a in techs["areas"]} == {"salg", "kundeservice", "support"}
@@ -239,25 +247,34 @@ def test_hidden_item_disappears_and_hiding_requires_admin(
     assert audit["items"][0]["changes"]["hidden"] == {"fra": False, "til": True}
 
 
-def test_ok_brief_keeps_only_valid_references(
+def test_ok_brief_keeps_only_valid_references_and_each_case_once(
     client: TestClient,
     admin_headers: dict[str, str],
     reader_headers: dict[str, str],
     market_mode: Any,
 ) -> None:
     brief = {
-        "top_now": [
-            {"text": "Norlys har fået 30 % kortere ventetid med en voicebot.", "refs": ["C1"]},
-            {"text": "Et punkt uden kilde.", "refs": ["C99"]},
+        "must_know": [
+            {"text": "Norlys har fået 30 % kortere ventetid med en voicebot.", "source": "C1"},
+            {"text": "Et punkt uden kilde.", "source": "C99"},
         ],
-        "problems": [
+        "recommendations": [
+            {"action": "Book en demo med Puzzel.", "owner": "Kundeservice", "duration": "2 uger"}
+        ]
+        * 5,
+        "decisions": [{"question": "Må vi starte et forsøg?"}] * 3,
+        "per_problem": [
             {
                 "problem": "P1",
-                "technologies": ["T1", "T99"],
-                "cases": [{"ref": "C1", "why": "Dansk energiselskab som OK."}],
+                "best_technology": "T99",
+                "best_case": "C1",
+                "why_comparable": "Dansk energiselskab som OK.",
+                "more_cases": ["C1"],
                 "next_step": "Book en demo med Puzzel.",
             },
-            {"problem": "P42", "technologies": [], "cases": [], "next_step": "Ukendt."},
+            # Samme case igen: må ikke vises to gange.
+            {"problem": "P2", "best_case": "C1", "next_step": "Noget andet."},
+            {"problem": "P42", "best_case": "C1", "next_step": "Ukendt problem."},
         ],
     }
     fake = _provider(ok_brief=brief)
@@ -266,26 +283,55 @@ def test_ok_brief_keeps_only_valid_references(
     assert "ok_brief" in fake.calls  # nye fund → forsiden opdateres
 
     out = client.get("/api/v1/ok-brief", headers=reader_headers).json()
-    assert [p["text"] for p in out["top_now"]] == [brief["top_now"][0]["text"]]
-    assert out["top_now"][0]["cases"][0]["company"] == "Norlys"
-    first = out["problems"][0]
-    assert first["key"] == "ventetid"
-    assert first["next_step"] == "Book en demo med Puzzel."
-    assert [c["case"]["company"] for c in first["cases"]] == ["Norlys"]
-    assert first["effects"][0]["effect"] == "30 % kortere ventetid"
-    assert {c["name"] for c in first["contacts"]} >= {"Norlys"}
-    # Alle problemer vises, også dem uden fund.
-    assert len(out["problems"]) == 11
-
-    sales = client.get("/api/v1/ok-brief?area=salg", headers=reader_headers).json()
-    assert {p["area"] for p in sales["problems"]} == {"salg"}
+    assert [p["text"] for p in out["must_know"]] == [brief["must_know"][0]["text"]]
+    assert out["must_know"][0]["href"].startswith("/cases#case-")
+    assert len(out["recommendations"]) == 3
+    assert out["decisions"] == ["Må vi starte et forsøg?"] * 2
+    assert [a["area"] for a in out["areas"]] == ["kundeservice"]
+    row = out["areas"][0]["rows"][0]
+    assert row["key"] == "ventetid"
+    assert row["proof"]["company"] == "Norlys"
+    assert row["proof"]["kind_label"] == "Uafhængig kilde"
+    assert row["more"] == []  # samme case som beviset
+    # Ugyldig teknologi-id: casens egen teknologi og dens status bruges.
+    assert row["technology"]["label"] == "Stemmeagenter og voicebots"
+    assert row["technology"]["status_label"] == "Værd at afprøve"
+    assert row["vendors"] == ["Puzzel"]  # kendt fra casen
+    assert row["reference"] == "Norlys"
+    # Kun én række viser Norlys; de øvrige problemer er endnu ikke dokumenteret.
+    assert sum(len(a["rows"]) for a in out["areas"]) == 1
+    assert len(out["undocumented"]) == 10
 
     # Skjules casen, forsvinder den også fra Til OK.
-    item_id = out["problems"][0]["cases"][0]["case"]["item_ids"][0]
-    client.patch(f"/api/v1/market/items/{item_id}", json={"hidden": True}, headers=admin_headers)
+    cases = client.get("/api/v1/market/cases", headers=admin_headers).json()["items"]
+    client.patch(
+        f"/api/v1/market/items/{cases[0]['item_ids'][0]}",
+        json={"hidden": True},
+        headers=admin_headers,
+    )
     after = client.get("/api/v1/ok-brief", headers=reader_headers).json()
-    assert after["top_now"] == []
-    assert after["problems"][0]["cases"] == []
+    assert after["must_know"] == []
+    assert after["areas"] == []
+    assert len(after["undocumented"]) == 11
+
+
+def test_sources_table_counts_relevant_articles_and_is_admin_only(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+) -> None:
+    _provider()
+    _upload(client, admin_headers)
+    _upload(client, admin_headers, access_class="restricted")
+    _run(client, admin_headers)
+    assert client.get("/api/v1/market/sources", headers=reader_headers).status_code == 403
+    sources = client.get("/api/v1/market/sources", headers=admin_headers).json()
+    assert len(sources) == 1  # den interne kilde vises ikke
+    assert sources[0]["type"] == "Fagmedie"
+    assert sources[0]["relevant_articles"] == 1
+    me = client.get("/api/v1/me", headers=admin_headers).json()
+    assert me["last_updated"] is not None
 
 
 def test_older_documents_are_analysed_by_later_runs(
@@ -316,6 +362,7 @@ def test_generate_ok_brief_requires_admin(
     response = client.post("/api/v1/ok-brief/generate", headers=admin_headers)
     assert response.status_code == 200
     assert response.json()["case_count"] == 0
+    assert response.json()["undocumented"]
 
 
 def test_me_reports_role(

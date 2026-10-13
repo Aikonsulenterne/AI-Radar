@@ -84,6 +84,7 @@ class MarketTechnologyDraft(BaseModel):
     what_it_does_da: str | None = Field(default=None, max_length=400)
     business_value_da: str | None = Field(default=None, max_length=400)
     danish_supported: bool | None = None
+    launched: str | None = Field(default=None, max_length=40)
     area: list[str] = Field(default_factory=list, max_length=3)
     quote: str = Field(min_length=1, max_length=1200)
 
@@ -96,11 +97,13 @@ class MarketCaseDraft(BaseModel):
     technology: str | None = Field(default=None, max_length=120)
     vendor: str | None = Field(default=None, max_length=200)
     adoption_stage: str | None = Field(default=None, max_length=30)
+    start: str | None = Field(default=None, max_length=60)
     scope: str | None = Field(default=None, max_length=300)
     effect: str | None = Field(default=None, max_length=500)
     kpi: str | None = Field(default=None, max_length=60)
     effect_source: str | None = Field(default=None, max_length=30)
     lesson: str | None = Field(default=None, max_length=500)
+    source_kind: str | None = Field(default=None, max_length=30)
     area: list[str] = Field(default_factory=list, max_length=3)
     quote: str = Field(min_length=1, max_length=1200)
 
@@ -112,24 +115,39 @@ class MarketExtractionResult(BaseModel):
 
 class OkBriefPoint(BaseModel):
     text: str = Field(min_length=1, max_length=400)
-    refs: list[str] = Field(default_factory=list, max_length=10)
+    source: str | None = Field(default=None, max_length=20)
 
 
-class OkBriefCaseRef(BaseModel):
-    ref: str = Field(min_length=1, max_length=20)
-    why: str = Field(default="", max_length=300)
+class OkBriefRecommendation(BaseModel):
+    action: str = Field(min_length=1, max_length=300)
+    owner: str = Field(default="", max_length=80)
+    duration: str = Field(default="", max_length=40)
+
+
+class OkBriefDecision(BaseModel):
+    question: str = Field(min_length=1, max_length=300)
 
 
 class OkBriefProblem(BaseModel):
     problem: str = Field(min_length=1, max_length=20)
-    technologies: list[str] = Field(default_factory=list, max_length=10)
-    cases: list[OkBriefCaseRef] = Field(default_factory=list, max_length=10)
+    best_technology: str | None = Field(default=None, max_length=20)
+    best_case: str | None = Field(default=None, max_length=20)
+    why_comparable: str = Field(default="", max_length=400)
+    more_cases: list[str] = Field(default_factory=list, max_length=10)
     next_step: str = Field(default="", max_length=400)
 
 
+class OkBriefNewTech(BaseModel):
+    technology: str = Field(min_length=1, max_length=20)
+    why: str = Field(default="", max_length=400)
+
+
 class OkBriefResult(BaseModel):
-    top_now: list[OkBriefPoint] = Field(default_factory=list, max_length=10)
-    problems: list[OkBriefProblem] = Field(default_factory=list, max_length=40)
+    must_know: list[OkBriefPoint] = Field(default_factory=list, max_length=10)
+    recommendations: list[OkBriefRecommendation] = Field(default_factory=list, max_length=10)
+    decisions: list[OkBriefDecision] = Field(default_factory=list, max_length=10)
+    per_problem: list[OkBriefProblem] = Field(default_factory=list, max_length=40)
+    new_tech: list[OkBriefNewTech] = Field(default_factory=list, max_length=10)
 
 
 _RETRY_SUFFIX = (

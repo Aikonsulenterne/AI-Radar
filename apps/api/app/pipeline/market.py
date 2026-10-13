@@ -163,6 +163,20 @@ def _country(value: str | None) -> str | None:
     return _COUNTRY_NAMES.get(normalize_alias(cleaned))
 
 
+_DATE = re.compile(r"^(\d{4})-(\d{2})(?:-(\d{2}))?$")
+
+
+def _date(value: str | None) -> str | None:
+    """YYYY-MM-DD eller None — en dato, der ikke kan læses, vises ikke."""
+    match = _DATE.match((value or "").strip())
+    if not match:
+        return None
+    year, month, day = match.group(1), match.group(2), match.group(3) or "01"
+    if not (1 <= int(month) <= 12 and 1 <= int(day) <= 31):
+        return None
+    return f"{year}-{month}-{day}"
+
+
 def _clean(value: str | None) -> str | None:
     if value is None:
         return None
@@ -195,12 +209,26 @@ def ensure_catalog(db: Session) -> dict[str, Technology]:
         elif technology.is_candidate or not technology.active:
             technology.is_candidate = False
             technology.active = True
-        for alias in (entry.name, entry.label, *entry.aliases):
+        for alias in (entry.name, entry.label, *entry.aliases, *_former(entry.name)):
             index[normalize_alias(alias)] = technology
             if _alias_match(db, EntityType.technology, alias) is None:
                 _add_alias(db, EntityType.technology, technology.id, alias)
                 db.flush()
     return index
+
+
+def _former(name: str) -> tuple[str, ...]:
+    """Tidligere danske betegnelser, så ældre AI-svar stadig slås op korrekt."""
+    previous = {
+        "Virtual Agent": "Chatbot og virtuel agent",
+        "Voice AI": "Voicebot og tale-AI",
+        "Agent Assist": "Hjælp til medarbejderen under samtalen",
+        "Call Summarization": "Automatisk opsummering af samtaler",
+        "Intelligent Routing": "Automatisk kategorisering og fordeling",
+        "Automated QA": "Automatisk kvalitetssikring af samtaler",
+        "Agentic AI": "AI-agenter, der løser opgaver selv",
+    }
+    return (previous[name],) if name in previous else ()
 
 
 def _resolve_technology(
@@ -354,6 +382,7 @@ def _store_technology(
                 "what_it_does_da": _clean(draft.what_it_does_da),
                 "business_value_da": _clean(draft.business_value_da),
                 "danish_supported": draft.danish_supported,
+                "launched": _date(draft.launched),
             },
             quote=_squash(draft.quote),
             prompt_version=MARKET_PROMPT_VERSION,
@@ -414,6 +443,10 @@ def _store_case(
                 "kpi": kpi if effect else None,
                 "effect_source": effect_source if effect else None,
                 "lesson": _clean(draft.lesson),
+                "start": _clean(draft.start) if numbers_in_text(draft.start, text) else None,
+                "source_kind": "leverandør"
+                if draft.source_kind == "leverandør" or effect_source == "leverandøren"
+                else "uafhængig",
             },
             quote=_squash(draft.quote),
             prompt_version=MARKET_PROMPT_VERSION,
@@ -464,9 +497,12 @@ def _areas_text(areas: list[str]) -> str:
 
 def _tech_line(i: int, t: TechnologyCard) -> str:
     vendors = ", ".join(v.name for v in t.vendors[:8]) or "ingen fundet"
+    new = " | NY PÅ MARKEDET" if t.is_new or t.launched else ""
+    launched = f" | lanceret {t.launched}" if t.launched else ""
     return (
-        f"- [T{i}] {t.label} | områder: {_areas_text(t.areas)} | leverandører: {vendors} | "
-        f"cases: {t.case_count} | {_line(t.what, 160)}"
+        f"- [T{i}] {t.label} | status: {t.status_label}{new}{launched} | områder: "
+        f"{_areas_text(t.areas)} | leverandører: {vendors} | cases: {t.case_count} | "
+        f"{_line(t.what, 160)}"
     )
 
 
@@ -474,7 +510,7 @@ def _case_line(i: int, c: CaseCard) -> str:
     technology = c.technology.label if c.technology else c.technology_name or "ukendt"
     effect = _line(c.effect, 200) or "ikke oplyst"
     if c.effect:
-        effect += f" ({c.kpi_label}; {c.effect_source_label or 'kilde ukendt'})"
+        effect += f" ({c.source_kind_label})"
     return (
         f"- [C{i}] {c.company} ({c.country or 'land ukendt'}, {c.industry or 'branche ukendt'}) "
         f"| {_areas_text(c.areas)} | {_line(c.what_they_did, 200)} | teknologi: {technology} "
@@ -498,7 +534,11 @@ def _ref_map(prefix: str, ids: list[uuid.UUID]) -> dict[str, uuid.UUID]:
 
 
 def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
-    """Generér og gem Til OK. Uden fund kaldes modellen ikke."""
+    """Generér og gem Til OK. Uden fund kaldes modellen ikke.
+
+    Serveren håndhæver reglerne: kun kendte henvisninger, højst 3 punkter /
+    3 forslag / 2 beslutninger, og hver case højst én gang på hele siden.
+    Status kommer aldrig fra modellen."""
     rows = visible_rows(db)
     technologies = [t for t in technology_cards(db, rows) if t.case_count or t.vendors][
         :_MAX_BRIEF_TECHNOLOGIES
@@ -508,8 +548,11 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
     case_refs = _ref_map("C", [c.id for c in cases])
     problem_refs = {f"P{i}": p.key for i, p in enumerate(OK_PROBLEMS, start=1)}
 
-    top_now: list[dict[str, Any]] = []
+    must_know: list[dict[str, Any]] = []
+    recommendations: list[dict[str, str]] = []
+    decisions: list[str] = []
     problems: dict[str, dict[str, Any]] = {}
+    new_tech: list[dict[str, str]] = []
     discarded = 0
     if technologies or cases:
         result = call_with_schema(
@@ -520,52 +563,77 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
             user=_brief_input(technologies, cases),
             result_model=OkBriefResult,
         )
-        for point in result.top_now:
-            case_ids = [str(case_refs[r]) for r in point.refs if r in case_refs]
-            tech_ids = [str(tech_refs[r]) for r in point.refs if r in tech_refs]
-            # Et punkt uden gyldig henvisning er ikke dokumenteret.
-            if not case_ids and not tech_ids:
+        for point in result.must_know:
+            source = point.source or ""
+            # Et punkt uden gyldig kilde er ikke dokumenteret.
+            link: dict[str, str]
+            if source in case_refs:
+                link = {"case_id": str(case_refs[source])}
+            elif source in tech_refs:
+                link = {"technology_id": str(tech_refs[source])}
+            else:
                 discarded += 1
                 continue
-            if len(top_now) < 3:
-                top_now.append(
-                    {
-                        "text": _line(point.text, 300),
-                        "case_ids": case_ids,
-                        "technology_ids": tech_ids,
-                    }
-                )
-        for entry in result.problems:
+            if len(must_know) < 3:
+                must_know.append({"text": _line(point.text, 300), **link})
+        recommendations = [
+            {
+                "action": _line(r.action, 300),
+                "owner": _line(r.owner, 80),
+                "duration": _line(r.duration, 40),
+            }
+            for r in result.recommendations
+        ][:3]
+        decisions = [_line(d.question, 300) for d in result.decisions][:2]
+
+        used: set[str] = set()  # hver case højst én gang på hele siden
+        for entry in result.per_problem:
             key = problem_refs.get(entry.problem)
             if key is None or key in problems:
                 discarded += 1
                 continue
+            best = entry.best_case if entry.best_case in case_refs else None
+            if best is not None and best in used:
+                best = None
+            if best is not None:
+                used.add(best)
+            more: list[str] = []
+            for ref in entry.more_cases:
+                if ref in case_refs and ref not in used and len(more) < 2:
+                    used.add(ref)
+                    more.append(str(case_refs[ref]))
+            technology = entry.best_technology if entry.best_technology in tech_refs else None
             problems[key] = {
-                "technology_ids": [
-                    str(tech_refs[r]) for r in dict.fromkeys(entry.technologies) if r in tech_refs
-                ][:3],
-                "cases": [
-                    {"item_id": str(case_refs[c.ref]), "why": _line(c.why, 200)}
-                    for c in entry.cases
-                    if c.ref in case_refs
-                ][:3],
+                "technology_id": str(tech_refs[technology]) if technology else None,
+                "best_case_id": str(case_refs[best]) if best else None,
+                "why_comparable": _line(entry.why_comparable, 300) if best else "",
+                "more_case_ids": more,
                 "next_step": _line(entry.next_step, 300),
             }
+        for item in result.new_tech:
+            if item.technology in tech_refs and len(new_tech) < 3:
+                new_tech.append(
+                    {"technology_id": str(tech_refs[item.technology]), "why": _line(item.why, 300)}
+                )
 
+    empty_problem: dict[str, Any] = {
+        "technology_id": None,
+        "best_case_id": None,
+        "why_comparable": "",
+        "more_case_ids": [],
+        "next_step": "",
+    }
     value: dict[str, Any] = {
         "generated_at": datetime.now(UTC).isoformat(),
         "prompt_version": OK_BRIEF_PROMPT_VERSION,
         "technology_count": len(technologies),
         "case_count": len(cases),
         "discarded": discarded,
-        "top_now": top_now,
-        "problems": [
-            {
-                "key": p.key,
-                **problems.get(p.key, {"technology_ids": [], "cases": [], "next_step": ""}),
-            }
-            for p in OK_PROBLEMS
-        ],
+        "must_know": must_know,
+        "recommendations": recommendations,
+        "decisions": decisions,
+        "problems": [{"key": p.key, **problems.get(p.key, empty_problem)} for p in OK_PROBLEMS],
+        "new_tech": new_tech,
     }
     row = db.get(AppSetting, OK_BRIEF_KEY)
     if row is None:
@@ -575,10 +643,10 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
         row.updated_at = datetime.now(UTC)
     db.flush()
     logger.info(
-        "ok_brief_generated technologies=%d cases=%d top=%d discarded=%d",
+        "ok_brief_generated technologies=%d cases=%d must_know=%d discarded=%d",
         len(technologies),
         len(cases),
-        len(top_now),
+        len(must_know),
         discarded,
     )
     return value

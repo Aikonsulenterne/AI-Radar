@@ -18,14 +18,16 @@ from app.enums import AccessClass
 from app.market.catalog import (
     AREA_LABELS,
     CATALOG_BY_NAME,
+    FOR_OK,
     REGION_LABELS,
     TECH_CATALOG,
+    VENDOR_TYPES,
     region,
 )
 from app.models import Document, Source
 from app.models_claims import Company, Technology
 from app.models_market import KIND_CASE, KIND_TECHNOLOGY, MarketItem
-from app.pipeline.entities import normalize_alias, preload
+from app.pipeline.entities import legal_base_name, normalize_alias, preload
 
 VENDOR_SOURCE_TYPES = {"vendor_case", "vendor_claim"}
 
@@ -41,6 +43,18 @@ KPI_LABELS = {
     "andet": "Andet",
 }
 STAGE_LABELS = {"idé": "Idé", "pilot": "Pilot", "drift": "I drift", "skaleret": "Skaleret"}
+# Fælles statusmodel (designhandoff v2 §3): beregnes af data, aldrig i hånden.
+STATUS_LABELS = {
+    "klar_nu": "Klar nu",
+    "vaerd_at_afproeve": "Værd at afprøve",
+    "hold_oeje": "Hold øje med",
+}
+STATUS_ORDER = {"klar_nu": 0, "vaerd_at_afproeve": 1, "hold_oeje": 2}
+SOURCE_KIND_LABELS = {"uafhængig": "Uafhængig kilde", "leverandør": "Leverandørens tal"}
+# Brancher, der ligner OK mest.
+OK_INDUSTRIES = {"energi", "forsyning", "telekom", "detail"}
+LIVE_STAGES = {"drift", "skaleret"}
+
 EFFECT_SOURCE_LABELS = {
     "virksomheden": "Virksomhedens egne tal",
     "leverandøren": "Leverandørens tal",
@@ -154,6 +168,35 @@ class CaseCard(BaseModel):
     source: SourceRef
     also_reported_by: list[str] = Field(default_factory=list)
     observed_at: datetime
+    start: str | None = None
+    # uafhængig | leverandør — hvem kilden til casen er.
+    source_kind: str = "uafhængig"
+    source_kind_label: str = "Uafhængig kilde"
+    # Hvor meget casen ligner OK (bruges kun til sortering).
+    similarity: int = 0
+
+
+def source_kind(row: Row) -> str:
+    """Leverandørens egne ord, når kilden er leverandøren, eller når AI'en
+    angiver, at effekten kommer fra leverandøren. Ellers uafhængig."""
+    if str(row.source.source_type) in VENDOR_SOURCE_TYPES:
+        return "leverandør"
+    if row.item.data.get("source_kind") == "leverandør":
+        return "leverandør"
+    if row.item.data.get("effect_source") == "leverandøren":
+        return "leverandør"
+    return "uafhængig"
+
+
+def similarity(region_key: str, industry: str | None, stage: str | None, effect: str | None) -> int:
+    score = {"danmark": 3, "norden": 2}.get(region_key, 0)
+    if industry and normalize_alias(industry) in OK_INDUSTRIES:
+        score += 2
+    if stage in LIVE_STAGES:
+        score += 1
+    if effect:
+        score += 1
+    return score
 
 
 @dataclass
@@ -216,6 +259,8 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         else None
     )
     reg = region(country)
+    industry = _first(rows, "industry")
+    kind = source_kind(effect_row)
     also = []
     for r in rows[1:]:
         if r.source.name not in also and r.source.name != effect_row.source.name:
@@ -228,7 +273,7 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         country=country,
         region=reg,
         region_label=REGION_LABELS[reg],
-        industry=_first(rows, "industry"),
+        industry=industry,
         areas=group.areas,
         what_they_did=_first(rows, "what_they_did_da"),
         technology=_technology_ref(db, primary.item.technology_id),
@@ -249,13 +294,16 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         source=_source_ref(effect_row),
         also_reported_by=also,
         observed_at=primary.item.observed_at,
+        start=_first(rows, "start"),
+        source_kind=kind,
+        source_kind_label=SOURCE_KIND_LABELS[kind],
+        similarity=similarity(reg, industry, stage, effect_row.item.data.get("effect")),
     )
 
 
-def _case_sort_key(card: CaseCard) -> tuple[int, int, float]:
-    # Danske og nordiske cases og cases med dokumenteret effekt først.
-    region_rank = {"danmark": 0, "norden": 1}.get(card.region, 2)
-    return (region_rank, 0 if card.effect else 1, -card.observed_at.timestamp())
+def _case_sort_key(card: CaseCard) -> tuple[int, float]:
+    # De cases, der ligner OK mest, først: dansk/nordisk, branche, drift, effekt.
+    return (-card.similarity, -card.observed_at.timestamp())
 
 
 def case_cards(db: Session, rows: list[Row] | None = None) -> list[CaseCard]:
@@ -279,22 +327,71 @@ class VendorOffer(BaseModel):
     via_case: bool = False
 
 
+class CaseSummary(BaseModel):
+    """Én case på én linje: stærkeste bevis."""
+
+    id: uuid.UUID
+    company: str
+    country: str | None
+    region_label: str
+    text: str
+    kind_label: str
+    source_url: str | None
+    source_title: str
+
+
 class TechnologyCard(BaseModel):
     id: uuid.UUID
     label: str
     areas: list[str]
     what: str | None
     value: str | None
+    for_ok: str | None
     is_new: bool
+    status: str
+    status_label: str
     vendors: list[VendorOffer]
     case_count: int
+    best_case: CaseSummary | None
     latest_at: datetime | None
+    first_seen_at: datetime | None
+    # Lancering/annoncering ifølge kilden (YYYY-MM-DD), hvis den er oplyst.
+    launched: str | None
+
+
+def case_summary(card: CaseCard) -> CaseSummary:
+    return CaseSummary(
+        id=card.id,
+        company=card.company,
+        country=card.country,
+        region_label=card.region_label,
+        text=card.effect or card.what_they_did or card.technology_name or "",
+        kind_label=card.source_kind_label if card.effect else "Effekt ikke oplyst",
+        source_url=card.source.url,
+        source_title=card.source.title or card.source.name,
+    )
+
+
+def technology_status(cases: list[CaseCard]) -> str:
+    """Klar nu: mindst 2 cases i drift eller skaleret og mindst én uafhængig
+    kilde. Værd at afprøve: cases findes ellers. Hold øje med: ingen cases."""
+    live = sum(1 for c in cases if c.stage in LIVE_STAGES)
+    independent = any(c.source_kind == "uafhængig" for c in cases)
+    if live >= 2 and independent:
+        return "klar_nu"
+    if cases:
+        return "vaerd_at_afproeve"
+    return "hold_oeje"
 
 
 def technology_cards(db: Session, rows: list[Row] | None = None) -> list[TechnologyCard]:
     """Ét kort pr. teknologi: katalogets teknologier og de nye, radaren har
     fundet. Sorteret efter, hvor meget radaren har fundet."""
     rows = rows if rows is not None else visible_rows(db)
+    cases_by_technology: dict[uuid.UUID, list[CaseCard]] = {}
+    for card in case_cards(db, rows):
+        if card.technology is not None:
+            cases_by_technology.setdefault(card.technology.id, []).append(card)
     by_technology: dict[uuid.UUID, list[Row]] = {}
     for row in rows:
         if row.item.technology_id is not None:
@@ -348,6 +445,12 @@ def technology_cards(db: Session, rows: list[Row] | None = None) -> list[Technol
         if entry is None and not tech_rows:
             continue
         areas = list(entry.areas) if entry else _union_areas(tech_rows)
+        tech_cases = cases_by_technology.get(technology_id, [])
+        status = technology_status(tech_cases)
+        launched = sorted(
+            (str(r.item.data["launched"]) for r in offers if r.item.data.get("launched")),
+            reverse=True,
+        )
         cards.append(
             TechnologyCard(
                 id=technology.id,
@@ -357,19 +460,61 @@ def technology_cards(db: Session, rows: list[Row] | None = None) -> list[Technol
                 if entry
                 else _first(offers + cases, "what_it_does_da") or _first(cases, "what_they_did_da"),
                 value=entry.value if entry else _first(offers, "business_value_da"),
+                for_ok=FOR_OK.get(technology.name),
                 is_new=entry is None,
+                status=status,
+                status_label=STATUS_LABELS[status],
                 vendors=sorted(
                     vendors.values(),
                     key=lambda v: (v.via_case, v.danish_supported is not True, v.name.casefold()),
                 ),
-                case_count=len(group_cases(cases)),
+                case_count=len(tech_cases),
+                best_case=case_summary(tech_cases[0]) if tech_cases else None,
                 latest_at=tech_rows[0].item.observed_at if tech_rows else None,
+                first_seen_at=tech_rows[-1].item.observed_at if tech_rows else None,
+                launched=launched[0] if launched else None,
             )
         )
+    # Status først, derefter relevans for OK: cases og leverandører.
     return sorted(
         cards,
-        key=lambda c: (-(c.case_count + len(c.vendors)), c.label.casefold()),
+        key=lambda c: (
+            STATUS_ORDER[c.status],
+            -(2 * c.case_count + len(c.vendors)),
+            c.label.casefold(),
+        ),
     )
+
+
+class VendorRow(BaseModel):
+    name: str
+    type: str
+    technologies: list[str]
+    danish: bool | None
+
+
+def vendor_type(name: str) -> str:
+    key = normalize_alias(legal_base_name(name))
+    return VENDOR_TYPES.get(key) or VENDOR_TYPES.get(key.split(" ")[0], "Ikke oplyst")
+
+
+def vendor_rows(cards: list[TechnologyCard]) -> list[VendorRow]:
+    """Leverandører på markedet: hvem tilbyder hvad."""
+    rows: dict[str, VendorRow] = {}
+    for card in cards:
+        for vendor in card.vendors:
+            key = normalize_alias(legal_base_name(vendor.name))
+            row = rows.setdefault(
+                key,
+                VendorRow(
+                    name=vendor.name, type=vendor_type(vendor.name), technologies=[], danish=None
+                ),
+            )
+            if card.label not in row.technologies:
+                row.technologies.append(card.label)
+            if vendor.danish_supported is True:
+                row.danish = True
+    return sorted(rows.values(), key=lambda r: (-len(r.technologies), r.name.casefold()))
 
 
 def area_label(area: str) -> str:

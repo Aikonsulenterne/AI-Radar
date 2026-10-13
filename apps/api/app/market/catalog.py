@@ -25,7 +25,7 @@ class CatalogTechnology:
 TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     CatalogTechnology(
         "Virtual Agent",
-        "Chatbot og virtuel agent",
+        "Chatbot / virtuel agent",
         ("kundeservice", "support"),
         "Besvarer og løser kundens henvendelse selv i chat, mail eller app — døgnet rundt.",
         "Færre simple henvendelser til medarbejderne og kortere ventetid for kunden.",
@@ -33,7 +33,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Voice AI",
-        "Voicebot og tale-AI",
+        "Stemmeagenter og voicebots",
         ("kundeservice", "support"),
         "Tager telefonen, forstår hvad kunden siger, og løser eller viderestiller opkaldet.",
         "Aflaster telefonkøen, især i spidsbelastning, og sorterer opkald før en medarbejder.",
@@ -41,7 +41,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Agent Assist",
-        "Hjælp til medarbejderen under samtalen",
+        "Agent Assist",
         ("kundeservice", "salg", "support"),
         "Foreslår svar, slår viden op og viser næste skridt, mens medarbejderen taler med kunden.",
         "Kortere samtaler, mere ensartede svar og hurtigere oplæring af nye medarbejdere.",
@@ -49,7 +49,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Call Summarization",
-        "Automatisk opsummering af samtaler",
+        "Samtaleopsummering",
         ("kundeservice", "support", "salg"),
         "Skriver referat og registrerer sagen automatisk, når samtalen er slut.",
         "Mindre tid på efterbehandling — typisk det første sted, kundecentre henter tid.",
@@ -57,7 +57,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Intelligent Routing",
-        "Automatisk kategorisering og fordeling",
+        "Automatisk kategorisering af henvendelser",
         ("kundeservice", "support"),
         "Læser henvendelsen, finder emnet og sender den til den rigtige kø eller medarbejder.",
         "Færre overdragelser og hurtigere løsning ved første kontakt.",
@@ -73,7 +73,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Automated QA",
-        "Automatisk kvalitetssikring af samtaler",
+        "Kvalitetssikring af samtaler",
         ("kundeservice", "salg", "support"),
         "Gennemgår alle samtaler i stedet for stikprøver og markerer dem, der kræver opfølgning.",
         "Bedre kvalitet og målrettet coaching uden manuel aflytning.",
@@ -142,7 +142,7 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
     ),
     CatalogTechnology(
         "Agentic AI",
-        "AI-agenter, der løser opgaver selv",
+        "AI-agenter, der løser hele henvendelsen",
         ("kundeservice", "support", "salg"),
         "AI, der selv gennemfører en opgave fra start til slut på tværs af systemer — under opsyn.",
         "Kan løse hele henvendelser uden medarbejder; kræver styr på data og kontrol.",
@@ -151,6 +151,64 @@ TECH_CATALOG: tuple[CatalogTechnology, ...] = (
 )
 
 CATALOG_BY_NAME = {entry.name: entry for entry in TECH_CATALOG}
+
+# "Det kan betyde for OK" — kurateret analyse pr. teknologi (vises stiplet).
+FOR_OK: dict[str, str] = {
+    "Virtual Agent": "Kan tage simple spørgsmål om regning, aflæsning og levering i chat og app.",
+    "Voice AI": "Kan aflaste telefonen, OK's dyreste kanal, især i spidsbelastning.",
+    "Agent Assist": "Kan give nye medarbejdere de rigtige svar under samtalen.",
+    "Call Summarization": "Ofte den hurtigste gevinst: mindre tid på noter efter samtalen.",
+    "Intelligent Routing": "Kan sende mails og beskeder direkte til det rette team første gang.",
+    "Knowledge AI": "Kan samle svarene fra OK's mange vejledninger ét sted.",
+    "Automated QA": "Kan erstatte stikprøver med gennemgang af alle samtaler.",
+    "Conversation Intelligence": "Kan vise, hvorfor kunderne ringer, og hvad der virker i salg.",
+    "Sales Assistant": "Kan give sælgerne mere tid til kunderne og hurtigere opfølgning.",
+    "Next Best Offer": "Kan gøre kundeservicesamtaler til salg af relevante produkter.",
+    "Lead Scoring": "Kan vise, hvilke leads salg skal ringe til først.",
+    "Churn Prediction": "Kan finde kunder, der er ved at opsige, mens der stadig er tid.",
+    "Self-service Troubleshooting": "Kan hjælpe kunder med fx ladestandere uden en supportsag.",
+    "Workflow Automation": "Kan klare rutineændringer som flytning uden manuel sagsbehandling.",
+    "Agentic AI": "Det nyeste i markedet; kræver styr på data og menneskelig kontrol.",
+}
+
+# Leverandørtyper til tabellen "Leverandører på markedet". Ukendte står
+# som "Ikke oplyst" — typen gættes aldrig.
+VENDOR_TYPES: dict[str, str] = {
+    "microsoft": "Platform",
+    "salesforce": "Platform",
+    "google": "Platform",
+    "amazon": "Platform",
+    "aws": "Platform",
+    "oracle": "Platform",
+    "sap": "Platform",
+    "ibm": "Platform",
+    "openai": "Platform",
+    "genesys": "Kundecenterplatform",
+    "nice": "Kundecenterplatform",
+    "puzzel": "Kundecenterplatform",
+    "five9": "Kundecenterplatform",
+    "talkdesk": "Kundecenterplatform",
+    "avaya": "Kundecenterplatform",
+    "twilio": "Kundecenterplatform",
+    "telavox": "Kundecenterplatform",
+    "zendesk": "Kundeservicesystem",
+    "freshworks": "Kundeservicesystem",
+    "intercom": "Kundeservicesystem",
+    "dixa": "Kundeservicesystem",
+    "servicenow": "Kundeservicesystem",
+    "hubspot": "Kundeservicesystem",
+    "boost.ai": "Specialist",
+    "polyai": "Specialist",
+    "parloa": "Specialist",
+    "sierra": "Specialist",
+    "decagon": "Specialist",
+    "capturi": "Specialist",
+    "ultimate": "Specialist",
+    "cognigy": "Specialist",
+    "kore.ai": "Specialist",
+    "observe.ai": "Specialist",
+    "gong": "Specialist",
+}
 
 
 @dataclass(frozen=True)

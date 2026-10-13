@@ -26,7 +26,7 @@ from app.models_opportunities import (
 )
 from app.models_signals import Signal
 from app.pipeline.opportunities import propose_opportunity
-from app.routes.documents import _claim_out, ai_provider_dep
+from app.routes.documents import ai_provider_dep, claims_out
 from app.schemas import Paginated
 from app.schemas_opportunities import (
     OpportunityCreate,
@@ -168,14 +168,15 @@ def get_opportunity(
         for signal_id in signal_ids
         if (signal := db.get(Signal, signal_id)) is not None
     ]
-    claim_ids = db.scalars(
-        select(OpportunityClaim.claim_id).where(OpportunityClaim.opportunity_id == opportunity.id)
-    ).all()
-    claims = [
-        _claim_out(db, claim)
-        for claim_id in claim_ids
-        if (claim := db.get(Claim, claim_id)) is not None
-    ]
+    claims = claims_out(
+        db,
+        db.scalars(
+            select(Claim)
+            .join(OpportunityClaim, OpportunityClaim.claim_id == Claim.id)
+            .where(OpportunityClaim.opportunity_id == opportunity.id)
+        ).all(),
+        review_details=False,
+    )
 
     base = _opportunity_out(db, opportunity)
     return OpportunityDetailOut(**base.model_dump(), signals=signals, claims=claims)

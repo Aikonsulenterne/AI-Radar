@@ -533,3 +533,23 @@ kørsel med ny viden samt via `POST /insights/generate` (Admin).
 Beslutningsoplægget viser de tre stærkeste. OK's egne data ligger som
 underafsnit på siden og indgår aldrig i indsigterne.
 
+## Hastighed (2026-10-13)
+
+- Læse-endpoints henter claims, evidens, entities og kilder samlet
+  (`claims_out`, `preload_entities`, `prefetch_offering_sources`,
+  `_companies_out`/`_technologies_out`/`_cases_out`/`_signals_out`) i
+  stedet for én forespørgsel pr. række. Leverandørlandskab, Muligheder og
+  detaljesider bruger nu højst ~15 forespørgsler uanset datamængde (før
+  100-340 ved 20 dokumenter, voksende lineært). Forudindlæste rækker holdes
+  i `Session.info` for requestens levetid, fordi identity map kun har svage
+  referencer; kun læse-endpoints forudindlæser, så skrivninger aldrig ser
+  forældede tal.
+- Dubletkandidater og relationer beregnes kun i review
+  (`review_details=True`); læsevisninger bruger dem ikke.
+- Frontend: `app/loading.tsx` viser straks en ventetilstand ved
+  navigation; middleware bruger `getClaims()` (lokal JWT-verifikation mod
+  cachet JWKS) i stedet for et Auth-kald pr. klik; Vercel-funktioner i
+  `fra1`.
+- Render free tier holdes vågen i arbejdstiden af et pg_cron-job, som
+  API'et selv planlægger (se docs/04).
+

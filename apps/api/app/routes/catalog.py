@@ -5,6 +5,7 @@ Manglende fakta er null ("Ikke dokumenteret") — der gættes aldrig.
 """
 
 import uuid
+from collections.abc import Sequence
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -18,8 +19,14 @@ from app.errors import ApiError
 from app.models import Document, Source
 from app.models_cases import AdoptionCase, AdoptionCaseClaim
 from app.models_claims import Claim, ClaimEvidence, Company, EntityAlias, Technology
-from app.pipeline.entities import entity_name, legal_base_name, normalize_alias
-from app.routes.documents import _claim_out
+from app.pipeline.entities import (
+    entity_name,
+    legal_base_name,
+    normalize_alias,
+    preload,
+    preload_entities,
+)
+from app.routes.documents import claims_out
 from app.schemas import Paginated
 from app.schemas_catalog import (
     CaseCreate,
@@ -59,69 +66,104 @@ def _approved_claims_for_company(db: Session, company_id: uuid.UUID) -> list[Cla
     )
 
 
-def _company_out(db: Session, company: Company) -> CompanyOut:
-    approved = (
-        db.scalar(
-            select(func.count())
-            .select_from(Claim)
+def _companies_out(db: Session, companies: Sequence[Company]) -> list[CompanyOut]:
+    """Claim- og case-antal for mange virksomheder i to forespørgsler."""
+    if not companies:
+        return []
+    ids = [company.id for company in companies]
+    approved = dict(
+        db.execute(
+            select(Claim.subject_entity_id, func.count())
             .where(
                 Claim.subject_entity_type == EntityType.company,
-                Claim.subject_entity_id == company.id,
+                Claim.subject_entity_id.in_(ids),
                 Claim.review_status.in_(_APPROVED),
             )
-        )
-        or 0
+            .group_by(Claim.subject_entity_id)
+        ).all()
     )
-    cases = (
-        db.scalar(
-            select(func.count())
-            .select_from(AdoptionCase)
+    cases = dict(
+        db.execute(
+            select(AdoptionCase.company_id, func.count())
             .where(
-                AdoptionCase.company_id == company.id,
+                AdoptionCase.company_id.in_(ids),
                 AdoptionCase.status == CaseStatus.published,
             )
-        )
-        or 0
+            .group_by(AdoptionCase.company_id)
+        ).all()
     )
-    out = CompanyOut.model_validate(company)
-    return out.model_copy(update={"approved_claim_count": approved, "published_case_count": cases})
+    return [
+        CompanyOut.model_validate(company).model_copy(
+            update={
+                "approved_claim_count": approved.get(company.id, 0),
+                "published_case_count": cases.get(company.id, 0),
+            }
+        )
+        for company in companies
+    ]
 
 
-def _distinct_subjects(db: Session, technology: Technology, *, offers: bool) -> int:
+def _company_out(db: Session, company: Company) -> CompanyOut:
+    return _companies_out(db, [company])[0]
+
+
+def _subject_counts(db: Session, ids: list[uuid.UUID], *, offers: bool) -> dict[uuid.UUID, int]:
     predicate_filter = (
         Claim.predicate == Predicate.OFFERS_CAPABILITY
         if offers
         else Claim.predicate != Predicate.OFFERS_CAPABILITY
     )
-    return (
-        db.scalar(
-            select(func.count(func.distinct(Claim.subject_entity_id))).where(
+    return dict(
+        db.execute(
+            select(Claim.object_entity_id, func.count(func.distinct(Claim.subject_entity_id)))
+            .where(
                 Claim.object_entity_type == EntityType.technology,
-                Claim.object_entity_id == technology.id,
+                Claim.object_entity_id.in_(ids),
                 Claim.review_status.in_(_APPROVED),
                 predicate_filter,
             )
-        )
-        or 0
+            .group_by(Claim.object_entity_id)
+        ).all()
     )
+
+
+def _technologies_out(db: Session, technologies: Sequence[Technology]) -> list[TechnologyOut]:
+    if not technologies:
+        return []
+    ids = [technology.id for technology in technologies]
+    # En leverandørs tilbud er ikke adoption og tælles for sig.
+    adopting = _subject_counts(db, ids, offers=False)
+    vendors = _subject_counts(db, ids, offers=True)
+    return [
+        TechnologyOut.model_validate(technology).model_copy(
+            update={
+                "adopting_company_count": adopting.get(technology.id, 0),
+                "vendor_count": vendors.get(technology.id, 0),
+            }
+        )
+        for technology in technologies
+    ]
 
 
 def _technology_out(db: Session, technology: Technology) -> TechnologyOut:
-    out = TechnologyOut.model_validate(technology)
-    return out.model_copy(
-        update={
-            # En leverandørs tilbud er ikke adoption og tælles for sig.
-            "adopting_company_count": _distinct_subjects(db, technology, offers=False),
-            "vendor_count": _distinct_subjects(db, technology, offers=True),
-        }
-    )
+    return _technologies_out(db, [technology])[0]
+
+
+def _claims_by_case(db: Session, case_ids: list[uuid.UUID]) -> dict[uuid.UUID, list[Claim]]:
+    by_case: dict[uuid.UUID, list[Claim]] = {case_id: [] for case_id in case_ids}
+    if not case_ids:
+        return by_case
+    for case_id, claim in db.execute(
+        select(AdoptionCaseClaim.case_id, Claim)
+        .join(Claim, Claim.id == AdoptionCaseClaim.claim_id)
+        .where(AdoptionCaseClaim.case_id.in_(case_ids))
+    ).all():
+        by_case[case_id].append(claim)
+    return by_case
 
 
 def _case_claims(db: Session, case_id: uuid.UUID) -> list[Claim]:
-    claim_ids = db.scalars(
-        select(AdoptionCaseClaim.claim_id).where(AdoptionCaseClaim.case_id == case_id)
-    ).all()
-    return [claim for cid in claim_ids if (claim := db.get(Claim, cid)) is not None]
+    return _claims_by_case(db, [case_id])[case_id]
 
 
 def _object_display(db: Session, claim: Claim) -> str | None:
@@ -148,17 +190,32 @@ def _derive_facts(db: Session, claims: list[Claim]) -> CaseFacts:
     return facts
 
 
+def _cases_out(db: Session, cases: Sequence[AdoptionCase]) -> list[CaseOut]:
+    """Cases med claims, virksomhed og afledte fakta i få forespørgsler."""
+    if not cases:
+        return []
+    by_case = _claims_by_case(db, [case.id for case in cases])
+    company_ids = {case.company_id for case in cases}
+    preload(db, Company, company_ids)
+    preload_entities(db, [claim for claims in by_case.values() for claim in claims])
+    result: list[CaseOut] = []
+    for case in cases:
+        claims = by_case[case.id]
+        company = db.get(Company, case.company_id)
+        result.append(
+            CaseOut.model_validate(case).model_copy(
+                update={
+                    "company_name": company.name if company else None,
+                    "claim_count": len(claims),
+                    "facts": _derive_facts(db, claims),
+                }
+            )
+        )
+    return result
+
+
 def _case_out(db: Session, case: AdoptionCase) -> CaseOut:
-    claims = _case_claims(db, case.id)
-    company = db.get(Company, case.company_id)
-    out = CaseOut.model_validate(case)
-    return out.model_copy(
-        update={
-            "company_name": company.name if company else None,
-            "claim_count": len(claims),
-            "facts": _derive_facts(db, claims),
-        }
-    )
+    return _cases_out(db, [case])[0]
 
 
 # --- Companies ---
@@ -181,7 +238,7 @@ def list_companies(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
     return Paginated[CompanyOut](
-        items=[_company_out(db, row) for row in rows],
+        items=_companies_out(db, rows),
         total=total,
         limit=limit,
         offset=offset,
@@ -209,8 +266,8 @@ def get_company(
     base = _company_out(db, company)
     return CompanyDetailOut(
         **base.model_dump(),
-        claims=[_claim_out(db, claim) for claim in claims],
-        cases=[_case_out(db, case) for case in cases],
+        claims=claims_out(db, claims, review_details=False),
+        cases=_cases_out(db, cases),
     )
 
 
@@ -228,7 +285,7 @@ def list_technologies(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
     return Paginated[TechnologyOut](
-        items=[_technology_out(db, row) for row in rows],
+        items=_technologies_out(db, rows),
         total=total,
         limit=limit,
         offset=offset,
@@ -256,6 +313,8 @@ def get_technology(
         ).all()
     )
 
+    claim_rows = claims_out(db, claims, review_details=False)
+
     def companies_for(offers: bool) -> list[CompanyOut]:
         ids = {
             claim.subject_entity_id
@@ -263,17 +322,14 @@ def get_technology(
             if claim.subject_entity_type == EntityType.company
             and (claim.predicate == Predicate.OFFERS_CAPABILITY) == offers
         }
-        found = [
-            _company_out(db, company)
-            for company_id in ids
-            if (company := db.get(Company, company_id)) is not None
-        ]
-        return sorted(found, key=lambda c: c.name)
+        # Virksomhederne er allerede i sessionen efter claims_out.
+        found = [company for company_id in ids if (company := db.get(Company, company_id))]
+        return sorted(_companies_out(db, found), key=lambda c: c.name)
 
     base = _technology_out(db, technology)
     return TechnologyDetailOut(
         **base.model_dump(),
-        claims=[_claim_out(db, claim) for claim in claims],
+        claims=claim_rows,
         companies=companies_for(offers=False),
         vendors=companies_for(offers=True),
     )
@@ -405,7 +461,7 @@ def list_cases(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
     return Paginated[CaseOut](
-        items=[_case_out(db, row) for row in rows],
+        items=_cases_out(db, rows),
         total=total,
         limit=limit,
         offset=offset,
@@ -424,6 +480,7 @@ def get_case(
     if case.status != CaseStatus.published and user.role not in _REVIEWER:
         raise ApiError(404, "not_found", "Casen findes ikke.")
     claims = _case_claims(db, case.id)
+    preload_entities(db, claims)
     technologies = sorted(
         {
             name
@@ -435,7 +492,7 @@ def get_case(
     base = _case_out(db, case)
     return CaseDetailOut(
         **base.model_dump(),
-        claims=[_claim_out(db, claim) for claim in claims],
+        claims=claims_out(db, claims, review_details=False),
         technologies=technologies,
     )
 
@@ -560,12 +617,48 @@ def publish_case(
 _OTHER_CAPABILITIES = "Øvrige capabilities"
 
 
-def _offering_out(db: Session, claim: Claim) -> OfferingOut:
+_SOURCES_KEY = "offering_sources"
+_EvidenceSource = tuple[ClaimEvidence | None, Document | None, Source | None]
+
+
+def prefetch_offering_sources(db: Session, claims: Sequence[Claim]) -> None:
+    """Første evidens, dokument og kilde for mange claims i én forespørgsel.
+
+    Gemmes i sessionens info (én request) og bruges af _offering_out. Kun
+    læse-endpoints kalder den, så data kan ikke blive forældet undervejs.
+    """
+    cache: dict[uuid.UUID, _EvidenceSource] = db.info.setdefault(_SOURCES_KEY, {})
+    wanted = [claim.id for claim in claims if claim.id not in cache]
+    if not wanted:
+        return
+    for claim_id in wanted:
+        cache[claim_id] = (None, None, None)
+    rows = db.execute(
+        select(ClaimEvidence, Document, Source)
+        .join(Document, Document.id == ClaimEvidence.document_id)
+        .join(Source, Source.id == Document.source_id)
+        .where(ClaimEvidence.claim_id.in_(wanted))
+        .order_by(ClaimEvidence.claim_id, ClaimEvidence.id)
+    ).all()
+    for evidence, document, source in rows:
+        if cache[evidence.claim_id][0] is None:
+            cache[evidence.claim_id] = (evidence, document, source)
+
+
+def _evidence_source(db: Session, claim: Claim) -> _EvidenceSource:
+    cached = db.info.get(_SOURCES_KEY, {}).get(claim.id)
+    if cached is not None:
+        return cached
     evidence = db.scalars(
         select(ClaimEvidence).where(ClaimEvidence.claim_id == claim.id).limit(1)
     ).first()
     document = db.get(Document, evidence.document_id) if evidence else None
     source = db.get(Source, document.source_id) if document else None
+    return evidence, document, source
+
+
+def _offering_out(db: Session, claim: Claim) -> OfferingOut:
+    evidence, document, source = _evidence_source(db, claim)
     return OfferingOut(
         claim_id=claim.id,
         product=claim.object_text,
@@ -627,6 +720,7 @@ def _vendor_facts(
             Claim.subject_entity_id.in_(vendor_ids),
         )
     ).all()
+    prefetch_offering_sources(db, rows)
     for claim in rows:
         if not claim.object_text:
             continue
@@ -653,19 +747,31 @@ def _is_nordic(markets: list[VendorFactOut], languages: list[VendorFactOut]) -> 
     )
 
 
+def vendor_usage_claims(db: Session) -> list[Claim]:
+    """Godkendte USES_VENDOR/USES_TECHNOLOGY-claims med subjekter indlæst."""
+    usage = list(
+        db.scalars(
+            select(Claim).where(
+                Claim.predicate.in_((Predicate.USES_VENDOR, Predicate.USES_TECHNOLOGY)),
+                Claim.review_status.in_(_APPROVED),
+            )
+        ).all()
+    )
+    preload_entities(db, usage)
+    return usage
+
+
 def _customers_by_vendor(
-    db: Session, vendors: dict[uuid.UUID, Company]
+    db: Session,
+    vendors: dict[uuid.UUID, Company],
+    usage: Sequence[Claim] | None = None,
 ) -> dict[uuid.UUID, set[str]]:
     """Godkendte "X USES_VENDOR/USES_TECHNOLOGY <leverandør>"-claims, matchet
     på leverandørens id eller (når objektet forblev tekst) dens navn."""
     by_name = {legal_base_name(company.name): company_id for company_id, company in vendors.items()}
     customers: dict[uuid.UUID, set[str]] = {company_id: set() for company_id in vendors}
-    usage = db.scalars(
-        select(Claim).where(
-            Claim.predicate.in_((Predicate.USES_VENDOR, Predicate.USES_TECHNOLOGY)),
-            Claim.review_status.in_(_APPROVED),
-        )
-    ).all()
+    if usage is None:
+        usage = vendor_usage_claims(db)
     for claim in usage:
         vendor_id: uuid.UUID | None = None
         if claim.object_entity_type == EntityType.company and claim.object_entity_id in vendors:
@@ -697,6 +803,8 @@ def vendor_landscape(
         .order_by(Claim.observed_at.desc())
     ).all()
 
+    preload_entities(db, offers)
+    prefetch_offering_sources(db, offers)
     vendors: dict[uuid.UUID, Company] = {}
     # (teknologi-id eller None) → leverandør-id → tilbud
     grouped: dict[uuid.UUID | None, dict[uuid.UUID, list[Claim]]] = {}
@@ -729,19 +837,21 @@ def vendor_landscape(
         return sorted(rows, key=lambda row: (-len(row.offerings), row.name.casefold()))
 
     horizon_order = {"now": 0, "next": 1, "horizon": 2}
-    technologies = db.scalars(select(Technology).where(Technology.active.is_(True))).all()
+    technologies = sorted(
+        db.scalars(select(Technology).where(Technology.active.is_(True))).all(),
+        key=lambda t: (
+            horizon_order.get(str(t.horizon), 9) if t.horizon is not None else 9,
+            t.name,
+        ),
+    )
     capabilities = [
         LandscapeCapabilityOut(
-            technology=_technology_out(db, technology),
+            technology=technology_out,
             capability_name=technology.name,
             vendors=vendor_rows(grouped.get(technology.id, {})),
         )
-        for technology in sorted(
-            technologies,
-            key=lambda t: (
-                horizon_order.get(str(t.horizon), 9) if t.horizon is not None else 9,
-                t.name,
-            ),
+        for technology, technology_out in zip(
+            technologies, _technologies_out(db, technologies), strict=True
         )
     ]
     if None in grouped:

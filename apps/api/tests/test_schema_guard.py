@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.schema_guard import VENDOR_MIGRATION_STATEMENTS
@@ -69,3 +70,19 @@ def test_unexpected_error_is_json_with_cors_header() -> None:
     assert response.json()["error"]["code"] == "server_error"
     assert "intern detalje" not in response.text
     assert response.headers["access-control-allow-origin"] == origin
+
+
+def test_keepalive_only_runs_on_render_with_pg_cron(monkeypatch: pytest.MonkeyPatch) -> None:
+    from app.db import get_engine
+    from app.schema_guard import _ensure_keepalive
+
+    engine = get_engine()
+    monkeypatch.delenv("RENDER_EXTERNAL_URL", raising=False)
+    with engine.connect() as connection:
+        assert _ensure_keepalive(connection).startswith("ikke aktiv (kører ikke på Render")
+    if engine.dialect.name != "postgresql":
+        return
+    # CI's PostgreSQL har ikke pg_cron: jobbet planlægges ikke.
+    monkeypatch.setenv("RENDER_EXTERNAL_URL", "https://ai-radar-api.onrender.com")
+    with engine.connect() as connection:
+        assert "pg_cron" in _ensure_keepalive(connection)

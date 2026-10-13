@@ -19,14 +19,16 @@ from app.db import get_db
 from app.enums import VENDOR_PREDICATES, EntityType, OpportunityStatus, Predicate, UserRole
 from app.models_claims import Claim, Company, Technology
 from app.models_opportunities import Opportunity, ProblemTaxonomy
-from app.pipeline.entities import entity_name
+from app.pipeline.entities import entity_name, preload_entities
 from app.routes.catalog import (
     _APPROVED,
     _customers_by_vendor,
     _is_nordic,
     _offering_out,
-    _technology_out,
+    _technologies_out,
     _vendor_facts,
+    prefetch_offering_sources,
+    vendor_usage_claims,
 )
 from app.schemas_catalog import TechnologyOut
 
@@ -107,6 +109,8 @@ def _problem_row(
     db: Session,
     problem: ProblemTaxonomy,
     technologies: dict[str, Technology],
+    technology_outs: dict[uuid.UUID, TechnologyOut],
+    usage: list[Claim],
 ) -> ProblemOpportunityOut:
     capability_techs = [
         technologies[name]
@@ -128,6 +132,8 @@ def _problem_row(
         if tech_ids
         else []
     )
+    preload_entities(db, claims)
+    prefetch_offering_sources(db, claims)
 
     # Leverandører: tilbud på problemets capabilities.
     vendor_rows: dict[uuid.UUID, MapVendorOut] = {}
@@ -177,7 +183,7 @@ def _problem_row(
         for vendor_id in vendor_rows
         if (company := db.get(Company, vendor_id)) is not None
     }
-    for vendor_id, customers in _customers_by_vendor(db, vendors_by_id).items():
+    for vendor_id, customers in _customers_by_vendor(db, vendors_by_id, usage).items():
         vendor_rows[vendor_id].customers = sorted(customers)
     facts = _vendor_facts(db, set(vendor_rows))
     for vendor_id, row in vendor_rows.items():
@@ -190,13 +196,15 @@ def _problem_row(
     # Effekter rapporteret af organisationer, der bruger capabilities.
     effects: list[MapEffectOut] = []
     if adopter_ids:
-        for claim in db.scalars(
+        effect_claims = db.scalars(
             select(Claim).where(
                 Claim.predicate == Predicate.REPORTED_EFFECT,
                 Claim.review_status.in_(_APPROVED),
                 Claim.subject_entity_id.in_(adopter_ids),
             )
-        ).all():
+        ).all()
+        prefetch_offering_sources(db, effect_claims)
+        for claim in effect_claims:
             if not claim.object_text:
                 continue
             offering = _offering_out(db, claim)
@@ -232,7 +240,7 @@ def _problem_row(
         problem_id=problem.id,
         name=problem.name,
         description=problem.description,
-        capabilities=[_technology_out(db, t) for t in capability_techs],
+        capabilities=[technology_outs[t.id] for t in capability_techs],
         vendors=vendors,
         references=references,
         effects=effects,
@@ -246,10 +254,12 @@ def opportunity_map(
     db: Session = Depends(get_db),
     _user: CurrentUser = Depends(require_role(UserRole.reader)),
 ) -> OpportunityMapOut:
-    technologies = {
-        t.name: t for t in db.scalars(select(Technology).where(Technology.active.is_(True))).all()
-    }
+    active = db.scalars(select(Technology).where(Technology.active.is_(True))).all()
+    technologies = {t.name: t for t in active}
+    technology_outs = {out.id: out for out in _technologies_out(db, active)}
+    # Kunder pr. leverandør bygger på samme claims for alle problemer.
+    usage = vendor_usage_claims(db)
     problems = db.scalars(select(ProblemTaxonomy).where(ProblemTaxonomy.active.is_(True))).all()
-    rows = [_problem_row(db, problem, technologies) for problem in problems]
+    rows = [_problem_row(db, problem, technologies, technology_outs, usage) for problem in problems]
     rows.sort(key=lambda row: (-row.evidence_count, row.name))
     return OpportunityMapOut(problems=rows)

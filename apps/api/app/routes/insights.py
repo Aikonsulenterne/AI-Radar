@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.ai.provider import (
@@ -28,9 +29,9 @@ from app.enums import UserRole
 from app.errors import ApiError
 from app.models_claims import Claim
 from app.models_settings import AppSetting
-from app.pipeline.entities import entity_name
+from app.pipeline.entities import entity_name, preload_entities
 from app.pipeline.insights import SETTING_KEY, VENDOR_SOURCE_TYPES, generate_insights, strength
-from app.routes.catalog import _APPROVED, _offering_out
+from app.routes.catalog import _APPROVED, _offering_out, prefetch_offering_sources
 from app.routes.documents import ai_provider_dep
 
 router = APIRouter(prefix="/insights", tags=["insights"])
@@ -94,7 +95,18 @@ def _evidence(db: Session, claim_ids: list[str]) -> list[InsightEvidenceOut]:
     return out
 
 
+def _preload(db: Session, value: dict[str, Any]) -> None:
+    """Alle indsigters claims, entities og kilder i få forespørgsler."""
+    ids = {uuid.UUID(raw) for item in value.get("items", []) for raw in item.get("claim_ids", [])}
+    if not ids:
+        return
+    claims = db.scalars(select(Claim).where(Claim.id.in_(ids))).all()
+    preload_entities(db, claims)
+    prefetch_offering_sources(db, claims)
+
+
 def _to_out(db: Session, value: dict[str, Any]) -> InsightsOut:
+    _preload(db, value)
     items: list[InsightOut] = []
     for item in value.get("items", []):
         evidence = _evidence(db, item.get("claim_ids", []))

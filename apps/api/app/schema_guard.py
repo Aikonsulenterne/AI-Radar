@@ -11,6 +11,7 @@ alle steder.
 """
 
 import logging
+import os
 
 from sqlalchemy import Connection, text
 
@@ -334,6 +335,43 @@ def _ensure_source_pack(connection: Connection) -> None:
 
 # Fejl fra seneste opstart (vises i /health, så de kan ses uden Render-loggen).
 LAST_ERRORS: list[str] = []
+# Status for keepalive-jobbet; vises i /health?schema=true.
+KEEPALIVE_STATUS = "ikke tjekket"
+
+# Render free tier sover efter 15 minutter uden trafik, og første klik tager
+# så 30-50 sekunder. pg_cron pinger API'et hvert 10. minut på hverdage
+# 05-19 UTC (06/07-20/21 dansk tid) — ca. 330 af free tiers 750 timer.
+KEEPALIVE_JOB = "ai-radar-keepalive"
+KEEPALIVE_SCHEDULE = "*/10 5-19 * * 1-5"
+
+
+def _ensure_keepalive(connection: Connection) -> str:
+    """Planlæg keepalive-pinget, når API'et kører på Render og databasen har
+    pg_cron og pg_net (Supabase). Idempotent: cron.schedule med samme navn
+    opdaterer jobbet. Opretter aldrig selv extensions."""
+    base_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not base_url:
+        return "ikke aktiv (kører ikke på Render)"
+    installed = set(
+        connection.execute(
+            text("select extname from pg_extension where extname in ('pg_cron', 'pg_net')")
+        ).scalars()
+    )
+    if installed != {"pg_cron", "pg_net"}:
+        return "ikke aktiv (pg_cron/pg_net er ikke slået til)"
+    command = (
+        "select net.http_get(url := "
+        + connection.execute(
+            text("select quote_literal(:url)"), {"url": f"{base_url}/api/v1/health"}
+        ).scalar_one()
+        + ", timeout_milliseconds := 60000)"
+    )
+    connection.execute(
+        text("select cron.schedule(:name, :schedule, :command)"),
+        {"name": KEEPALIVE_JOB, "schedule": KEEPALIVE_SCHEDULE, "command": command},
+    )
+    return f"aktiv ({KEEPALIVE_SCHEDULE} UTC)"
+
 
 # Kolonner og enum-værdier, koden kræver. Bruges af /health.
 _REQUIRED_COLUMNS = (
@@ -411,6 +449,13 @@ def ensure_vendor_schema() -> None:
             except Exception as exc:  # noqa: BLE001
                 LAST_ERRORS.append(_short(exc))
                 logger.error("source_pack_failed error=%s", _short(exc))
+            global KEEPALIVE_STATUS
+            try:
+                KEEPALIVE_STATUS = _ensure_keepalive(connection)
+            except Exception as exc:  # noqa: BLE001
+                KEEPALIVE_STATUS = "fejlede"
+                LAST_ERRORS.append(_short(exc))
+                logger.error("keepalive_failed error=%s", _short(exc))
     except Exception as exc:  # noqa: BLE001 — fx ingen forbindelse ved opstart
         LAST_ERRORS.append(_short(exc))
         logger.error("schema_guard_unavailable error=%s", _short(exc))

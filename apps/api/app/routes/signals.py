@@ -6,6 +6,7 @@ er en menneskelig handling (Reviewer/Admin).
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, Query
@@ -28,7 +29,7 @@ from app.errors import ApiError
 from app.models import Document, Source
 from app.models_claims import Claim, ClaimEvidence, Company, Technology
 from app.models_signals import Signal, SignalClaim
-from app.routes.documents import _claim_out
+from app.routes.documents import claims_out
 from app.schemas import Paginated
 from app.schemas_signals import (
     DashboardOut,
@@ -67,12 +68,29 @@ def _internal_signal_ids() -> Select[tuple[uuid.UUID]]:
     )
 
 
-def _signal_out(db: Session, signal: Signal) -> SignalOut:
-    out = SignalOut.model_validate(signal)
-    internal = signal.id in set(
-        db.scalars(_internal_signal_ids().where(SignalClaim.signal_id == signal.id)).all()
+def _signals_out(db: Session, signals: Sequence[Signal]) -> list[SignalOut]:
+    """Claim-antal og intern-markering for mange signaler i to forespørgsler."""
+    if not signals:
+        return []
+    ids = [signal.id for signal in signals]
+    counts = dict(
+        db.execute(
+            select(SignalClaim.signal_id, func.count())
+            .where(SignalClaim.signal_id.in_(ids))
+            .group_by(SignalClaim.signal_id)
+        ).all()
     )
-    return out.model_copy(update={"claim_count": _claim_count(db, signal.id), "internal": internal})
+    internal = set(db.scalars(_internal_signal_ids().where(SignalClaim.signal_id.in_(ids))).all())
+    return [
+        SignalOut.model_validate(signal).model_copy(
+            update={"claim_count": counts.get(signal.id, 0), "internal": signal.id in internal}
+        )
+        for signal in signals
+    ]
+
+
+def _signal_out(db: Session, signal: Signal) -> SignalOut:
+    return _signals_out(db, [signal])[0]
 
 
 def _get_signal_or_404(db: Session, signal_id: uuid.UUID) -> Signal:
@@ -125,7 +143,7 @@ def list_signals(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
     return Paginated[SignalOut](
-        items=[_signal_out(db, row) for row in rows],
+        items=_signals_out(db, rows),
         total=total,
         limit=limit,
         offset=offset,
@@ -142,21 +160,17 @@ def get_signal(
     if signal.status != SignalStatus.published and user.role not in _REVIEWER:
         raise ApiError(404, "not_found", "Signalet findes ikke.")
 
-    claim_ids = db.scalars(
-        select(SignalClaim.claim_id).where(SignalClaim.signal_id == signal.id)
+    rows = db.scalars(
+        select(Claim)
+        .join(SignalClaim, SignalClaim.claim_id == Claim.id)
+        .where(SignalClaim.signal_id == signal.id)
     ).all()
-    claims = [
-        _claim_out(db, claim)
-        for claim_id in claim_ids
-        if (claim := db.get(Claim, claim_id)) is not None
-    ]
+    claims = claims_out(db, rows, review_details=False)
 
+    # Entities er allerede i sessionen efter claims_out.
     companies: dict[uuid.UUID, str] = {}
     technologies: dict[uuid.UUID, str] = {}
-    for claim_id in claim_ids:
-        claim = db.get(Claim, claim_id)
-        if claim is None:
-            continue
+    for claim in rows:
         if claim.subject_entity_type == EntityType.company:
             company = db.get(Company, claim.subject_entity_id)
             if company is not None:
@@ -339,5 +353,5 @@ def dashboard(
         companies_with_claims=companies_with_claims,
         documents_in_review=documents_in_review,
         technologies_by_horizon=horizon_counts(counts),
-        latest_signals=[_signal_out(db, s) for s in latest],
+        latest_signals=_signals_out(db, latest),
     )

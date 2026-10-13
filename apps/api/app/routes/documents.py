@@ -6,6 +6,7 @@ publiceres som fakta.
 """
 
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
@@ -28,7 +29,7 @@ from app.enums import (
 from app.errors import ApiError
 from app.models import Document
 from app.models_claims import Claim, ClaimEvidence, ClaimRelationLink
-from app.pipeline.entities import entity_name
+from app.pipeline.entities import entity_name, preload_entities
 from app.pipeline.process import abort_processing, begin_processing, process_document
 from app.schemas import DocumentOut, Paginated
 from app.schemas_claims import (
@@ -101,20 +102,37 @@ def _relations(db: Session, claim: Claim) -> list[ClaimRelationOut]:
     ]
 
 
-def _claim_out(db: Session, claim: Claim) -> ClaimOut:
-    evidence_rows = db.scalars(
-        select(ClaimEvidence).where(ClaimEvidence.claim_id == claim.id)
-    ).all()
-    out = ClaimOut.model_validate(claim)
-    return out.model_copy(
-        update={
+def claims_out(
+    db: Session, claims: Sequence[Claim], *, review_details: bool = True
+) -> list[ClaimOut]:
+    """Mange claims serialiseret med få forespørgsler: evidens og entities
+    hentes samlet. Dubletkandidater og relationer bruges kun i review og
+    springes over i læsevisningerne (review_details=False)."""
+    if not claims:
+        return []
+    evidence_by_claim: dict[uuid.UUID, list[ClaimEvidence]] = {c.id: [] for c in claims}
+    for row in db.scalars(
+        select(ClaimEvidence).where(ClaimEvidence.claim_id.in_(list(evidence_by_claim)))
+    ).all():
+        evidence_by_claim[row.claim_id].append(row)
+    preload_entities(db, claims)
+    result: list[ClaimOut] = []
+    for claim in claims:
+        out = ClaimOut.model_validate(claim)
+        update: dict[str, Any] = {
             "subject_name": entity_name(db, claim.subject_entity_type, claim.subject_entity_id),
             "object_name": entity_name(db, claim.object_entity_type, claim.object_entity_id),
-            "evidence": [EvidenceOut.model_validate(row) for row in evidence_rows],
-            "possible_duplicates": _possible_duplicates(db, claim),
-            "relations": _relations(db, claim),
+            "evidence": [EvidenceOut.model_validate(row) for row in evidence_by_claim[claim.id]],
         }
-    )
+        if review_details:
+            update["possible_duplicates"] = _possible_duplicates(db, claim)
+            update["relations"] = _relations(db, claim)
+        result.append(out.model_copy(update=update))
+    return result
+
+
+def _claim_out(db: Session, claim: Claim) -> ClaimOut:
+    return claims_out(db, [claim])[0]
 
 
 def _get_claim_or_404(db: Session, claim_id: uuid.UUID) -> Claim:
@@ -209,7 +227,8 @@ def list_claims(
     total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
     rows = db.scalars(stmt.limit(limit).offset(offset)).all()
     return Paginated[ClaimOut](
-        items=[_claim_out(db, row) for row in rows],
+        # Listen bruges af signal- og casebyggerne, ikke af review.
+        items=claims_out(db, rows, review_details=False),
         total=total,
         limit=limit,
         offset=offset,
@@ -234,11 +253,10 @@ def get_document(
         .group_by(ClaimEvidence.claim_id)
         .order_by(func.min(ClaimEvidence.excerpt_start), ClaimEvidence.claim_id)
     ).all()
-    claims = [
-        _claim_out(db, claim)
-        for claim_id in claim_ids
-        if (claim := db.get(Claim, claim_id)) is not None
-    ]
+    by_id = {
+        claim.id: claim for claim in db.scalars(select(Claim).where(Claim.id.in_(claim_ids))).all()
+    }
+    claims = claims_out(db, [by_id[cid] for cid in claim_ids if cid in by_id])
 
     detail = DocumentReviewOut.model_validate(document)
     raw_url = (

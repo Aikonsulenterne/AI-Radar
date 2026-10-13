@@ -62,6 +62,14 @@ worker-proces. Kørsler udføres derfor i API-processen via
 betalt plan kan workeren i stedet køre som separat service
 (`python -m app.worker --interval 300`).
 
+**Keepalive.** Ved opstart planlægger API'et selv et pg_cron-job
+(`ai-radar-keepalive`), der pinger `/health` hvert 10. minut på hverdage
+05-19 UTC, så første klik i arbejdstiden ikke venter på opvågning. Det
+kræver extensions `pg_cron` og `pg_net` (Supabase → Database → Extensions)
+og bruger Renders `RENDER_EXTERNAL_URL`. Status står i
+`/api/v1/health?schema=true` (`keepalive`). Jobbet fjernes med
+`select cron.unschedule('ai-radar-keepalive');`.
+
 **Automatisk kørsel.** En kørsel henter aktive, offentlige RSS- og
 web_fetch-kilder fra Source Registry og AI-behandler nye dokumenter. Claims
 lander som forslag i Review — intet publiceres automatisk. Hver kørsel
@@ -117,6 +125,8 @@ shell, og en indlejret `sh -c "..."` ender som ét kommando-ord (exit 127).
 
 1. Forbind repositoryet til Vercel; **root directory `apps/web`**.
    Framework preset: Next.js (autodetekteres).
+   `apps/web/vercel.json` lægger server-rendering i Frankfurt (`fra1`),
+   samme region som API'et — ellers krydser hvert sideskift Atlanten.
 2. Environment variables (alle tre, for Production + Preview):
    - `NEXT_PUBLIC_API_BASE_URL=https://<api-host>/api/v1`
    - `NEXT_PUBLIC_SUPABASE_URL=https://<projekt-ref>.supabase.co`

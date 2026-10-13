@@ -26,7 +26,10 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // getClaims fornyer en udløbet session som getUser, men verificerer
+  // tokenet lokalt mod projektets (cachede) JWKS i stedet for et kald til
+  // Supabase Auth ved hvert klik. API'et verificerer selv hvert token.
+  await supabase.auth.getClaims();
   return response;
 }
 

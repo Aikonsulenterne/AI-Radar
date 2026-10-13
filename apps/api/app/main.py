@@ -109,12 +109,14 @@ class HealthResponse(BaseModel):
     # ikke: et ufuldstændigt skema skal kunne ses, ikke stoppe deployet.
     schema_status: str = "ikke tjekket"
     schema_errors: list[str] = []
+    keepalive: str = "ikke tjekket"
 
 
 @app.get(f"{API_PREFIX}/health", response_model=HealthResponse, tags=["system"])
 def health(schema: bool = False) -> HealthResponse:
     """Liveness-check til containerhost og CI. ?schema=true tjekker også, at
     databasen har de kolonner og værdier, koden kræver."""
+    from app import schema_guard
     from app.schema_guard import LAST_ERRORS, missing_schema
 
     response = HealthResponse(status="ok", service="ai-radar-api", version=app.version)
@@ -123,4 +125,5 @@ def health(schema: bool = False) -> HealthResponse:
         if missing is not None:
             response.schema_status = "ok" if not missing else "mangler: " + ", ".join(missing)
         response.schema_errors = list(LAST_ERRORS)
+        response.keepalive = schema_guard.KEEPALIVE_STATUS
     return response

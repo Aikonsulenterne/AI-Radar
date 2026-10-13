@@ -7,7 +7,9 @@ reviewer kan flette senere via duplicate-kandidater.
 
 import re
 import uuid
+from collections.abc import Iterable
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -218,3 +220,37 @@ def entity_name(
         return technology.name if technology else None
     vendor = db.get(Vendor, entity_id)
     return vendor.name if vendor else None
+
+
+def preload_entities(db: Session, claims: Iterable[Any]) -> None:
+    """Hent subjekter og objekter for mange claims i tre forespørgsler.
+
+    De lander i sessionens identity map, så efterfølgende entity_name() og
+    db.get() ikke rammer databasen én gang pr. claim.
+    """
+    ids: dict[EntityType, set[uuid.UUID]] = {t: set() for t in EntityType}
+    for claim in claims:
+        if claim.subject_entity_type is not None and claim.subject_entity_id is not None:
+            ids[EntityType(claim.subject_entity_type)].add(claim.subject_entity_id)
+        if claim.object_entity_type is not None and claim.object_entity_id is not None:
+            ids[EntityType(claim.object_entity_type)].add(claim.object_entity_id)
+    models = {
+        EntityType.company: Company,
+        EntityType.technology: Technology,
+        EntityType.vendor: Vendor,
+    }
+    for entity_type, wanted in ids.items():
+        if wanted:
+            preload(db, models[entity_type], wanted)
+
+
+def preload(db: Session, model: Any, ids: Iterable[uuid.UUID]) -> None:
+    """Indlæs rækker til identity map og hold dem i live for requesten.
+
+    Identity map holder kun svage referencer; uden en stærk reference
+    bliver objekterne smidt ud igen, og db.get() spørger databasen på ny.
+    """
+    held: list[Any] = db.info.setdefault("preloaded", [])
+    wanted = set(ids)
+    if wanted:
+        held.extend(db.scalars(select(model).where(model.id.in_(wanted))).all())

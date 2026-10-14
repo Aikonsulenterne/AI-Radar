@@ -66,6 +66,18 @@ export function ProblemRow({ row }: { row: OkBriefRow }) {
               ))
             )}
           </div>
+          {row.lookup ? (
+            <div className="box-plain">
+              <div className="box-label">Slå op internt</div>
+              <p>{row.lookup}</p>
+              <p className="muted small">
+                {row.effect_pct !== null
+                  ? `Casen oplyser ${Math.round(row.effect_pct * 100)} %. `
+                  : "Casen oplyser ingen procent. "}
+                Regn kronerne ud i regnearket på OK&rsquo;s egen pc – radaren ser ikke jeres tal.
+              </p>
+            </div>
+          ) : null}
           <div className="box-plain">
             <div className="box-label">Hvem kan vi tale med</div>
             <p>

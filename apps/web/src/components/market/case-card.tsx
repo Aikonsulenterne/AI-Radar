@@ -29,6 +29,9 @@ export function CaseCard({ item }: { item: MarketCase }) {
         {origin ? <span className="muted small">{origin}</span> : null}
       </header>
       <div className="pill-list">
+        {item.peer_group ? (
+          <span className="pill pill-peer">Ligner OK · {item.peer_group}</span>
+        ) : null}
         <span className="pill pill-tech">{technology}</span>
         <span className="pill">Leverandør: {item.vendor ?? "Ikke oplyst"}</span>
       </div>

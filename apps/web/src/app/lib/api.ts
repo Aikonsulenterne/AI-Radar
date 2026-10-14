@@ -140,6 +140,11 @@ export class ApiClientError extends Error {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await send(path, init);
+  return (await response.json()) as T;
+}
+
+async function send(path: string, init?: RequestInit): Promise<Response> {
   let token: string | null = null;
   try {
     token = await tokenProvider();
@@ -168,7 +173,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     }
     throw new ApiClientError(response.status, code, message);
   }
-  return (await response.json()) as T;
+  return response;
 }
 
 export function listSources(): Promise<Paginated<Source>> {
@@ -460,11 +465,6 @@ export function listSignals(status?: SignalStatus): Promise<Paginated<Signal>> {
 /** Alle publicerede signaler, nyeste først (Signaler-siden). */
 export function listPublishedSignals(): Promise<Paginated<Signal>> {
   return request<Paginated<Signal>>("/signals?status=published&internal=false&limit=200");
-}
-
-/** Publicerede signaler, der bygger på interne kilder. */
-export function listInternalSignals(): Promise<Paginated<Signal>> {
-  return request<Paginated<Signal>>("/signals?status=published&internal=true&limit=50");
 }
 
 export function getSignal(signalId: string): Promise<SignalDetail> {
@@ -831,64 +831,6 @@ export function getOpportunityMap(): Promise<{ problems: ProblemOpportunity[] }>
   return request<{ problems: ProblemOpportunity[] }>("/opportunity-map");
 }
 
-export interface DecisionFinding {
-  title: string;
-  figure: string | null;
-  description: string | null;
-}
-
-export interface PeerCall {
-  organization: string;
-  status: string | null;
-  notes: string | null;
-}
-
-export interface DecisionBrief {
-  title: string;
-  contact_center_system: string | null;
-  contract_renewal: string | null;
-  budget_deadline: string | null;
-  fte: number | null;
-  cost_per_fte: number | null;
-  contacts_per_year: { phone: number | null; mail: number | null; chat: number | null };
-  aht_minutes: number | null;
-  scenario_low_pct: number | null;
-  scenario_high_pct: number | null;
-  internal_findings: DecisionFinding[];
-  ask: string | null;
-  kill_criterion: string | null;
-  data_promise: string | null;
-  peer_calls: PeerCall[];
-}
-
-export interface DecisionCalculation {
-  total_contacts: number | null;
-  annual_cost: number | null;
-  cost_per_contact: number | null;
-  handling_hours: number | null;
-  saving_low: number | null;
-  saving_high: number | null;
-  missing: string[];
-}
-
-export interface DecisionBriefData {
-  brief: DecisionBrief;
-  calculation: DecisionCalculation;
-  updated_at: string | null;
-}
-
-export function getDecisionBrief(): Promise<DecisionBriefData> {
-  return request<DecisionBriefData>("/decision-brief");
-}
-
-export function saveDecisionBrief(brief: DecisionBrief): Promise<DecisionBriefData> {
-  return request<DecisionBriefData>("/decision-brief", {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(brief),
-  });
-}
-
 export interface InsightEvidence {
   claim_id: string;
   document_id: string | null;
@@ -1037,6 +979,9 @@ export interface MarketCase {
   source_kind: "uafhængig" | "leverandør";
   source_kind_label: string;
   similarity: number;
+  /** Et af de selskaber, der ligner OK, og dets branche. */
+  peer: string | null;
+  peer_group: string | null;
 }
 
 export interface OkBriefRow {
@@ -1060,6 +1005,9 @@ export interface OkBriefRow {
   }[];
   vendors: string[];
   reference: string;
+  /** Hvad OK selv slår op internt — radaren kender aldrig OK's tal. */
+  lookup: string;
+  effect_pct: number | null;
 }
 
 export interface OkBrief {
@@ -1105,6 +1053,12 @@ export function getOkBrief(): Promise<OkBrief> {
   return request<OkBrief>("/ok-brief");
 }
 
+/** Regnearket til Til OK (kun offentlige fund og formler). */
+export async function downloadOkBriefSpreadsheet(): Promise<Blob> {
+  const response = await send("/ok-brief/regneark.xlsx");
+  return response.blob();
+}
+
 export function generateOkBrief(): Promise<OkBrief> {
   return request<OkBrief>("/ok-brief/generate", { method: "POST" });
 }
@@ -1128,6 +1082,7 @@ export function getMarketCases(filters: {
   all_total: number;
   danish_total: number;
   technologies: MarketTechnologyRef[];
+  peers_without_cases: string[];
 }> {
   return request(`/market/cases${query(filters)}`);
 }

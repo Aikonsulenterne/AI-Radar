@@ -115,7 +115,7 @@ def test_internal_sources_never_feed_insights(
             "name": "Interne data (OK)",
             "source_type": "primary",
             "retrieval_method": "manual_upload",
-            "access_class": "restricted",
+            "access_class": "public",
         },
         headers=admin_headers,
     ).json()
@@ -131,6 +131,12 @@ def test_internal_sources_never_feed_insights(
         headers=admin_headers,
     )
     app.dependency_overrides.pop(ai_provider_dep, None)
+    # Kilden blev siden markeret intern: dens claims må aldrig indgå.
+    client.patch(
+        f"/api/v1/sources/{source['id']}",
+        json={"access_class": "restricted"},
+        headers=admin_headers,
+    )
 
     provider = FakeProvider()
     _generate(client, admin_headers, provider)

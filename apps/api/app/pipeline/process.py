@@ -213,23 +213,25 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
     prompt_text = text[:_MAX_PROMPT_CHARS]
     source = db.get(Source, document.source_id)
 
-    # Interne kilder (Indsigter) handler om OK selv: de er relevante per
-    # definition og skal ikke gennem markedsfilteret.
-    internal = source is not None and source.access_class == AccessClass.restricted
+    # Interne OK-dokumenter sendes aldrig til AI: radaren kører ikke i et
+    # internt miljø (besluttet 2026-10-14). Upload er spærret; dokumenter fra
+    # før spærringen springes over her.
+    if source is not None and source.access_class == AccessClass.restricted:
+        return ProcessOutcome(
+            document_id=str(document.id),
+            status=document.processing_status,
+            skipped_reasons=["interne dokumenter behandles ikke"],
+        )
 
     try:
-        relevance = (
-            RelevanceResult(relevant=True, reason="Intern kilde")
-            if internal
-            else call_with_schema(
-                provider,
-                prompt_id=RELEVANCE_PROMPT_ID,
-                prompt_version=RELEVANCE_PROMPT_VERSION,
-                system=RELEVANCE_SYSTEM,
-                user=prompt_text,
-                result_model=RelevanceResult,
-                document_id=document.id,
-            )
+        relevance = call_with_schema(
+            provider,
+            prompt_id=RELEVANCE_PROMPT_ID,
+            prompt_version=RELEVANCE_PROMPT_VERSION,
+            system=RELEVANCE_SYSTEM,
+            user=prompt_text,
+            result_model=RelevanceResult,
+            document_id=document.id,
         )
         if not relevance.relevant:
             document.processing_status = ProcessingStatus.classified_irrelevant
@@ -244,7 +246,7 @@ def process_document(db: Session, provider: AIProvider, document: Document) -> P
             prompt_id=EXTRACTION_PROMPT_ID,
             prompt_version=EXTRACTION_PROMPT_VERSION,
             system=EXTRACTION_SYSTEM,
-            user=extraction_user_message(capabilities(db), prompt_text, internal=internal),
+            user=extraction_user_message(capabilities(db), prompt_text),
             result_model=ExtractionResult,
             document_id=document.id,
         )

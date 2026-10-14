@@ -10,7 +10,7 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -29,7 +29,8 @@ from app.db import get_db
 from app.enums import AccessClass, RunStatus, UserRole
 from app.errors import ApiError
 from app.mailer import send_brief
-from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS
+from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, PEERS
+from app.market.spreadsheet import SheetRow, build_workbook, effect_percent
 from app.market.views import (
     CaseCard,
     CaseSummary,
@@ -182,6 +183,8 @@ class CasesOut(BaseModel):
     all_total: int
     danish_total: int
     technologies: list[TechnologyRef]
+    # De selskaber, der ligner OK, som radaren endnu ikke har en AI-case fra.
+    peers_without_cases: list[str] = Field(default_factory=list)
 
 
 @router.get("/market/cases", response_model=CasesOut)
@@ -215,6 +218,7 @@ def list_market_cases(
         all_total=len(all_cards),
         danish_total=sum(1 for c in all_cards if c.region == "danmark"),
         technologies=sorted(options.values(), key=lambda t: t.label.casefold()),
+        peers_without_cases=[p.name for p in PEERS if not any(c.peer == p.name for c in all_cards)],
     )
 
 
@@ -350,6 +354,10 @@ class ProblemRow(BaseModel):
     more: list[MoreCase]
     vendors: list[str]
     reference: str
+    # Hvad OK selv skal slå op internt; radaren kender aldrig OK's tal.
+    lookup: str = ""
+    # Laveste procent i casens effekt (brøk), til regnearket.
+    effect_pct: float | None = None
 
 
 class AreaRows(BaseModel):
@@ -474,6 +482,8 @@ def _brief_out(db: Session, value: dict[str, Any] | None) -> OkBriefOut:
                 more=more,
                 vendors=vendors,
                 reference=best.company,
+                lookup=problem.lookup,
+                effect_pct=effect_percent(best.effect),
             )
         )
 
@@ -533,6 +543,10 @@ def get_ok_brief(
     """Admin ser den nyeste kladde; alle andre ser den senest godkendte version.
     Konsulenten godkender forsiden, før direktøren ser den (beslutning
     2026-10-14: én fejl på forsiden koster mere end fem minutters kontrol)."""
+    return _visible_brief(db, user)
+
+
+def _visible_brief(db: Session, user: CurrentUser) -> OkBriefOut:
     if user.role == UserRole.admin:
         draft = _brief_value(db)
         return _with_state(db, _brief_out(db, draft), draft)
@@ -546,6 +560,35 @@ def get_ok_brief(
             "state": "godkendt",
             "approved_at": datetime.fromisoformat(approved) if approved else None,
         }
+    )
+
+
+@router.get("/ok-brief/regneark.xlsx", response_class=Response)
+def get_ok_brief_spreadsheet(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_role(UserRole.reader)),
+) -> Response:
+    """Regneark med den version af Til OK, brugeren ser. Kun radarens
+    offentlige fund og formler — OK's tal skrives ind på OK's egen pc."""
+    brief = _visible_brief(db, user)
+    rows = [
+        SheetRow(
+            problem_key=row.key,
+            area_label=area.label,
+            problem=row.title,
+            technology=row.technology.label if row.technology else "Ikke oplyst",
+            case=" · ".join(filter(None, [row.proof.company, row.proof.country])),
+            effect=row.proof.text,
+            source_url=row.proof.source_url,
+            effect_pct=row.effect_pct,
+        )
+        for area in brief.areas
+        for row in area.rows
+    ]
+    return Response(
+        content=build_workbook(rows, brief.month_label),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="til-ok-regnestykke.xlsx"'},
     )
 
 

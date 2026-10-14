@@ -511,11 +511,12 @@ def _case_line(i: int, c: CaseCard) -> str:
     effect = _line(c.effect, 200) or "ikke oplyst"
     if c.effect:
         effect += f" ({c.source_kind_label})"
+    peer = f" | ligner OK: {c.peer_group}" if c.peer_group else ""
     return (
         f"- [C{i}] {c.company} ({c.country or 'land ukendt'}, {c.industry or 'branche ukendt'}) "
         f"| {_areas_text(c.areas)} | {_line(c.what_they_did, 200)} | teknologi: {technology} "
         f"| leverandør: {c.vendor or 'ukendt'} | fase: {c.stage_label or 'ukendt'} "
-        f"| effekt: {effect}"
+        f"| effekt: {effect}{peer}"
     )
 
 

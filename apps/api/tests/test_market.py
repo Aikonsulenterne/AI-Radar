@@ -217,7 +217,14 @@ def test_internal_sources_are_never_market_knowledge(
     client: TestClient, admin_headers: dict[str, str], market_mode: Any
 ) -> None:
     fake = _provider()
-    _upload(client, admin_headers, access_class="restricted")
+    _upload(client, admin_headers)
+    # Kilden markeres intern efter upload (dokumenter fra før spærringen).
+    [source] = client.get("/api/v1/sources", headers=admin_headers).json()["items"]
+    client.patch(
+        f"/api/v1/sources/{source['id']}",
+        json={"access_class": "restricted"},
+        headers=admin_headers,
+    )
     _run(client, admin_headers)
     assert "market_extraction" not in fake.calls
     assert client.get("/api/v1/market/cases", headers=admin_headers).json()["total"] == 0
@@ -326,7 +333,16 @@ def test_sources_table_counts_relevant_articles_and_is_admin_only(
 ) -> None:
     _provider()
     _upload(client, admin_headers)
-    _upload(client, admin_headers, access_class="restricted")
+    client.post(
+        "/api/v1/sources",
+        json={
+            "name": "Interne data (OK)",
+            "source_type": "primary",
+            "retrieval_method": "manual_upload",
+            "access_class": "restricted",
+        },
+        headers=admin_headers,
+    )
     _run(client, admin_headers)
     assert client.get("/api/v1/market/sources", headers=reader_headers).status_code == 403
     sources = client.get("/api/v1/market/sources", headers=admin_headers).json()
@@ -467,3 +483,71 @@ def test_brief_input_contains_oks_systems(
     brief_prompt = fake.prompts[fake.calls.index("ok_brief")]
     assert brief_prompt.startswith("OK TODAY:")
     assert "FocalScope" in brief_prompt and "G4" in brief_prompt
+
+
+def test_spreadsheet_has_public_findings_and_formulas_but_no_ok_numbers(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+) -> None:
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    from app.market.spreadsheet import effect_percent
+
+    _provider(
+        ok_brief={
+            "must_know": [{"text": "Norlys har kortere ventetid.", "source": "C1"}],
+            "per_problem": [{"problem": "P1", "best_case": "C1", "next_step": "Book en demo."}],
+        }
+    )
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    client.post("/api/v1/ok-brief/approve", headers=admin_headers)
+
+    row = client.get("/api/v1/ok-brief", headers=reader_headers).json()["areas"][0]["rows"][0]
+    assert "FocalScope" in row["lookup"]
+    assert row["effect_pct"] == 0.3
+
+    response = client.get("/api/v1/ok-brief/regneark.xlsx", headers=reader_headers)
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml"
+    )
+    sheet = load_workbook(BytesIO(response.content))["Regnestykke"]
+    assert sheet["B8"].value == "Lange ventetider i telefon og chat"
+    assert sheet["D8"].value == "Norlys · Danmark"
+    assert sheet["H8"].value == 0.3
+    # OK's felter er tomme: radaren kender ikke tallene.
+    assert sheet["C5"].value is None and sheet["J8"].value is None and sheet["L8"].value is None
+    assert sheet["M8"].value.startswith("=IF(OR(")
+    assert "J8*L8/60*$C$5*H8" in sheet["M8"].value
+
+    assert effect_percent("fra 8 til 4 minutter") is None
+    assert effect_percent("30-40 % kortere efterbehandling") == 0.3
+    assert effect_percent("12,5 procent færre opkald") == 0.125
+    assert effect_percent("Tiden på efterbehandling er halveret.") == 0.5
+    assert effect_percent("Voicebotten løser hvert fjerde opkald") == 0.25
+
+
+def test_cases_from_companies_like_ok_are_marked_and_missing_ones_named(
+    client: TestClient, admin_headers: dict[str, str], market_mode: Any
+) -> None:
+    from app.market.catalog import peer_for
+
+    fake = _provider()
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    data = client.get("/api/v1/market/cases", headers=admin_headers).json()
+    [norlys] = data["items"]
+    assert norlys["peer"] == "Norlys" and norlys["peer_group"] == "Energi"
+    assert "Norlys" not in data["peers_without_cases"]
+    assert "Circle K" in data["peers_without_cases"]
+    brief_prompt = fake.prompts[fake.calls.index("ok_brief")]
+    assert "ligner OK: Energi" in brief_prompt
+
+    assert peer_for("Andel Energi A/S").name == "Andel"  # type: ignore[union-attr]
+    assert peer_for("3M") is None
+    assert peer_for("Shellfish Inc") is None

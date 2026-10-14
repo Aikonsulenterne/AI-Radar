@@ -849,3 +849,30 @@ ikke af den forenklede visning.
 - `ok_brief` 2.1.0 får "OK TODAY" (`catalog.OK_PROFILE`) først i input.
   `catalog.OK_CURRENT_VENDORS` markerer OK's leverandør i leverandørtabellen.
 - `CASES_PACK` i `schema_guard.py` indsættes én gang ved opstart.
+
+## 27. Ingen OK-tal; regneark og dem, der ligner OK (2026-10-14)
+
+- `routes/decision_brief.py` og siderne `/beslutningsoplaeg` og
+  `/admin/beslutningsoplaeg` er fjernet. En eksisterende række
+  `app_settings.decision_brief` læses ikke længere (slettes manuelt, hvis den
+  findes).
+- `POST /sources/{id}/documents` afviser kilder med access class
+  `restricted` (409 `internal_not_allowed`). `process_document` springer
+  interne dokumenter over uden AI-kald; markedspipelinen gjorde det allerede.
+  Prompten for interne dokumenter er fjernet.
+- `catalog.OkProblem` har `lookup`, `calc` (`tid` | `timer` | `vaerdi`),
+  `count_label` og `unit_label`. `GET /ok-brief` returnerer `lookup` og
+  `effect_pct` pr. række; `effect_pct` er den laveste andel i casens effekt
+  ("30 %", "30-40 procent", "halveret", "hvert fjerde"), ellers null.
+- `GET /ok-brief/regneark.xlsx` (Reader+) bygger arket med openpyxl
+  (`market/spreadsheet.py`) ud fra den version af Til OK, brugeren ser.
+  Formler: tid = antal × minutter / 60 × timepris × effekt; timer = antal ×
+  timer × timepris × effekt; værdi = antal × kr. pr. stk. × effekt. Gule
+  inputfelter er tomme.
+- `catalog.PEERS` + `peer_for()`: et selskab matcher, når navnet er peerens
+  navn eller et alias, alene eller efterfulgt af et ord ("Norlys A/S").
+  `CaseCard.peer`/`peer_group`; lighedsscoren får +3. `GET /market/cases`
+  returnerer `peers_without_cases`. Til OK-input markerer casen "ligner OK:
+  <branche>"; prompt `ok_brief` 2.2.0 foretrækker dem.
+- Kildepakke "Konkurrent-kildepakke 2026-10" (7 Bing News-feeds om
+  konkurrenterne og AI) indsættes én gang af schema guard.

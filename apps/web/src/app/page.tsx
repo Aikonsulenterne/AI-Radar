@@ -1,9 +1,10 @@
 import { getOkBrief, type OkBrief } from "./lib/api";
 import { getRole } from "./lib/me";
 import { ApiErrorAlert } from "../components/states/api-error";
-import { PrintButton } from "./beslutningsoplaeg/PrintButton";
+import { PrintButton } from "../components/market/print-button";
 import { ProblemRow } from "../components/market/problem-row";
 import { ApproveBriefButton } from "../components/market/approve-brief-button";
+import { SpreadsheetButton } from "../components/market/spreadsheet-button";
 
 export const dynamic = "force-dynamic";
 
@@ -62,6 +63,7 @@ export default async function TilOkPage() {
           <h1>AI i kundecentret – det korte overblik</h1>
         </div>
         <div className="page-head-actions no-print">
+          {!empty ? <SpreadsheetButton /> : null}
           <PrintButton />
         </div>
       </header>

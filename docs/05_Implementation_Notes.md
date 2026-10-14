@@ -490,7 +490,10 @@ Forsyning, Nuuday (voicebot Josefine, Cognigy), Alm. Brand (ALBOT), Tryg
 (boost.ai), 3 Danmark (Genesys), Capturi og SupWiz (begge opkøbt af Puzzel).
 Hentes månedligt med web_fetch; ikke verificeret live fra udviklingsmiljøet.
 
-## Beslutningsoplæg og interne analyser (2026-10-12)
+## Beslutningsoplæg og interne analyser (2026-10-12) — fjernet 2026-10-14
+
+> Fjernet 2026-10-14: radaren må ikke indeholde OK's tal. Se Technical
+> Master §27. Afsnittet står som historik.
 
 - **Beslutningsoplæg** (`/beslutningsoplaeg`, printbar A4): OK's egne tal,
   interne fund, markedets tilbud til OK's udfordringer, hvad andre har gjort,
@@ -565,3 +568,12 @@ underafsnit på siden og indgår aldrig i indsigterne.
   tilpasses OK's egne KPI'er.
 - Ny kildepakke til salg, support og danske energi- og teleselskaber
   (`SALES_PACK` i `schema_guard.py`), indsat én gang ved opstart.
+
+## Ingen OK-tal, regneark og konkurrenter (2026-10-14)
+
+- Regnearket er verificeret med pycel: 100.000 henvendelser × 4 min × 500 kr.
+  pr. time × 25 % = 833.333 kr.; tomme felter giver en tom celle.
+- Konkurrent-feedsene kunne ikke hentes fra udviklingsmiljøet (proxyen
+  afviser Bing); de følger samme format som de eksisterende Bing-feeds.
+- Ukendt: om produktion har en gemt `app_settings.decision_brief` med OK-tal
+  fra før. Den læses ikke længere; slet den i Supabase, hvis den findes.

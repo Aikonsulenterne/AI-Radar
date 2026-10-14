@@ -202,6 +202,14 @@ def upload_document(
     source = _get_source_or_404(db, source_id)
     if not source.active:
         raise ApiError(409, "source_inactive", "Kilden er deaktiveret.")
+    if source.access_class == AccessClass.restricted:
+        # Radaren kører ikke i et internt OK-miljø: interne dokumenter og tal
+        # må ikke lægges ind (besluttet 2026-10-14).
+        raise ApiError(
+            409,
+            "internal_not_allowed",
+            "Interne OK-dokumenter kan ikke uploades: radaren kører ikke i et internt miljø.",
+        )
 
     data = file.file.read(settings.max_upload_bytes + 1)
     if len(data) > settings.max_upload_bytes:

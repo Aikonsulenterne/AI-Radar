@@ -218,6 +218,16 @@ class OkProblem:
     area: str
     name: str
     description: str
+    # Det tal, OK selv skal slå op internt. Radaren kender aldrig OK's tal
+    # (den kører ikke i et internt miljø) — regnestykket laves i regnearket
+    # på OK's egen pc.
+    lookup: str = ""
+    # Regnestykket i regnearket: tid = antal × minutter / 60 × timepris ×
+    # effekt · timer = antal × timer × timepris × effekt · vaerdi = antal ×
+    # kr. pr. stk. × effekt.
+    calc: str = "tid"
+    count_label: str = "Antal pr. år"
+    unit_label: str = "Minutter pr. stk."
 
 
 # OK's problemliste for Til OK. Startliste — tilpasses af konsulenten.
@@ -227,66 +237,119 @@ OK_PROBLEMS: tuple[OkProblem, ...] = (
         "kundeservice",
         "Lange ventetider i telefon og chat",
         "Kunder venter for længe, især i spidsbelastning.",
+        lookup="Henvendelser pr. år i telefon og chat og gennemsnitlig samtaletid (FocalScope).",
+        calc="tid",
+        count_label="Henvendelser pr. år (telefon + chat)",
+        unit_label="Minutter pr. henvendelse",
     ),
     OkProblem(
         "gentagne",
         "kundeservice",
         "Mange gentagne, simple henvendelser",
         "Samme spørgsmål om regning, aflæsning og levering fylder køen.",
+        lookup=(
+            "Antal simple henvendelser pr. år om regning, aflæsning og levering, "
+            "og tid pr. henvendelse (FocalScope)."
+        ),
+        calc="tid",
+        count_label="Simple henvendelser pr. år",
+        unit_label="Minutter pr. henvendelse",
     ),
     OkProblem(
         "efterbehandling",
         "kundeservice",
         "Tid brugt på efterbehandling",
         "Medarbejdere bruger tid på noter og registrering efter hver samtale.",
+        lookup="Antal samtaler pr. år og gennemsnitlig efterbehandling pr. samtale (FocalScope).",
+        calc="tid",
+        count_label="Samtaler pr. år",
+        unit_label="Minutters efterbehandling pr. samtale",
     ),
     OkProblem(
         "routing",
         "kundeservice",
         "Henvendelser lander i forkert kø",
         "Overdragelser mellem køer giver længere sager og utilfredse kunder.",
+        lookup=(
+            "Antal henvendelser pr. år, der flyttes til en anden kø, "
+            "og ekstra tid pr. overdragelse (FocalScope)."
+        ),
+        calc="tid",
+        count_label="Overdragelser pr. år",
+        unit_label="Ekstra minutter pr. overdragelse",
     ),
     OkProblem(
         "kvalitet",
         "kundeservice",
         "Manuel kvalitetssikring",
         "Kun en lille stikprøve af samtaler bliver gennemgået.",
+        lookup="Antal samtaler, der gennemgås pr. år, og tid pr. gennemgang.",
+        calc="tid",
+        count_label="Gennemgåede samtaler pr. år",
+        unit_label="Minutter pr. gennemgang",
     ),
     OkProblem(
         "viden",
         "support",
         "Medarbejdere mangler hurtig adgang til viden",
         "Svar skal findes i mange systemer og vejledninger.",
+        lookup=(
+            "Antal henvendelser pr. år og tid brugt på at finde svar "
+            "pr. henvendelse (FocalScope, G4)."
+        ),
+        calc="tid",
+        count_label="Henvendelser pr. år",
+        unit_label="Minutter brugt på opslag pr. henvendelse",
     ),
     OkProblem(
         "selvbetjening",
         "support",
         "Kunder kan ikke selv løse tekniske problemer",
         "Fx fejl på ladestander eller app kræver en supportsag.",
+        lookup="Antal supportsager pr. år om ladestander og app, og tid pr. sag.",
+        calc="tid",
+        count_label="Supportsager pr. år",
+        unit_label="Minutter pr. sag",
     ),
     OkProblem(
         "oplaering",
         "support",
         "Lang oplæring af nye medarbejdere",
         "Det tager lang tid, før nye medarbejdere kan løse sager selv.",
+        lookup="Antal nye medarbejdere pr. år og timer brugt på oplæring pr. medarbejder.",
+        calc="timer",
+        count_label="Nye medarbejdere pr. år",
+        unit_label="Timers oplæring pr. medarbejder",
     ),
     OkProblem(
         "konvertering",
         "salg",
         "Lav konvertering i salgssamtaler",
         "For få samtaler ender i et salg.",
+        lookup="Antal salg pr. år fra salgssamtaler og dækningsbidrag pr. salg.",
+        calc="vaerdi",
+        count_label="Salg pr. år i dag",
+        unit_label="Kr. pr. salg (dækningsbidrag)",
     ),
     OkProblem(
         "mersalg",
         "salg",
         "Mersalg i kundeservicesamtaler udnyttes ikke",
         "Kundeservice taler med mange kunder, men sjældent om relevante produkter.",
+        lookup="Antal mersalg pr. år i kundeservice og dækningsbidrag pr. mersalg.",
+        calc="vaerdi",
+        count_label="Mersalg pr. år i dag",
+        unit_label="Kr. pr. mersalg (dækningsbidrag)",
     ),
     OkProblem(
         "churn",
         "salg",
         "Kunder opsiger uden varsel",
         "Opsigelser opdages først, når de er sket.",
+        lookup="Antal opsigelser pr. år og dækningsbidrag pr. kunde pr. år.",
+        calc="vaerdi",
+        count_label="Opsigelser pr. år",
+        unit_label="Kr. pr. kunde pr. år (dækningsbidrag)",
     ),
 )
 
@@ -300,6 +363,50 @@ OK_PROFILE: tuple[str, ...] = (
 )
 # OK's nuværende leverandør: radaren følger, hvad den lancerer af AI.
 OK_CURRENT_VENDORS: tuple[str, ...] = ("FocalScope",)
+
+
+# Dem, der ligner OK: danske selskaber inden for OK's brancher (energi,
+# brændstof og ladning, mobil). Deres cases står øverst under Sådan gør andre,
+# og radaren viser også, hvem der endnu ikke har en AI-case. Kun offentlige
+# kilder; listen tilpasses af konsulenten.
+@dataclass(frozen=True)
+class Peer:
+    name: str
+    group: str
+    aliases: tuple[str, ...] = ()
+
+
+PEERS: tuple[Peer, ...] = (
+    Peer("Norlys", "Energi"),
+    Peer("Andel", "Energi", ("andel energi", "seas-nve")),
+    Peer("Ørsted", "Energi", ("orsted",)),
+    Peer("Energi Fyn", "Energi"),
+    Peer("EWII", "Energi"),
+    Peer("Vattenfall", "Energi"),
+    Peer("Circle K", "Brændstof og ladning"),
+    Peer("Q8", "Brændstof og ladning"),
+    Peer("Shell", "Brændstof og ladning"),
+    Peer("Uno-X", "Brændstof og ladning"),
+    Peer("Clever", "Brændstof og ladning"),
+    Peer("TDC", "Mobil og internet", ("tdc net", "nuuday", "yousee")),
+    Peer("Telenor", "Mobil og internet"),
+    Peer("Telia", "Mobil og internet"),
+    Peer("3", "Mobil og internet", ("3 danmark", "hi3g")),
+)
+
+
+def peer_for(company: str | None) -> Peer | None:
+    """Selskabet er en af dem, der ligner OK, når navnet er peerens navn
+    eller et alias — alene eller efterfulgt af fx "A/S" eller "Danmark"."""
+    if not company:
+        return None
+    name = " ".join(company.casefold().split())
+    for peer in PEERS:
+        for alias in (peer.name.casefold(), *peer.aliases):
+            if name == alias or name.startswith(alias + " "):
+                return peer
+    return None
+
 
 # Region ud fra ISO-landekode.
 _NORDIC = {"SE", "NO", "FI", "IS", "FO", "GL", "AX"}

@@ -24,6 +24,7 @@ from app.market.catalog import (
     TECH_CATALOG,
     VENDOR_TYPES,
     country_name,
+    peer_for,
     region,
 )
 from app.models import Document, Source
@@ -177,6 +178,9 @@ class CaseCard(BaseModel):
     source_kind_label: str = "Uafhængig kilde"
     # Hvor meget casen ligner OK (bruges kun til sortering).
     similarity: int = 0
+    # Et af de selskaber, der ligner OK (catalog.PEERS), og dets branche.
+    peer: str | None = None
+    peer_group: str | None = None
 
 
 def source_kind(row: Row) -> str:
@@ -191,8 +195,16 @@ def source_kind(row: Row) -> str:
     return "uafhængig"
 
 
-def similarity(region_key: str, industry: str | None, stage: str | None, effect: str | None) -> int:
+def similarity(
+    region_key: str,
+    industry: str | None,
+    stage: str | None,
+    effect: str | None,
+    peer: bool = False,
+) -> int:
     score = {"danmark": 3, "norden": 2}.get(region_key, 0)
+    if peer:
+        score += 3
     if industry and normalize_alias(industry) in OK_INDUSTRIES:
         score += 2
     if stage in LIVE_STAGES:
@@ -264,6 +276,8 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
     reg = region(country)
     industry = _first(rows, "industry")
     kind = source_kind(effect_row)
+    company = _company_name(db, primary.item.company_id) or "Ukendt organisation"
+    peer = peer_for(company)
     also = []
     for r in rows[1:]:
         if r.source.name not in also and r.source.name != effect_row.source.name:
@@ -271,7 +285,7 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
     return CaseCard(
         id=primary.item.id,
         item_ids=group.item_ids,
-        company=_company_name(db, primary.item.company_id) or "Ukendt organisation",
+        company=company,
         company_id=primary.item.company_id,
         country=country,
         country_label=country_name(country),
@@ -301,7 +315,11 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         start=_first(rows, "start"),
         source_kind=kind,
         source_kind_label=SOURCE_KIND_LABELS[kind],
-        similarity=similarity(reg, industry, stage, effect_row.item.data.get("effect")),
+        similarity=similarity(
+            reg, industry, stage, effect_row.item.data.get("effect"), peer is not None
+        ),
+        peer=peer.name if peer else None,
+        peer_group=peer.group if peer else None,
     )
 
 

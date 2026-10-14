@@ -148,32 +148,17 @@ VENDOR_ONLY_NOTE = (
 )
 
 
-INTERNAL_NOTE = (
-    "SCOPE: this is an INTERNAL document about OK's own customer service (for "
-    "example an export or an analysis of OK's mailboxes, calls or tickets). Extract "
-    'measured facts about OK\'s own operations with "OK a.m.b.a." as the subject: '
-    "problems and volumes (REPORTS_BARRIER), measured effects (REPORTED_EFFECT), "
-    "tools and vendors in use (USES_TECHNOLOGY / USES_VENDOR) and use cases (USES_FOR). "
-    "Never extract personal data: no names, addresses, phone numbers, customer numbers "
-    "or e-mail addresses of private persons — skip any claim that would contain them."
-)
-
-
 def extraction_user_message(
     capabilities: list[tuple[str, str]],
     document_text: str,
     *,
     vendor_only: bool = False,
-    internal: bool = False,
 ) -> str:
     """Kuraterede capabilities (navn, definition) foran dokumentteksten, så
     modellen bruger radarens egne navne og claims lander på teknologierne.
-    vendor_only begrænser svaret ved genlæsning (kortere og billigere svar);
-    internal markerer et internt OK-dokument (Indsigter)."""
+    vendor_only begrænser svaret ved genlæsning (kortere og billigere svar)."""
     lines = "\n".join(f"- {name}: {definition}" for name, definition in capabilities)
     scope = f"{VENDOR_ONLY_NOTE}\n\n" if vendor_only else ""
-    if internal:
-        scope = f"{INTERNAL_NOTE}\n\n"
     return f"{scope}CAPABILITIES:\n{lines or '- (ingen)'}\n\nDOCUMENT:\n{document_text}"
 
 
@@ -408,7 +393,7 @@ OK_BRIEF_PROMPT_ID = "ok_brief"
 # bevis; hver case højst én gang; status beregnes af serveren.
 # 2.1.0: OK TODAY (FocalScope, legacy G4) i input — forslag skal passe til
 # OK's systemer og sige det, når en løsning kræver integration eller skift.
-OK_BRIEF_PROMPT_VERSION = "2.1.0"
+OK_BRIEF_PROMPT_VERSION = "2.2.0"
 
 OK_BRIEF_SYSTEM = """\
 You write the page "Til OK" for OK a.m.b.a.'s director of customer service
@@ -430,8 +415,9 @@ Danish word exists.
 
 Return:
 - must_know: exactly 3 points (fewer only if the input has fewer facts) —
-  what the director must know now: e.g. a Danish or Nordic case with an
-  effect, the quickest win, what is new on the market. Each is one sentence
+  what the director must know now: e.g. what a company marked "ligner OK"
+  is doing, a Danish or Nordic case with an effect, the quickest win, what
+  is new on the market. Each is one sentence
   of at most 20 words stating a fact from the input, with "source": the id
   of the case or technology it builds on.
 - recommendations: at most 3 small, concrete steps OK can take now, each
@@ -443,9 +429,10 @@ Return:
   - problem: its id (e.g. "P3").
   - best_technology: the id of the technology that best addresses it, or
     null.
-  - best_case: the id of the single most comparable case — prefer Danish or
-    Nordic, energy, utilities, telecom or retail, in operation, with an
-    effect — or null if no case fits.
+  - best_case: the id of the single most comparable case — prefer cases
+    marked "ligner OK" (Danish companies in OK's own industries), then
+    Danish or Nordic, energy, utilities, telecom or retail, in operation,
+    with an effect — or null if no case fits.
   - why_comparable: one sentence (at most 20 words) on why that case is
     comparable to OK; empty when best_case is null.
   - more_cases: 0-2 further case ids.

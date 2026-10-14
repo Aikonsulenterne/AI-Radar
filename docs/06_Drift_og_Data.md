@@ -17,17 +17,17 @@ systemer, og den udfører ingen handlinger i dem.
 | Data | Hvor fra | Persondata? |
 |---|---|---|
 | Artikler og websider | Offentlige kilder (kildeliste i Admin → Kilder) | Kan indeholde navne på talspersoner fra artiklerne; radaren gemmer organisationer, ikke personer |
-| Manuelt uploadede dokumenter | Admin uploader | Afhænger af dokumentet — se nedenfor |
-| OK-tal i beslutningsoplægget | Indtastes manuelt af Admin | Nej (aggregerede tal) |
+| Manuelt uploadede dokumenter | Admin uploader (kun offentlige kilder) | Afhænger af dokumentet — se nedenfor |
 | Brugerkonti | Supabase Auth (e-mail, rolle) | Ja, medarbejderes e-mail |
 | Audit-log | Alle beslutninger (aktør, før/efter) | Bruger-id |
 
 **Kundedata:** Radaren er ikke bygget til kundedata og må ikke få dem.
-Interne dokumenter (fx eksport fra FocalScope) skal ligge i en kilde markeret
-**intern** (Admin → Kilder → "Markér som intern"); deres analyser vises som
-intern analyse og aldrig som markedsviden. **[afklares]** Om interne
-dokumenter overhovedet må uploades, før radaren kører i OK's miljø — anbefalet
-svar: nej, kun anonymiserede tal.
+**Ingen OK-tal og ingen interne dokumenter (besluttet 2026-10-14):** så
+længe radaren ikke kører i OK's eget miljø, kan interne dokumenter ikke
+uploades (kilder markeret intern afvises), og interne dokumenter sendes aldrig
+til AI. Kroner regnes i regnearket fra Til OK, som OK udfylder på egen pc;
+radaren ser aldrig tallene. Radaren kender kun navnene på OK's systemer
+(FocalScope, G4), som indgår i Til OK-prompten.
 
 ## Hvor det kører i dag (prototype)
 
@@ -72,4 +72,5 @@ API, ingen proprietær platformlogik. Forslag:
    kilder må sendes dertil.
 4. Ejerskab: koden ligger i et privat GitHub-repo **[afklares: overdrages til
    OK's organisation]**.
-5. Om interne, anonymiserede tal må bruges i radaren.
+5. Om interne, anonymiserede tal må bruges i radaren, når den kører i OK's
+   miljø (indtil da: nej).

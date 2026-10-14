@@ -466,6 +466,62 @@ CASES_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
 )
 
 
+# Dem, der ligner OK (catalog.PEERS): deres AI-cases står øverst under
+# Sådan gør andre. Kun offentlige nyhedskilder.
+PEERS_PACK_MARKER = "Konkurrent-kildepakke 2026-10"
+PEERS_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
+    (
+        "Bing News: Norlys og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=Norlys+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Andel Energi og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22Andel+Energi%22+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Ørsted kundeservice og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%C3%98rsted+kundeservice+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Energi Fyn, EWII og Vattenfall og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28%22Energi+Fyn%22+OR+EWII+OR+Vattenfall%29+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Circle K, Q8, Shell, Uno-X og Clever og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28%22Circle+K%22+OR+Q8+OR+Shell+OR+%22Uno-X%22+OR+Clever%29+%28AI+OR+%22kunstig+intelligens%22%29+kunder&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: TDC, YouSee og Nuuday og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28TDC+OR+YouSee+OR+Nuuday%29+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Telenor, Telia og 3 kundeservice og AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28Telenor+OR+Telia+OR+%223+Danmark%22%29+kundeservice+%28AI+OR+%22kunstig+intelligens%22%29&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+)
+
+
 def _ensure_pack(
     connection: Connection,
     *,
@@ -540,6 +596,13 @@ def _ensure_source_pack(connection: Connection) -> None:
         connection,
         marker=CASES_PACK_MARKER,
         pack=CASES_PACK,
+        retrieval_method="rss",
+        frequency="weekly",
+    )
+    _ensure_pack(
+        connection,
+        marker=PEERS_PACK_MARKER,
+        pack=PEERS_PACK,
         retrieval_method="rss",
         frequency="weekly",
     )

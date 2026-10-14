@@ -1,18 +1,9 @@
 import Link from "next/link";
-import {
-  getDecisionBrief,
-  getInsights,
-  listInternalSignals,
-  type DecisionFinding,
-  type Insight,
-  type InsightsData,
-  type Signal,
-} from "../lib/api";
+import { getInsights, type Insight, type InsightsData } from "../lib/api";
 import { formatDateTime } from "../lib/labels";
 import { ApiErrorAlert } from "../../components/states/api-error";
 import { AiPublishedBadge } from "../../components/states/ai-badge";
 import { GenerateButton } from "./GenerateButton";
-import { InternalUpload } from "./InternalUpload";
 
 export const dynamic = "force-dynamic";
 
@@ -124,18 +115,9 @@ function InsightCard({ insight }: { insight: Insight }) {
 
 export default async function InsightsPage() {
   let insights: InsightsData | null = null;
-  let internal: Signal[] = [];
-  let findings: DecisionFinding[] = [];
   let loadError: unknown = null;
   try {
-    const [data, internalPage, brief] = await Promise.all([
-      getInsights(),
-      listInternalSignals(),
-      getDecisionBrief(),
-    ]);
-    insights = data;
-    internal = internalPage.items;
-    findings = brief.brief.internal_findings;
+    insights = await getInsights();
   } catch (error) {
     loadError = error;
   }
@@ -181,47 +163,8 @@ export default async function InsightsPage() {
               <InsightCard key={insight.id} insight={insight} />
             ))
           )}
-
-          <h2 className="section-title">OK&#8217;s egne data</h2>
-          <p className="cell-sub">
-            Interne tal og analyser holdes adskilt fra markedsviden og indgår
-            ikke i indsigterne ovenfor.
-          </p>
-          {findings.length > 0 ? (
-            <div className="kpi-grid">
-              {findings.map((finding) => (
-                <div className="kpi-card" key={finding.title}>
-                  <p className="kpi-value">{finding.figure ?? "–"}</p>
-                  <p className="kpi-label">{finding.title}</p>
-                  {finding.description ? (
-                    <p className="kpi-definition">{finding.description}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="cell-sub">
-              Ingen interne fund registreret. Tilføj dem under{" "}
-              <Link href="/admin/beslutningsoplaeg">
-                Admin → OK-tal &amp; oplæg
-              </Link>
-              .
-            </p>
-          )}
-          {internal.length > 0 ? (
-            <ul>
-              {internal.map((signal) => (
-                <li key={signal.id}>
-                  <Link href={`/signals/${signal.id}`}>{signal.title}</Link>{" "}
-                  <span className="cell-sub">(intern analyse)</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
         </>
       )}
-
-      <InternalUpload />
     </>
   );
 }

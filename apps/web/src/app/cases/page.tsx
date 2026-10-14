@@ -34,15 +34,20 @@ export default async function CasesPage({
   let items: MarketCase[] | null = null;
   let technologies: MarketTechnologyRef[] = [];
   let counts = { all: 0, danish: 0 };
+  let peersWithout: string[] = [];
   let loadError: unknown = null;
   try {
     const data = await getMarketCases({ region, technology_id: technology });
     items = data.items;
     technologies = data.technologies;
     counts = { all: data.all_total, danish: data.danish_total };
+    peersWithout = data.peers_without_cases;
   } catch (error) {
     loadError = error;
   }
+
+  const peers = (items ?? []).filter((item) => item.peer);
+  const others = (items ?? []).filter((item) => !item.peer);
 
   return (
     <div className="market-v2">
@@ -51,7 +56,7 @@ export default async function CasesPage({
         <h1>Hvordan bruger andre kundecentre AI?</h1>
         <p>
           Kun organisationer, der selv bruger AI. Effekt og læring står, som kilden
-          skriver dem. De cases, der ligner OK mest, står øverst.
+          skriver dem. Dem, der ligner OK, står øverst.
         </p>
       </div>
 
@@ -74,15 +79,49 @@ export default async function CasesPage({
 
       {items === null ? (
         <ApiErrorAlert error={loadError} />
-      ) : items.length === 0 ? (
-        <p className="empty-line">Ingen cases fundet for dette valg endnu.</p>
       ) : (
         <>
-          <div className="case-grid-v2">
-            {items.map((item) => (
-              <CaseCard key={item.id} item={item} />
-            ))}
-          </div>
+          {region !== "verden" ? (
+            <section className="v2-section" aria-labelledby="peers-title">
+              <div className="v2-section-head">
+                <h2 id="peers-title">Dem, der ligner OK</h2>
+                <span className="muted">
+                  Danske selskaber inden for energi, brændstof og ladning, mobil og internet
+                </span>
+              </div>
+              {peers.length > 0 ? (
+                <div className="case-grid-v2">
+                  {peers.map((item) => (
+                    <CaseCard key={item.id} item={item} />
+                  ))}
+                </div>
+              ) : (
+                <p className="empty-line">Ingen AI-cases fra dem, der ligner OK, for dette valg endnu.</p>
+              )}
+              {peersWithout.length > 0 ? (
+                <p className="muted small">
+                  Ingen AI-case fundet endnu: {peersWithout.join(" · ")}
+                </p>
+              ) : null}
+            </section>
+          ) : null}
+
+          <section className="v2-section" aria-label="Andre kundecentre">
+            {region !== "verden" ? (
+              <div className="v2-section-head">
+                <h2>Andre kundecentre</h2>
+              </div>
+            ) : null}
+            {others.length === 0 ? (
+              <p className="empty-line">Ingen cases fundet for dette valg endnu.</p>
+            ) : (
+              <div className="case-grid-v2">
+                {others.map((item) => (
+                  <CaseCard key={item.id} item={item} />
+                ))}
+              </div>
+            )}
+          </section>
           <p className="ai-note">AI-sammenfattet · tjek kilden</p>
         </>
       )}

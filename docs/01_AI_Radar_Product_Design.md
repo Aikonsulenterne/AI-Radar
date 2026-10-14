@@ -480,3 +480,24 @@ problemlisten omfatter salg.
   FocalScope lancerer af AI, og markerer FocalScope som "OK bruger i dag".
 - **Case-kildepakke:** 16 ekstra nyhedsfeeds med fokus på danske og nordiske
   cases, brancher som OK, CX-konferencer og FocalScope.
+
+## 21. Beslutning 2026-10-14: ingen OK-tal i radaren; dem, der ligner OK
+
+**Baggrund.** Radaren kører ikke i et internt OK-miljø. OK's egne tal
+(henvendelser, samtaletid, timepris, interne analyser) må derfor ikke lægges
+ind — heller ikke via upload.
+
+**Beslutning.**
+- Beslutningsoplægget med OK's tal er fjernet. Upload til interne kilder
+  afvises, og interne dokumenter sendes aldrig til AI.
+- Kroner regnes *uden for* radaren: Til OK har knappen "Regn på det i
+  Excel". Arket indeholder kun radarens offentlige fund (problem, teknologi,
+  case, effekten som kilden skriver den, kilde) og formler. OK skriver sine
+  tal i de gule felter på egen pc; arket sendes aldrig tilbage.
+- Hvert problem på Til OK viser "Slå op internt": hvilket tal OK skal finde
+  i FocalScope eller hos controlling, og hvilken andel casen oplyser.
+- *Dem, der ligner OK* — danske selskaber i OK's brancher (energi; brændstof
+  og ladning; mobil og internet) — står øverst under Sådan gør andre, med
+  en linje over dem, radaren endnu ikke har en AI-case fra. Til OK
+  foretrækker deres cases som bevis. Listen er kurateret og tilpasses af
+  konsulenten.

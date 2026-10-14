@@ -114,15 +114,11 @@ Direktørvisningen *Muligheder* (`/muligheder`, `GET /opportunity-map`) går fra
 OK's problemliste til capabilities, leverandører, dokumenteret brug, effekt
 og næste skridt; koblingen problem → capability er kurateret i
 `app/routes/opportunity_map.py`.
-Beslutningsoplægget (`/beslutningsoplaeg`, `GET/PUT /decision-brief`) samler
-OK's indtastede tal, interne fund og ønsket med radarens dokumentation.
-Signaler fra kilder med access class `restricted` er interne analyser og
-vises aldrig som markedsviden. IT-notat: `docs/06_Drift_og_Data.md`.
+IT-notat: `docs/06_Drift_og_Data.md`.
 *Indsigter* (`/indsigter`, `GET /insights`) viser mønstre på tværs af
 radarens godkendte claims (prompt `insight_synthesis`; mindst to dokumenter
 pr. indsigt, evidensstyrke beregnet af serveren, interne kilder indgår
-aldrig). OK's egne data ligger som underafsnit: interne dokumenter springer
-markedsfilteret over og udtrækkes uden persondata.
+aldrig).
 **Den forenklede radar (2026-10-13)** er nu brugerens visning: radaren er til
 direktøren for Salg, Kundeservice og Support og har fire menupunkter — Til OK
 (`/`), Teknologier, Sådan gør andre (`/cases`) og Kilder (kun Admin). Kørsler
@@ -142,3 +138,11 @@ godkender ("Godkend og send", `POST /ok-brief/approve`), før direktøren ser
 den, og den sendes som mail, når SMTP er sat op. OK's systemer (FocalScope,
 legacy G4) står i `catalog.OK_PROFILE` og indgår i Til OK-prompten.
 Product Master §20, Technical Master §26.
+**Ingen OK-tal i radaren (2026-10-14):** radaren kører ikke i et internt
+miljø. Beslutningsoplægget er fjernet, upload til interne kilder
+(`restricted`) afvises, og interne dokumenter sendes aldrig til AI. Kroner
+regnes i regnearket fra Til OK (`GET /ok-brief/regneark.xlsx`, kun offentlige
+fund og formler) på OK's egen pc; hvert problem viser, hvad OK skal slå op
+internt (`catalog.OK_PROBLEMS.lookup`). *Dem, der ligner OK*
+(`catalog.PEERS`: energi, brændstof og ladning, mobil) står øverst under
+Sådan gør andre. Product Master §21, Technical Master §27.

@@ -2869,3 +2869,12 @@ body {
   padding: 1px 6px;
   white-space: nowrap;
 }
+
+/* Dem, der ligner OK: markeret med tekst og ramme, ikke kun farve. */
+.pill-peer {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ok-burgundy);
+  background: transparent;
+  border: 1px solid var(--ok-burgundy);
+}

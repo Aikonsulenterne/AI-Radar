@@ -465,3 +465,18 @@ produktbeslutning; Til OK er high-fidelity). Hovedpunkter:
 Afvigelse fra handoffen, bevidst: radaren dækker fortsat salg og support ud
 over kundeservice (beslutning 2026-10-13, §18), så relevansfilteret og
 problemlisten omfatter salg.
+
+## 20. Beslutning 2026-10-14: godkendelse af Til OK og OK's systemer
+
+- **Konsulenten godkender Til OK, før direktøren ser den.** Kørsler skriver en
+  kladde; direktøren ser den senest godkendte version. "Godkend og send"
+  sender forsiden som mail, når SMTP er sat op. Bevidst afvigelse fra v2 §8
+  ("intet review-flow"): én fejl på den side, der træffes beslutninger på,
+  koster mere end fem minutters kontrol. Teknologier og Sådan gør andre
+  publiceres fortsat automatisk.
+- **OK i dag:** FocalScope (kundeservicesystem) og et legacy G4-system. Til
+  OK-prompten får profilen med, så forslag passer til OK's systemer og siger
+  det, når en løsning kræver integration eller skift. Radaren følger, hvad
+  FocalScope lancerer af AI, og markerer FocalScope som "OK bruger i dag".
+- **Case-kildepakke:** 16 ekstra nyhedsfeeds med fokus på danske og nordiske
+  cases, brancher som OK, CX-konferencer og FocalScope.

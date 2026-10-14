@@ -242,7 +242,7 @@ class FakeProvider:
         self.opportunity = opportunity
         self.insights = insights or {"insights": []}
         self.market = market or {"technologies": [], "cases": []}
-        self.ok_brief = ok_brief or {"top_now": [], "problems": []}
+        self.ok_brief = ok_brief or {"must_know": [], "per_problem": []}
         self.calls: list[str] = []
         self.prompts: list[str] = []
 

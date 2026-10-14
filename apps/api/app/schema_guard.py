@@ -347,6 +347,125 @@ SALES_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
 )
 
 
+# Case-kildepakken (2026-10-14): danske og nordiske cases, brancher som OK og
+# OK's nuværende leverandør (FocalScope). Indsat én gang som de andre pakker.
+CASES_PACK_MARKER = "Case-kildepakke 2026-10"
+CASES_PACK: tuple[tuple[str, str, str, str, str | None], ...] = (
+    (
+        "Bing News: FocalScope AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=FocalScope+AI&format=rss",
+        None,
+    ),
+    (
+        "Bing News: FocalScope",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=FocalScope&format=rss",
+        None,
+    ),
+    (
+        "Bing News: kundecase AI kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=kundecase+AI+kundeservice&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: voicebot kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=voicebot+kundeservice&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: AI-agent kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22AI-agent%22+kundeservice&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: energiselskab kundeservice AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28energiselskab+OR+forsyning+OR+elselskab%29+kundeservice+AI&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: teleselskab kundeservice AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28teleselskab+OR+TDC+OR+Telenor+OR+Telia+OR+Nuuday%29+kundeservice+AI&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: forsikring og bank kundeservice AI",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28forsikring+OR+bank%29+kundeservice+%22kunstig+intelligens%22&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: Dansk Erhverv og DI om AI i kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28%22Dansk+Erhverv%22+OR+%22Dansk+Industri%22%29+kundeservice+AI&format=rss&setlang=da&cc=DK",
+        "DK",
+    ),
+    (
+        "Bing News: CX-konferencer i Norden",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28%22CX+Nordic%22+OR+Kundeservicedagen+OR+%22Customer+Service+Day%22%29+AI&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Sverige: AI i kundtjänst",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=AI+kundtj%C3%A4nst&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Norge: KI i kundeservice",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22kunstig+intelligens%22+OR+KI+kundeservice+Norge&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Finland: tekoäly asiakaspalvelu",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=teko%C3%A4ly+asiakaspalvelu&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Utilities: AI customer service case",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=utility+OR+energy+%22customer+service%22+AI+%22case+study%22&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Contact center AI results",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%22contact+center%22+AI+reduced+%22handling+time%22+OR+%22wait+times%22&format=rss",
+        None,
+    ),
+    (
+        "Bing News: Puzzel og Boost.ai kundecases",
+        "https://www.bing.com/news",
+        "media",
+        "https://www.bing.com/news/search?q=%28Puzzel+OR+%22Boost.ai%22%29+customer+AI&format=rss",
+        None,
+    ),
+)
+
+
 def _ensure_pack(
     connection: Connection,
     *,
@@ -414,6 +533,13 @@ def _ensure_source_pack(connection: Connection) -> None:
         connection,
         marker=SALES_PACK_MARKER,
         pack=SALES_PACK,
+        retrieval_method="rss",
+        frequency="weekly",
+    )
+    _ensure_pack(
+        connection,
+        marker=CASES_PACK_MARKER,
+        pack=CASES_PACK,
         retrieval_method="rss",
         frequency="weekly",
     )

@@ -1002,6 +1002,7 @@ export interface MarketVendorRow {
   type: string;
   technologies: string[];
   danish: boolean | null;
+  ok_vendor: boolean;
 }
 
 export interface MarketCase {
@@ -1072,6 +1073,13 @@ export interface OkBrief {
   decisions: string[];
   areas: { area: MarketArea; label: string; rows: OkBriefRow[] }[];
   undocumented: { title: string; area_label: string }[];
+  state: "godkendt" | "kladde" | "ingen";
+  approved_at: string | null;
+  mail_status: string | null;
+}
+
+export function approveOkBrief(): Promise<{ approved_at: string; mail: string }> {
+  return request("/ok-brief/approve", { method: "POST" });
 }
 
 export interface Me {

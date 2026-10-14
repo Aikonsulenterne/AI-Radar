@@ -192,6 +192,7 @@ VENDOR_TYPES: dict[str, str] = {
     "twilio": "Kundecenterplatform",
     "telavox": "Kundecenterplatform",
     "zendesk": "Kundeservicesystem",
+    "focalscope": "Kundeservicesystem",
     "freshworks": "Kundeservicesystem",
     "intercom": "Kundeservicesystem",
     "dixa": "Kundeservicesystem",
@@ -290,6 +291,15 @@ OK_PROBLEMS: tuple[OkProblem, ...] = (
 )
 
 PROBLEMS_BY_KEY = {problem.key: problem for problem in OK_PROBLEMS}
+
+# OK i dag — sendes med til Til OK, så forslagene passer til OK's systemer.
+# Oplyst af AI-konsulenten 2026-10-14; udvides, når flere fakta kendes.
+OK_PROFILE: tuple[str, ...] = (
+    "Kundeservicesystem: FocalScope (henvendelser i kundeservice).",
+    "Legacy-system: G4 (ældre system; integration kan være en begrænsning).",
+)
+# OK's nuværende leverandør: radaren følger, hvad den lancerer af AI.
+OK_CURRENT_VENDORS: tuple[str, ...] = ("FocalScope",)
 
 # Region ud fra ISO-landekode.
 _NORDIC = {"SE", "NO", "FI", "IS", "FO", "GL", "AX"}

@@ -66,6 +66,22 @@ class Settings(BaseSettings):
     # instansen i dvale midt i arbejdet.
     render_external_url: str = ""
 
+    # Til OK som mail, når konsulenten godkender forsiden. Standard SMTP
+    # (fx OK's egen mailserver); uden SMTP_HOST sendes intet, og knappen
+    # siger det. Modtagere kommasepareret i BRIEF_RECIPIENTS.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    brief_recipients: str = ""
+    # Webadressen i mailens link, fx https://ai-radar-xi-teal.vercel.app
+    public_web_url: str = ""
+
+    @property
+    def brief_recipient_list(self) -> list[str]:
+        return [r.strip() for r in self.brief_recipients.split(",") if r.strip()]
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]

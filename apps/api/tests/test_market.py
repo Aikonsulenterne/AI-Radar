@@ -281,8 +281,11 @@ def test_ok_brief_keeps_only_valid_references_and_each_case_once(
     _upload(client, admin_headers)
     _run(client, admin_headers)
     assert "ok_brief" in fake.calls  # nye fund → forsiden opdateres
+    approve = client.post("/api/v1/ok-brief/approve", headers=admin_headers)
+    assert approve.status_code == 200, approve.text
 
     out = client.get("/api/v1/ok-brief", headers=reader_headers).json()
+    assert out["state"] == "godkendt"
     assert [p["text"] for p in out["must_know"]] == [brief["must_know"][0]["text"]]
     assert out["must_know"][0]["href"].startswith("/cases#case-")
     assert len(out["recommendations"]) == 3
@@ -371,3 +374,96 @@ def test_me_reports_role(
     assert client.get("/api/v1/me", headers=admin_headers).json()["role"] == "admin"
     assert client.get("/api/v1/me", headers=reader_headers).json()["role"] == "reader"
     assert client.get("/api/v1/me").status_code == 401
+
+
+def test_director_sees_only_the_approved_til_ok_and_mail_is_sent(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    brief = {
+        "must_know": [{"text": "Norlys har fået 30 % kortere ventetid.", "source": "C1"}],
+        "decisions": [{"question": "Må vi starte et forsøg?"}],
+        "per_problem": [{"problem": "P1", "best_case": "C1", "next_step": "Book en demo."}],
+    }
+    fake = _provider(ok_brief=brief)
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+
+    # Før godkendelse: direktøren ser intet, konsulenten ser kladden.
+    assert client.get("/api/v1/ok-brief", headers=reader_headers).json()["state"] == "ingen"
+    draft = client.get("/api/v1/ok-brief", headers=admin_headers).json()
+    assert draft["state"] == "kladde"
+    assert draft["must_know"]
+    assert client.post("/api/v1/ok-brief/approve", headers=reader_headers).status_code == 403
+
+    sent: list[Any] = []
+
+    class FakeSMTP:
+        def __init__(self, host: str, port: int, timeout: int) -> None:
+            self.host = host
+
+        def __enter__(self) -> "FakeSMTP":
+            return self
+
+        def __exit__(self, *args: object) -> None:
+            return None
+
+        def starttls(self) -> None:
+            return None
+
+        def login(self, user: str, password: str) -> None:
+            return None
+
+        def send_message(self, message: Any) -> None:
+            sent.append(message)
+
+    monkeypatch.setattr("app.mailer.smtplib.SMTP", FakeSMTP)
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.org")
+    monkeypatch.setenv("BRIEF_RECIPIENTS", "direktoer@example.org, nicl@example.org")
+    monkeypatch.setenv("PUBLIC_WEB_URL", "https://radar.example.org")
+    get_settings.cache_clear()
+
+    approved = client.post("/api/v1/ok-brief/approve", headers=admin_headers).json()
+    assert approved["mail"] == "sendt til 2"
+    body = sent[0].get_body(preferencelist=("plain",)).get_content()
+    assert "Norlys har fået 30 % kortere ventetid." in body
+    assert "Ja / nej: Må vi starte et forsøg?" in body
+    assert "https://radar.example.org/" in body
+
+    out = client.get("/api/v1/ok-brief", headers=reader_headers).json()
+    assert out["state"] == "godkendt"
+    assert out["must_know"][0]["text"] == "Norlys har fået 30 % kortere ventetid."
+
+    # En ny kladde ændrer ikke direktørens side, før den er godkendt.
+    fake.ok_brief = {"must_know": [{"text": "Ny kladde.", "source": "C1"}]}
+    client.post("/api/v1/ok-brief/generate", headers=admin_headers)
+    assert client.get("/api/v1/ok-brief", headers=admin_headers).json()["state"] == "kladde"
+    reader_view = client.get("/api/v1/ok-brief", headers=reader_headers).json()
+    assert reader_view["must_know"][0]["text"] == "Norlys har fået 30 % kortere ventetid."
+
+
+def test_approve_without_mail_setup_still_publishes(
+    client: TestClient, admin_headers: dict[str, str], market_mode: Any
+) -> None:
+    _provider(ok_brief={"must_know": [{"text": "Et punkt.", "source": "C1"}]})
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    approved = client.post("/api/v1/ok-brief/approve", headers=admin_headers).json()
+    assert approved["mail"] == "ikke sat op"
+    admin_view = client.get("/api/v1/ok-brief", headers=admin_headers).json()
+    assert admin_view["state"] == "godkendt"
+    assert admin_view["mail_status"] == "ikke sat op"
+
+
+def test_brief_input_contains_oks_systems(
+    client: TestClient, admin_headers: dict[str, str], market_mode: Any
+) -> None:
+    fake = _provider()
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    brief_prompt = fake.prompts[fake.calls.index("ok_brief")]
+    assert brief_prompt.startswith("OK TODAY:")
+    assert "FocalScope" in brief_prompt and "G4" in brief_prompt

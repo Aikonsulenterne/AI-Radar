@@ -19,6 +19,7 @@ from app.market.catalog import (
     AREA_LABELS,
     CATALOG_BY_NAME,
     FOR_OK,
+    OK_CURRENT_VENDORS,
     REGION_LABELS,
     TECH_CATALOG,
     VENDOR_TYPES,
@@ -494,6 +495,11 @@ class VendorRow(BaseModel):
     type: str
     technologies: list[str]
     danish: bool | None
+    # OK's nuværende leverandør (catalog.OK_CURRENT_VENDORS).
+    ok_vendor: bool = False
+
+
+_OK_VENDOR_KEYS = {normalize_alias(legal_base_name(v)) for v in OK_CURRENT_VENDORS}
 
 
 def vendor_type(name: str) -> str:
@@ -510,14 +516,20 @@ def vendor_rows(cards: list[TechnologyCard]) -> list[VendorRow]:
             row = rows.setdefault(
                 key,
                 VendorRow(
-                    name=vendor.name, type=vendor_type(vendor.name), technologies=[], danish=None
+                    name=vendor.name,
+                    type=vendor_type(vendor.name),
+                    technologies=[],
+                    danish=None,
+                    ok_vendor=key in _OK_VENDOR_KEYS,
                 ),
             )
             if card.label not in row.technologies:
                 row.technologies.append(card.label)
             if vendor.danish_supported is True:
                 row.danish = True
-    return sorted(rows.values(), key=lambda r: (-len(r.technologies), r.name.casefold()))
+    return sorted(
+        rows.values(), key=lambda r: (not r.ok_vendor, -len(r.technologies), r.name.casefold())
+    )
 
 
 def area_label(area: str) -> str:

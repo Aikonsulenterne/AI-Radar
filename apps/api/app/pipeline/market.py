@@ -42,7 +42,7 @@ from app.ai.schemas import (
     call_with_schema,
 )
 from app.enums import AccessClass, EntityType, ProcessingStatus
-from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, TECH_CATALOG
+from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, OK_PROFILE, TECH_CATALOG
 from app.market.views import (
     CaseCard,
     TechnologyCard,
@@ -524,9 +524,13 @@ def _brief_input(technologies: list[TechnologyCard], cases: list[CaseCard]) -> s
         f"- [P{i}] ({AREA_LABELS[p.area]}) {p.name}: {p.description}"
         for i, p in enumerate(OK_PROBLEMS, start=1)
     )
+    profile = "\n".join(f"- {line}" for line in OK_PROFILE)
     tech_lines = "\n".join(_tech_line(i, t) for i, t in enumerate(technologies, 1)) or "- (ingen)"
     case_lines = "\n".join(_case_line(i, c) for i, c in enumerate(cases, 1)) or "- (ingen)"
-    return f"PROBLEMS:\n{problems}\n\nTECHNOLOGIES:\n{tech_lines}\n\nCASES:\n{case_lines}"
+    return (
+        f"OK TODAY:\n{profile}\n\nPROBLEMS:\n{problems}\n\n"
+        f"TECHNOLOGIES:\n{tech_lines}\n\nCASES:\n{case_lines}"
+    )
 
 
 def _ref_map(prefix: str, ids: list[uuid.UUID]) -> dict[str, uuid.UUID]:

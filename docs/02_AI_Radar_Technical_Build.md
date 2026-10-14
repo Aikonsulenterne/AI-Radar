@@ -835,3 +835,17 @@ ikke af den forenklede visning.
   `danish_total`), `GET /market/sources` (Admin), `GET /me`
   (+ `last_updated`). Leverandørtyper og "Det kan betyde for OK" er
   kuratering i `app/market/catalog.py`.
+
+## 26. Godkendelse og mail (2026-10-14)
+
+- `app_settings.ok_brief` er kladden; `app_settings.ok_brief_published` er
+  den godkendte kopi (+ `approved_at`, `approved_by_user_id`, `mail_status`).
+  `GET /ok-brief` giver Admin kladden med `state` (kladde/godkendt/ingen) og
+  alle andre den godkendte version. `POST /ok-brief/approve` (Admin, audit)
+  kopierer kladden og sender mail via `app/mailer.py` (smtplib, STARTTLS).
+- Konfiguration: `SMTP_HOST`, `SMTP_PORT` (587), `SMTP_USER`,
+  `SMTP_PASSWORD`, `SMTP_FROM`, `BRIEF_RECIPIENTS` (kommasepareret),
+  `PUBLIC_WEB_URL`. Uden `SMTP_HOST` sendes intet; godkendelsen virker.
+- `ok_brief` 2.1.0 får "OK TODAY" (`catalog.OK_PROFILE`) først i input.
+  `catalog.OK_CURRENT_VENDORS` markerer OK's leverandør i leverandørtabellen.
+- `CASES_PACK` i `schema_guard.py` indsættes én gang ved opstart.

@@ -123,7 +123,10 @@ function VendorTable({ rows }: { rows: MarketVendorRow[] }) {
         <tbody>
           {rows.map((v) => (
             <tr key={v.name}>
-              <th scope="row">{v.name}</th>
+              <th scope="row">
+                {v.name}
+                {v.ok_vendor ? <span className="ok-vendor">OK bruger i dag</span> : null}
+              </th>
               <td className="muted">{v.type}</td>
               <td>
                 <span className="pill-list">

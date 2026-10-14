@@ -28,6 +28,7 @@ from app.auth import CurrentUser, require_role
 from app.db import get_db
 from app.enums import AccessClass, RunStatus, UserRole
 from app.errors import ApiError
+from app.mailer import send_brief
 from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS
 from app.market.views import (
     CaseCard,
@@ -373,6 +374,12 @@ class OkBriefOut(BaseModel):
     decisions: list[str] = Field(default_factory=list)
     areas: list[AreaRows] = Field(default_factory=list)
     undocumented: list[Undocumented] = Field(default_factory=list)
+    # godkendt: direktøren ser denne version · kladde: ny version venter på
+    # konsulentens godkendelse (kun Admin ser kladden) · ingen: intet godkendt.
+    state: Literal["godkendt", "kladde", "ingen"] = "ingen"
+    approved_at: datetime | None = None
+    # Kun til Admin: hvad der skete med mailen ved seneste godkendelse.
+    mail_status: str | None = None
 
 
 # Rækkefølgen på Til OK.
@@ -492,12 +499,98 @@ def _brief_out(db: Session, value: dict[str, Any] | None) -> OkBriefOut:
     )
 
 
+OK_BRIEF_PUBLISHED_KEY = "ok_brief_published"
+
+
+def _published_value(db: Session) -> dict[str, Any]:
+    row = db.get(AppSetting, OK_BRIEF_PUBLISHED_KEY)
+    return row.value if row else {}
+
+
+def _with_state(db: Session, out: OkBriefOut, draft: dict[str, Any]) -> OkBriefOut:
+    published = _published_value(db)
+    approved = published.get("approved_at")
+    if not published:
+        state = "kladde" if draft else "ingen"
+    elif draft.get("generated_at") != published.get("generated_at"):
+        state = "kladde"
+    else:
+        state = "godkendt"
+    return out.model_copy(
+        update={
+            "state": state,
+            "approved_at": datetime.fromisoformat(approved) if approved else None,
+            "mail_status": published.get("mail_status"),
+        }
+    )
+
+
 @router.get("/ok-brief", response_model=OkBriefOut)
 def get_ok_brief(
     db: Session = Depends(get_db),
-    _user: CurrentUser = Depends(require_role(UserRole.reader)),
+    user: CurrentUser = Depends(require_role(UserRole.reader)),
 ) -> OkBriefOut:
-    return _brief_out(db, _brief_value(db))
+    """Admin ser den nyeste kladde; alle andre ser den senest godkendte version.
+    Konsulenten godkender forsiden, før direktøren ser den (beslutning
+    2026-10-14: én fejl på forsiden koster mere end fem minutters kontrol)."""
+    if user.role == UserRole.admin:
+        draft = _brief_value(db)
+        return _with_state(db, _brief_out(db, draft), draft)
+    published = _published_value(db)
+    if not published:
+        return OkBriefOut(state="ingen")
+    out = _brief_out(db, published)
+    approved = published.get("approved_at")
+    return out.model_copy(
+        update={
+            "state": "godkendt",
+            "approved_at": datetime.fromisoformat(approved) if approved else None,
+        }
+    )
+
+
+class ApproveOut(BaseModel):
+    approved_at: datetime
+    mail: str
+
+
+@router.post("/ok-brief/approve", response_model=ApproveOut)
+def approve_ok_brief(
+    db: Session = Depends(get_db),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
+) -> ApproveOut:
+    """Godkend den nyeste kladde: direktøren ser den, og den sendes som mail,
+    hvis SMTP er sat op."""
+    draft = _brief_value(db)
+    if not draft:
+        raise ApiError(409, "no_draft", "Der er ingen Til OK at godkende endnu.")
+    approved_at = datetime.now(UTC)
+    value = {
+        **draft,
+        "approved_at": approved_at.isoformat(),
+        "approved_by_user_id": str(user.user_id) if user.user_id else None,
+    }
+    row = db.get(AppSetting, OK_BRIEF_PUBLISHED_KEY)
+    if row is None:
+        db.add(AppSetting(key=OK_BRIEF_PUBLISHED_KEY, value=value))
+    else:
+        row.value = value
+        row.updated_at = approved_at
+    record(
+        db,
+        entity_type=AuditEntity.setting,
+        entity_id=_AUDIT_ID,
+        action=AuditAction.published,
+        actor_user_id=user.user_id,
+        changes={"generated_at": draft.get("generated_at")},
+    )
+    db.commit()
+    mail = send_brief(_brief_out(db, value).model_dump(mode="json"))
+    stored = db.get(AppSetting, OK_BRIEF_PUBLISHED_KEY)
+    if stored is not None:
+        stored.value = {**stored.value, "mail_status": mail}
+        db.commit()
+    return ApproveOut(approved_at=approved_at, mail=mail)
 
 
 _AUDIT_ID = uuid.uuid5(uuid.NAMESPACE_URL, "ai-radar:setting:ok_brief")
@@ -524,4 +617,4 @@ def post_generate_ok_brief(
         changes={"must_know": len(value["must_know"]), "discarded": value["discarded"]},
     )
     db.commit()
-    return _brief_out(db, value)
+    return _with_state(db, _brief_out(db, value), value)

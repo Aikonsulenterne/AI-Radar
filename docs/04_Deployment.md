@@ -62,6 +62,12 @@ worker-proces. Kørsler udføres derfor i API-processen via
 betalt plan kan workeren i stedet køre som separat service
 (`python -m app.worker --interval 300`).
 
+**Til OK som mail.** Sæt `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`,
+`SMTP_PASSWORD`, `SMTP_FROM`, `BRIEF_RECIPIENTS` og `PUBLIC_WEB_URL` på
+API'et (Render → Environment). Brug OK's egen mailserver eller en
+afsenderkonto, IT godkender. Mailen sendes, når Admin trykker "Godkend og
+send" på Til OK; uden opsætning står der "Mail er ikke sat op".
+
 **Keepalive.** Ved opstart planlægger API'et selv et pg_cron-job
 (`ai-radar-keepalive`), der pinger `/health` hvert 10. minut på hverdage
 05-19 UTC, så første klik i arbejdstiden ikke venter på opvågning. Det

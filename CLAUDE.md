@@ -137,3 +137,8 @@ foreslår vi / Det skal du tage stilling til og én tabel pr. område (hver case
 højst én gang), intet Indsigter-modul. Spec og prototype:
 `docs/design/design_handoff_ai_radar_v2/` — Product Master §19, Technical
 Master §25, UI Master §30.
+**Godkendelse af Til OK (2026-10-14):** kørsler skriver en kladde; Admin
+godkender ("Godkend og send", `POST /ok-brief/approve`), før direktøren ser
+den, og den sendes som mail, når SMTP er sat op. OK's systemer (FocalScope,
+legacy G4) står i `catalog.OK_PROFILE` og indgår i Til OK-prompten.
+Product Master §20, Technical Master §26.

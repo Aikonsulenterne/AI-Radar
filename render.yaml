@@ -35,6 +35,19 @@ services:
       # ved push aldrig nulstiller det til en fast værdi og bryder frontenden.
       - key: CORS_ORIGINS
         sync: false
+      # Til OK som mail ved godkendelse (docs/04). Sættes i dashboardet.
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASSWORD
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: BRIEF_RECIPIENTS
+        sync: false
+      - key: PUBLIC_WEB_URL
+        sync: false
       # JWT-validering sker via projektets JWKS (SUPABASE_URL) — ingen
       # SUPABASE_JWT_SECRET nødvendig med moderne signing keys.
       # Claude via Anthropics SDK. Model og nøgle sættes i dashboardet: modellen

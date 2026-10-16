@@ -146,3 +146,10 @@ fund og formler) på OK's egen pc; hvert problem viser, hvad OK skal slå op
 internt (`catalog.OK_PROBLEMS.lookup`). *Dem, der ligner OK*
 (`catalog.PEERS`: energi, brændstof og ladning, mobil) står øverst under
 Sådan gør andre. Product Master §21, Technical Master §27.
+**Til OK 3.0 (2026-10-16):** første skærmbillede beregnes af serveren
+(`app/market/overview.py`): overskrift, konkurrentoverblik (dem, der ligner
+OK × teknologier, + OK's offentlige status), Siden sidst (øjebliksbillede ved
+godkendelse) og gevinstspænd fra casene. Direktørens ja / nej / senere gemmes
+med dato (`POST /ok-brief/decisions`) og følges op. Til OK-endpoints ligger i
+`app/routes/ok_brief.py`; prompt `ok_brief` 3.0.0. Product Master §22,
+Technical Master §28, UI Master §31.

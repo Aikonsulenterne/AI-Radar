@@ -1008,6 +1008,72 @@ export interface OkBriefRow {
   /** Hvad OK selv slår op internt — radaren kender aldrig OK's tal. */
   lookup: string;
   effect_pct: number | null;
+  gain: OkGain | null;
+}
+
+/** Hvad andre fik ud af en teknologi — beregnet af serveren ud fra casene. */
+export interface OkGain {
+  text: string;
+  kpi: string | null;
+  cases: number;
+  independent: number;
+  vendor_only: boolean;
+  source_url: string | null;
+  source_title: string | null;
+  case_id: string | null;
+}
+
+export interface OkStatusTechnology {
+  id: string;
+  label: string;
+  status: TechStatus;
+  status_label: string;
+}
+
+export type MatrixState = "drift" | "pilot" | "omtalt" | "ingen";
+
+export interface OkMatrix {
+  columns: { id: string; label: string }[];
+  rows: {
+    name: string;
+    group: string | null;
+    is_ok: boolean;
+    cells: { state: MatrixState; label: string; href: string | null; source_url: string | null }[];
+  }[];
+  peers_without: string[];
+  peer_total: number;
+  more_columns: number;
+}
+
+export type DecisionAnswer = "ja" | "nej" | "senere";
+
+export interface OkDecision {
+  key: string;
+  question: string;
+  owner: string;
+  duration: string;
+  first_step: string;
+  technology: OkStatusTechnology | null;
+  gain: OkGain | null;
+  answer: DecisionAnswer | null;
+  answered_at: string | null;
+  answerable: boolean;
+}
+
+export interface OkRecommendation {
+  action: string;
+  owner: string;
+  duration: string;
+  first_step: string;
+  technology: OkStatusTechnology | null;
+  reference: {
+    company: string;
+    country: string | null;
+    href: string;
+    source_url: string | null;
+  } | null;
+  vendor: string | null;
+  gain: OkGain | null;
 }
 
 export interface OkBrief {
@@ -1016,14 +1082,54 @@ export interface OkBrief {
   prompt_version: string | null;
   technology_count: number;
   case_count: number;
-  must_know: { n: number; text: string; source_url: string | null; href: string | null }[];
-  recommendations: { action: string; owner: string; duration: string }[];
-  decisions: string[];
+  headline: { text: string; href: string | null } | null;
+  matrix: OkMatrix;
+  since_last: {
+    lines: { text: string; href: string | null; source_url: string | null }[];
+    note: string | null;
+  };
+  decisions: OkDecision[];
+  follow_ups: { question: string; answered_at: string; label: string }[];
+  recommendations: OkRecommendation[];
   areas: { area: MarketArea; label: string; rows: OkBriefRow[] }[];
   undocumented: { title: string; area_label: string }[];
   state: "godkendt" | "kladde" | "ingen";
   approved_at: string | null;
   mail_status: string | null;
+}
+
+export function answerDecision(
+  key: string,
+  answer: DecisionAnswer,
+): Promise<{ key: string; answer: DecisionAnswer; answered_at: string }> {
+  return request("/ok-brief/decisions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, answer }),
+  });
+}
+
+export interface OkPublicStatusRow {
+  technology_id: string;
+  label: string;
+  stage: "drift" | "pilot" | null;
+  source_url: string | null;
+  note: string | null;
+}
+
+export function getOkPublicStatus(): Promise<OkPublicStatusRow[]> {
+  return request("/ok-public-status");
+}
+
+export function putOkPublicStatus(
+  technologyId: string,
+  body: { stage: "drift" | "pilot" | null; source_url: string | null },
+): Promise<OkPublicStatusRow> {
+  return request(`/ok-public-status/${technologyId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 export function approveOkBrief(): Promise<{ approved_at: string; mail: string }> {

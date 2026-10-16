@@ -577,3 +577,14 @@ underafsnit på siden og indgår aldrig i indsigterne.
   afviser Bing); de følger samme format som de eksisterende Bing-feeds.
 - Ukendt: om produktion har en gemt `app_settings.decision_brief` med OK-tal
   fra før. Den læses ikke længere; slet den i Supabase, hvis den findes.
+
+## Til OK 3.0 (2026-10-16)
+
+- Verificeret lokalt med testdata (opdigtede cases, kun til skærmbilleder):
+  desktop 1366×768 viser overskrift, matrix, Siden sidst og første
+  beslutning uden scroll; mobil 390×844 viser overskrift og matrix — resten
+  kræver scroll. Print: 2 A4.
+- Matrixen viser kun selskaber med mindst én case; de øvrige står på én linje.
+  Med få fund i starten vil den være lille — det er sandt, ikke en fejl.
+- Ældre gemte versioner (prompt 2.x) vises stadig: tekst-spørgsmål læses som
+  spørgsmål uden detaljer, og `must_know` ignoreres.

@@ -5,6 +5,9 @@ import { PrintButton } from "../components/market/print-button";
 import { ProblemRow } from "../components/market/problem-row";
 import { ApproveBriefButton } from "../components/market/approve-brief-button";
 import { SpreadsheetButton } from "../components/market/spreadsheet-button";
+import { CompetitorMatrix } from "../components/market/competitor-matrix";
+import { DecisionCard } from "../components/market/decision-card";
+import { GainLine } from "../components/market/gain-line";
 
 export const dynamic = "force-dynamic";
 
@@ -55,13 +58,10 @@ export default async function TilOkPage() {
 
   return (
     <div className="til-ok">
-      <header className="page-head">
-        <div>
-          <p className="eyebrow">
-            Til OK{brief.month_label ? ` · ${brief.month_label}` : ""}
-          </p>
-          <h1>AI i kundecentret – det korte overblik</h1>
-        </div>
+      <header className="page-head tilok-head">
+        <p className="eyebrow">
+          Til OK · AI i kundecentret{brief.month_label ? ` · ${brief.month_label}` : ""}
+        </p>
         <div className="page-head-actions no-print">
           {!empty ? <SpreadsheetButton /> : null}
           <PrintButton />
@@ -88,81 +88,118 @@ export default async function TilOkPage() {
       ) : null}
 
       {empty ? (
+        <>
+        <h1>AI i kundecentret – det korte overblik</h1>
         <p className="empty-line">
           Radaren har ikke fundet noget endnu.{" "}
           {isAdmin
             ? "Gå til Kilder og tryk “Opdatér radaren”."
             : "Kom tilbage senere – radaren opdateres hver uge."}
         </p>
+        </>
       ) : (
         <>
-          <div className="brief-top-grid">
-            {brief.must_know.length > 0 ? (
-              <section className="must-know" aria-labelledby="must-know-title">
-                <h2 id="must-know-title">Det skal du vide</h2>
-                <ol>
-                  {brief.must_know.map((point) => (
-                    <li key={point.n}>
-                      <span className="must-know-n">{point.n}</span>
-                      <span>
-                        {point.text}{" "}
-                        {point.source_url ? (
-                          <a
-                            href={point.source_url}
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            Kilde →
-                          </a>
-                        ) : point.href ? (
-                          <a href={point.href}>Kilde →</a>
-                        ) : null}
-                      </span>
-                    </li>
-                  ))}
-                </ol>
-                <p className="ai-note-dark">AI-sammenfattet · tjek kilden</p>
-              </section>
+          <section className="tilok-headline" aria-label="Det vigtigste lige nu">
+            <h1>{brief.headline?.text ?? "Radaren har ikke fundet cases endnu."}</h1>
+            {brief.headline?.href && !brief.headline.href.startsWith("#") ? (
+              <a href={brief.headline.href}>Se casene →</a>
             ) : null}
+          </section>
 
-            <div className="brief-pair">
-              {brief.recommendations.length > 0 ? (
-                <section
-                  className="box-recommendation"
-                  aria-labelledby="recs-title"
-                >
-                  <h2 id="recs-title">Det foreslår vi</h2>
-                  <ol className="recs">
-                    {brief.recommendations.map((r) => (
-                      <li key={r.action}>
-                        {r.action}
-                        <div className="muted small">
-                          {[r.owner, r.duration].filter(Boolean).join(" · ")}
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
-                </section>
-              ) : null}
+          <div className="tilok-top">
+            <CompetitorMatrix matrix={brief.matrix} />
 
-              {brief.decisions.length > 0 ? (
-                <section
-                  className="box-decision"
-                  aria-labelledby="decisions-title"
-                >
-                  <h2 id="decisions-title">Det skal du tage stilling til</h2>
-                  <ul className="decisions">
-                    {brief.decisions.map((q) => (
-                      <li key={q}>
-                        <span className="yes-no">Ja / nej</span>
-                        <span>{q}</span>
+            <div className="tilok-side">
+              <section className="since-last" aria-labelledby="since-title">
+                <h2 id="since-title">Siden sidst</h2>
+                {brief.since_last.lines.length > 0 ? (
+                  <ul>
+                    {brief.since_last.lines.map((line) => (
+                      <li key={line.text}>
+                        {line.href ? <a href={line.href}>{line.text}</a> : line.text}
+                        {line.source_url ? (
+                          <>
+                            {" "}
+                            <a
+                              className="since-source"
+                              href={line.source_url}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Kilde
+                            </a>
+                          </>
+                        ) : null}
                       </li>
                     ))}
                   </ul>
-                </section>
-              ) : null}
+                ) : (
+                  <p className="muted">{brief.since_last.note ?? "Intet nyt."}</p>
+                )}
+              </section>
+
+              <section className="decisions-v3" id="beslutninger" aria-labelledby="decisions-title">
+                <h2 id="decisions-title">Det skal du tage stilling til</h2>
+                {brief.follow_ups.length > 0 ? (
+                  <ul className="follow-ups">
+                    {brief.follow_ups.map((f) => (
+                      <li key={f.question}>
+                        <strong>{f.label}:</strong> {f.question} <em>Hvor står det?</em>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+                {brief.decisions.length > 0 ? (
+                  <ol className="decision-list">
+                    {brief.decisions.map((d) => (
+                      <DecisionCard key={d.key} decision={d} />
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="muted">Ingen nye beslutninger denne gang.</p>
+                )}
+              </section>
             </div>
           </div>
+
+          {brief.recommendations.length > 0 ? (
+            <section className="recs-v3" aria-labelledby="recs-title">
+              <h2 id="recs-title">Det foreslår vi</h2>
+              <ol>
+                {brief.recommendations.map((r) => (
+                  <li key={r.action}>
+                    <p className="rec-action">{r.action}</p>
+                    <p className="muted small">
+                      {[r.owner, r.duration].filter(Boolean).join(" · ")}
+                    </p>
+                    {r.first_step ? (
+                      <p className="rec-line">
+                        <span className="rec-key">Denne uge</span> {r.first_step}
+                      </p>
+                    ) : null}
+                    {r.reference || r.vendor ? (
+                      <p className="rec-line">
+                        <span className="rec-key">Ring til</span>{" "}
+                        {r.reference ? (
+                          <a href={r.reference.href}>
+                            {r.reference.company}
+                            {r.reference.country ? ` (${r.reference.country})` : ""}
+                          </a>
+                        ) : null}
+                        {r.reference && r.vendor ? " · " : ""}
+                        {r.vendor ? `Leverandør: ${r.vendor}` : ""}
+                      </p>
+                    ) : null}
+                    {r.technology ? (
+                      <p className="rec-line">
+                        <GainLine gain={r.gain} />
+                      </p>
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
 
           {brief.areas.map((area) => (
             <section

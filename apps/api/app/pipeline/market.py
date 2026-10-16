@@ -43,6 +43,7 @@ from app.ai.schemas import (
 )
 from app.enums import AccessClass, EntityType, ProcessingStatus
 from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, OK_PROFILE, TECH_CATALOG
+from app.market.store import decision_key, latest_answers
 from app.market.views import (
     CaseCard,
     TechnologyCard,
@@ -520,7 +521,17 @@ def _case_line(i: int, c: CaseCard) -> str:
     )
 
 
-def _brief_input(technologies: list[TechnologyCard], cases: list[CaseCard]) -> str:
+def _answered_lines(db: Session) -> str:
+    lines = [
+        f'- "{a.question}" → {a.answer} ({a.answered_at.date().isoformat()})'
+        for a in sorted(latest_answers(db).values(), key=lambda a: a.answered_at, reverse=True)
+    ][:10]
+    return "\n".join(lines) or "- (ingen)"
+
+
+def _brief_input(
+    technologies: list[TechnologyCard], cases: list[CaseCard], answered: str = "- (ingen)"
+) -> str:
     problems = "\n".join(
         f"- [P{i}] ({AREA_LABELS[p.area]}) {p.name}: {p.description}"
         for i, p in enumerate(OK_PROBLEMS, start=1)
@@ -529,7 +540,8 @@ def _brief_input(technologies: list[TechnologyCard], cases: list[CaseCard]) -> s
     tech_lines = "\n".join(_tech_line(i, t) for i, t in enumerate(technologies, 1)) or "- (ingen)"
     case_lines = "\n".join(_case_line(i, c) for i, c in enumerate(cases, 1)) or "- (ingen)"
     return (
-        f"OK TODAY:\n{profile}\n\nPROBLEMS:\n{problems}\n\n"
+        f"OK TODAY:\n{profile}\n\nDECISIONS ALREADY ANSWERED:\n{answered}\n\n"
+        f"PROBLEMS:\n{problems}\n\n"
         f"TECHNOLOGIES:\n{tech_lines}\n\nCASES:\n{case_lines}"
     )
 
@@ -541,9 +553,10 @@ def _ref_map(prefix: str, ids: list[uuid.UUID]) -> dict[str, uuid.UUID]:
 def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
     """Generér og gem Til OK. Uden fund kaldes modellen ikke.
 
-    Serveren håndhæver reglerne: kun kendte henvisninger, højst 3 punkter /
-    3 forslag / 2 beslutninger, og hver case højst én gang på hele siden.
-    Status kommer aldrig fra modellen."""
+    Serveren håndhæver reglerne: kun kendte henvisninger, højst 3 forslag og
+    2 beslutninger, et besvaret spørgsmål stilles ikke igen, og hver case
+    højst én gang i tabellerne. Status, tal og effekter kommer aldrig fra
+    modellen."""
     rows = visible_rows(db)
     technologies = [t for t in technology_cards(db, rows) if t.case_count or t.vendors][
         :_MAX_BRIEF_TECHNOLOGIES
@@ -553,9 +566,8 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
     case_refs = _ref_map("C", [c.id for c in cases])
     problem_refs = {f"P{i}": p.key for i, p in enumerate(OK_PROBLEMS, start=1)}
 
-    must_know: list[dict[str, Any]] = []
-    recommendations: list[dict[str, str]] = []
-    decisions: list[str] = []
+    recommendations: list[dict[str, Any]] = []
+    decisions: list[dict[str, Any]] = []
     problems: dict[str, dict[str, Any]] = {}
     new_tech: list[dict[str, str]] = []
     discarded = 0
@@ -565,31 +577,48 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
             prompt_id=OK_BRIEF_PROMPT_ID,
             prompt_version=OK_BRIEF_PROMPT_VERSION,
             system=OK_BRIEF_SYSTEM,
-            user=_brief_input(technologies, cases),
+            user=_brief_input(technologies, cases, _answered_lines(db)),
             result_model=OkBriefResult,
         )
-        for point in result.must_know:
-            source = point.source or ""
-            # Et punkt uden gyldig kilde er ikke dokumenteret.
-            link: dict[str, str]
-            if source in case_refs:
-                link = {"case_id": str(case_refs[source])}
-            elif source in tech_refs:
-                link = {"technology_id": str(tech_refs[source])}
-            else:
-                discarded += 1
-                continue
-            if len(must_know) < 3:
-                must_know.append({"text": _line(point.text, 300), **link})
+
+        def tech_id(ref: str | None) -> str | None:
+            return str(tech_refs[ref]) if ref in tech_refs else None
+
+        def case_id(ref: str | None) -> str | None:
+            return str(case_refs[ref]) if ref in case_refs else None
+
         recommendations = [
             {
                 "action": _line(r.action, 300),
                 "owner": _line(r.owner, 80),
                 "duration": _line(r.duration, 40),
+                "first_step": _line(r.first_step, 300),
+                "technology_id": tech_id(r.technology),
+                "case_id": case_id(r.case),
             }
             for r in result.recommendations
         ][:3]
-        decisions = [_line(d.question, 300) for d in result.decisions][:2]
+        answered = latest_answers(db)
+        for d in result.decisions:
+            question = _line(d.question, 300)
+            question_key = decision_key(question)
+            previous = answered.get(question_key)
+            # Et besvaret spørgsmål stilles ikke igen (et "senere" må gerne).
+            if (previous is not None and previous.answer != "senere") or any(
+                decision_key(q["question"]) == question_key for q in decisions
+            ):
+                discarded += 1
+                continue
+            if len(decisions) < 2:
+                decisions.append(
+                    {
+                        "question": question,
+                        "technology_id": tech_id(d.technology),
+                        "owner": _line(d.owner, 80),
+                        "duration": _line(d.duration, 40),
+                        "first_step": _line(d.first_step, 300),
+                    }
+                )
 
         used: set[str] = set()  # hver case højst én gang på hele siden
         for entry in result.per_problem:
@@ -634,7 +663,6 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
         "technology_count": len(technologies),
         "case_count": len(cases),
         "discarded": discarded,
-        "must_know": must_know,
         "recommendations": recommendations,
         "decisions": decisions,
         "problems": [{"key": p.key, **problems.get(p.key, empty_problem)} for p in OK_PROBLEMS],
@@ -648,10 +676,10 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
         row.updated_at = datetime.now(UTC)
     db.flush()
     logger.info(
-        "ok_brief_generated technologies=%d cases=%d must_know=%d discarded=%d",
+        "ok_brief_generated technologies=%d cases=%d decisions=%d discarded=%d",
         len(technologies),
         len(cases),
-        len(must_know),
+        len(decisions),
         discarded,
     )
     return value

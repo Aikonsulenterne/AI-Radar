@@ -48,7 +48,7 @@ export function TopNav({
           ))}
         </nav>
         <div className="topnav-meta">
-          {lastUpdated ? <span>Opdateret {lastUpdated}</span> : null}
+          {lastUpdated ? <span className="topnav-updated">Opdateret {lastUpdated}</span> : null}
           <UserMenu />
         </div>
       </div>

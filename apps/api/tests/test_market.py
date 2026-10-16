@@ -261,15 +261,22 @@ def test_ok_brief_keeps_only_valid_references_and_each_case_once(
     market_mode: Any,
 ) -> None:
     brief = {
-        "must_know": [
-            {"text": "Norlys har fået 30 % kortere ventetid med en voicebot.", "source": "C1"},
-            {"text": "Et punkt uden kilde.", "source": "C99"},
-        ],
         "recommendations": [
-            {"action": "Book en demo med Puzzel.", "owner": "Kundeservice", "duration": "2 uger"}
+            {
+                "action": "Book en demo med Puzzel.",
+                "owner": "Kundeservice",
+                "duration": "2 uger",
+                "first_step": "Skriv til Puzzel i dag.",
+                "technology": "T99",
+                "case": "C1",
+            }
         ]
         * 5,
-        "decisions": [{"question": "Må vi starte et forsøg?"}] * 3,
+        "decisions": [
+            {"question": "Må vi starte et forsøg?", "owner": "Kundeservice", "duration": "2 uger"},
+            {"question": "Må vi starte et forsøg?"},
+            {"question": "Skal vi tale med Norlys?", "technology": "T99"},
+        ],
         "per_problem": [
             {
                 "problem": "P1",
@@ -293,10 +300,20 @@ def test_ok_brief_keeps_only_valid_references_and_each_case_once(
 
     out = client.get("/api/v1/ok-brief", headers=reader_headers).json()
     assert out["state"] == "godkendt"
-    assert [p["text"] for p in out["must_know"]] == [brief["must_know"][0]["text"]]
-    assert out["must_know"][0]["href"].startswith("/cases#case-")
     assert len(out["recommendations"]) == 3
-    assert out["decisions"] == ["Må vi starte et forsøg?"] * 2
+    rec = out["recommendations"][0]
+    assert rec["first_step"] == "Skriv til Puzzel i dag."
+    assert rec["reference"]["company"] == "Norlys"
+    assert rec["reference"]["href"].startswith("/cases#case-")
+    assert rec["vendor"] == "Puzzel"
+    assert rec["technology"] is None  # ugyldig henvisning
+    # Samme spørgsmål to gange vises én gang.
+    assert [d["question"] for d in out["decisions"]] == [
+        "Må vi starte et forsøg?",
+        "Skal vi tale med Norlys?",
+    ]
+    assert out["decisions"][0]["owner"] == "Kundeservice"
+    assert out["decisions"][0]["answerable"] is True
     assert [a["area"] for a in out["areas"]] == ["kundeservice"]
     row = out["areas"][0]["rows"][0]
     assert row["key"] == "ventetid"
@@ -320,7 +337,8 @@ def test_ok_brief_keeps_only_valid_references_and_each_case_once(
         headers=admin_headers,
     )
     after = client.get("/api/v1/ok-brief", headers=reader_headers).json()
-    assert after["must_know"] == []
+    assert after["matrix"]["rows"] == []
+    assert after["recommendations"][0]["reference"] is None
     assert after["areas"] == []
     assert len(after["undocumented"]) == 11
 
@@ -400,8 +418,9 @@ def test_director_sees_only_the_approved_til_ok_and_mail_is_sent(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     brief = {
-        "must_know": [{"text": "Norlys har fået 30 % kortere ventetid.", "source": "C1"}],
-        "decisions": [{"question": "Må vi starte et forsøg?"}],
+        "decisions": [
+            {"question": "Må vi starte et forsøg?", "owner": "Kundeservice", "duration": "2 uger"}
+        ],
         "per_problem": [{"problem": "P1", "best_case": "C1", "next_step": "Book en demo."}],
     }
     fake = _provider(ok_brief=brief)
@@ -412,7 +431,7 @@ def test_director_sees_only_the_approved_til_ok_and_mail_is_sent(
     assert client.get("/api/v1/ok-brief", headers=reader_headers).json()["state"] == "ingen"
     draft = client.get("/api/v1/ok-brief", headers=admin_headers).json()
     assert draft["state"] == "kladde"
-    assert draft["must_know"]
+    assert draft["decisions"][0]["answerable"] is False  # endnu ikke godkendt
     assert client.post("/api/v1/ok-brief/approve", headers=reader_headers).status_code == 403
 
     sent: list[Any] = []
@@ -445,20 +464,26 @@ def test_director_sees_only_the_approved_til_ok_and_mail_is_sent(
     approved = client.post("/api/v1/ok-brief/approve", headers=admin_headers).json()
     assert approved["mail"] == "sendt til 2"
     body = sent[0].get_body(preferencelist=("plain",)).get_content()
-    assert "Norlys har fået 30 % kortere ventetid." in body
+    headline = "Stemmeagenter og voicebots: 1 af 15 selskaber, der ligner OK, har det i drift."
+    assert headline in body
+    assert "SIDEN SIDST" in body and "Første udgave" in body
     assert "Ja / nej: Må vi starte et forsøg?" in body
-    assert "https://radar.example.org/" in body
+    assert "Kræver: Kundeservice · 2 uger" in body
+    assert "https://radar.example.org/#beslutninger" in body
+    html = sent[0].get_body(preferencelist=("html",)).get_content()
+    assert "Svar i radaren" in html
 
     out = client.get("/api/v1/ok-brief", headers=reader_headers).json()
     assert out["state"] == "godkendt"
-    assert out["must_know"][0]["text"] == "Norlys har fået 30 % kortere ventetid."
+    assert out["headline"]["text"] == headline
+    assert out["decisions"][0]["question"] == "Må vi starte et forsøg?"
 
     # En ny kladde ændrer ikke direktørens side, før den er godkendt.
-    fake.ok_brief = {"must_know": [{"text": "Ny kladde.", "source": "C1"}]}
+    fake.ok_brief = {"decisions": [{"question": "Ny kladde?"}]}
     client.post("/api/v1/ok-brief/generate", headers=admin_headers)
     assert client.get("/api/v1/ok-brief", headers=admin_headers).json()["state"] == "kladde"
     reader_view = client.get("/api/v1/ok-brief", headers=reader_headers).json()
-    assert reader_view["must_know"][0]["text"] == "Norlys har fået 30 % kortere ventetid."
+    assert reader_view["decisions"][0]["question"] == "Må vi starte et forsøg?"
 
 
 def test_approve_without_mail_setup_still_publishes(

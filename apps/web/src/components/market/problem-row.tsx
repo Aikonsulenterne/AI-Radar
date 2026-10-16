@@ -3,6 +3,7 @@
 import { useId, useState } from "react";
 import type { OkBriefRow } from "../../app/lib/api";
 import { StatusBadge } from "./status-badge";
+import { GainLine } from "./gain-line";
 
 export function ProblemRow({ row }: { row: OkBriefRow }) {
   const [open, setOpen] = useState(false);
@@ -31,6 +32,11 @@ export function ProblemRow({ row }: { row: OkBriefRow }) {
             {row.proof.kind_label}
             {row.proof.region_label ? ` · ${row.proof.country ?? row.proof.region_label}` : ""}
           </span>
+          {row.gain && row.gain.cases > 1 ? (
+            <span className="brief-proof-gain">
+              <GainLine gain={row.gain} withSource={false} />
+            </span>
+          ) : null}
         </span>
         <span className="brief-next">{row.next_step || "Ikke oplyst"}</span>
         <span className="brief-chev no-print" aria-hidden="true">

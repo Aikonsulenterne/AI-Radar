@@ -957,3 +957,19 @@ Komponenter i `components/market/`: `ProblemRow` (række, der foldes ud med
 anbefaling: `.box-fact`, `.box-analysis`, `.box-recommendation`.
 Statusfarver som tokens (`--status-*` i `tokens.css`). Print: navigation,
 knapper og udfoldede rækker skjules.
+
+## 31. Til OK 3.0 (2026-10-16)
+
+- Overskriften er sidens `h1` i den burgundy boks; eyebrow "Til OK · AI i
+  kundecentret · <måned>".
+- Desktop: matrix til venstre, Siden sidst og beslutninger til højre. Mobil
+  (≤640 px): matrixen bliver en liste (selskab + teknologi: fase),
+  beslutningerne kommer før Siden sidst, Excel/print skjules, og topbjælken
+  er én linje med vandret rullende menu.
+- Fase-markører: fyldt prik = Drift, halv prik = Pilot, ring = Omtalt,
+  streg = Ingen case — altid med tekst (farve er aldrig eneste signal).
+- Ja / Nej / Senere er knapper med `aria-pressed`; svaret vises som "Du
+  svarede ja 16. okt.". Print viser "Ja / nej" i stedet for knapper; siden
+  printes på 2 A4.
+- Admin → Kilder: "OK's offentlige brug af AI" (status + offentlig kilde pr.
+  teknologi).

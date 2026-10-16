@@ -113,19 +113,21 @@ class MarketExtractionResult(BaseModel):
     cases: list[MarketCaseDraft] = Field(default_factory=list, max_length=30)
 
 
-class OkBriefPoint(BaseModel):
-    text: str = Field(min_length=1, max_length=400)
-    source: str | None = Field(default=None, max_length=20)
-
-
 class OkBriefRecommendation(BaseModel):
     action: str = Field(min_length=1, max_length=300)
     owner: str = Field(default="", max_length=80)
     duration: str = Field(default="", max_length=40)
+    first_step: str = Field(default="", max_length=300)
+    technology: str | None = Field(default=None, max_length=20)
+    case: str | None = Field(default=None, max_length=20)
 
 
 class OkBriefDecision(BaseModel):
     question: str = Field(min_length=1, max_length=300)
+    technology: str | None = Field(default=None, max_length=20)
+    owner: str = Field(default="", max_length=80)
+    duration: str = Field(default="", max_length=40)
+    first_step: str = Field(default="", max_length=300)
 
 
 class OkBriefProblem(BaseModel):
@@ -143,7 +145,6 @@ class OkBriefNewTech(BaseModel):
 
 
 class OkBriefResult(BaseModel):
-    must_know: list[OkBriefPoint] = Field(default_factory=list, max_length=10)
     recommendations: list[OkBriefRecommendation] = Field(default_factory=list, max_length=10)
     decisions: list[OkBriefDecision] = Field(default_factory=list, max_length=10)
     per_problem: list[OkBriefProblem] = Field(default_factory=list, max_length=40)

@@ -876,3 +876,30 @@ ikke af den forenklede visning.
   <branche>"; prompt `ok_brief` 2.2.0 foretrækker dem.
 - Kildepakke "Konkurrent-kildepakke 2026-10" (7 Bing News-feeds om
   konkurrenterne og AI) indsættes én gang af schema guard.
+
+## 28. Til OK 3.0 (2026-10-16)
+
+- Til OK-endpoints er flyttet til `routes/ok_brief.py`. Første skærmbillede
+  beregnes i `market/overview.py`: `headline()`, `build_matrix()` (dem, der
+  ligner OK × højst 6 teknologier; bedste fase pr. celle: drift/skaleret →
+  Drift, pilot → Pilot, ellers Omtalt), `since_last()` og `gain_for()`
+  (spænd af andele for den KPI, flest cases måler på, via
+  `spreadsheet.effect_percent`; uden andele den bedste effekt ordret).
+- Siden sidst: `POST /ok-brief/approve` gemmer `snapshot` (case-nøgle
+  virksomhed:teknologi → fase, teknologi → status) og fastfryser
+  `since_last` mod forrige godkendte version. Admin ser kladdens forskel
+  live; når kladden er godkendt, vises den godkendte version.
+- Beslutninger: `app_settings.ok_decisions` (append-only, højst 500 svar;
+  nøgle = sha256 af normaliseret spørgsmål). `POST /ok-brief/decisions`
+  (Reader+) tager kun spørgsmål fra den godkendte version. Prompten får
+  DECISIONS ALREADY ANSWERED; serveren dropper et besvaret spørgsmål
+  (undtagen "senere") og dubletter. `follow_ups` = seneste ja'er, der ikke
+  længere er spørgsmål.
+- OK's offentlige status: `app_settings.ok_public_status`;
+  `GET /ok-public-status` og `PUT /ok-public-status/{technology_id}` (Admin,
+  https-kilde påkrævet). Vises som første række i matrixen.
+- Prompt `ok_brief` 3.0.0: ingen `must_know`; `decisions` med technology,
+  owner, duration, first_step; `recommendations` med first_step,
+  technology og case (reference). Modellen skriver aldrig tal eller effekter.
+- Mail (`mailer.py`): overskrift, Siden sidst, spørgsmål med "Kræver",
+  "Andre fik" og knappen "Svar i radaren" (link til `/#beslutninger`).

@@ -501,3 +501,39 @@ ind — heller ikke via upload.
   en linje over dem, radaren endnu ikke har en AI-case fra. Til OK
   foretrækker deres cases som bevis. Listen er kurateret og tilpasses af
   konsulenten.
+
+## 22. Beslutning 2026-10-16: Til OK 3.0 — konkurrenter, siden sidst, beslutninger
+
+**Mål.** Efter 60 sekunder kan direktøren svare på: Hvor står OK i forhold til
+dem, der ligner os? Hvad er det ene, vi bør gøre nu, og hvad har det givet
+andre? Hvad skal jeg sige ja eller nej til i dag? Succes: direktøren sender
+siden videre eller tager den med på et møde uden at forklare den.
+
+**Første skærmbillede** (beregnet af serveren, aldrig af AI):
+1. Dagens vigtigste fakta i én sætning, fx "Stemmeagenter og voicebots: 2 af
+   15 selskaber, der ligner OK, har det i drift."
+2. *Dem, der ligner OK*: selskaber × teknologier. Celle = Drift / Pilot /
+   Omtalt / Ingen case, vist med form og tekst; klik åbner casen med kilde.
+   OK's egen række vises kun, hvis Admin har registreret OK's *offentlige*
+   brug med en offentlig kilde (fx ok.dk).
+3. *Siden sidst*: højst 3 linjer om nyt siden sidste godkendte version (ny
+   case hos dem, der ligner OK, en case i drift, en teknologi med højere
+   status, nyt på markedet); ellers "Intet nyt siden …".
+4. *Det skal du tage stilling til*: højst 2 ja/nej-spørgsmål med hvad et ja
+   kræver, hvad andre fik (spænd + kilde + antal cases) og første skridt.
+   Ja / Nej / Senere gemmes med dato; et besvaret spørgsmål stilles ikke
+   igen, og et ja følges op ("Du sagde ja 14. okt. – hvor står det?").
+
+**Resten:** Det foreslår vi (≤3, med ejer, varighed, "Denne uge", "Ring til"
+og gevinst), én tabel pr. område (hver case højst én gang), regnearket.
+"Det skal du vide" er erstattet af overskriften og Siden sidst.
+
+**Gevinst** vises kun som andres resultater ("Andre fik 25–50 % (KPI) · 2
+cases, heraf 1 uafhængig"), aldrig som OK-kroner. Leverandørens egne tal
+mærkes.
+
+**Mandagsmailen** er produktet: sætningen, Siden sidst og spørgsmålene med
+knappen "Svar i radaren". Svar gives på siden (et link i en mail må ikke
+selv afgive et svar).
+
+**Data.** Kun beslutning og dato gemmes for svarene; ingen OK-tal.

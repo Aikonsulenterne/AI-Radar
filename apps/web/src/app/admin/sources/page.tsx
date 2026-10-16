@@ -2,10 +2,12 @@ import {
   getMarketCases,
   getMarketSources,
   getMarketTechnologies,
+  getOkPublicStatus,
   listSources,
   type MarketCase,
   type MarketSource,
   type MarketTechnology,
+  type OkPublicStatusRow,
   type Source,
 } from "../../lib/api";
 import { CreateSourceForm } from "./CreateSourceForm";
@@ -14,6 +16,7 @@ import { ApiErrorAlert } from "../../../components/states/api-error";
 import { HideButton } from "../../../components/market/hide-button";
 import { UpdateRadarButton } from "../../../components/market/update-radar-button";
 import { GenerateBriefButton } from "../../../components/market/generate-brief-button";
+import { OkStatusForm } from "../../../components/market/ok-status-form";
 
 export const dynamic = "force-dynamic";
 
@@ -44,14 +47,17 @@ export default async function AdminSourcesPage() {
   let marketSources: MarketSource[] | null = null;
   let cases: MarketCase[] = [];
   let technologies: MarketTechnology[] = [];
+  let okStatus: OkPublicStatusRow[] = [];
   let loadError: unknown = null;
   try {
-    const [all, market, caseData, techData] = await Promise.all([
+    const [all, market, caseData, techData, status] = await Promise.all([
       listSources(),
       getMarketSources(),
       getMarketCases({}),
       getMarketTechnologies(),
+      getOkPublicStatus(),
     ]);
+    okStatus = status;
     sources = all.items;
     marketSources = market;
     cases = caseData.items;
@@ -170,6 +176,15 @@ export default async function AdminSourcesPage() {
           </div>
         </section>
       ) : null}
+
+      <details className="admin-tools">
+        <summary>OK&rsquo;s offentlige brug af AI (OK-rækken i konkurrentoverblikket)</summary>
+        <p className="muted small">
+          Kun det, alle kan se, fx en chatbot på ok.dk. Angiv siden som kilde. Aldrig interne
+          oplysninger.
+        </p>
+        <OkStatusForm rows={okStatus} />
+      </details>
 
       <details className="admin-tools">
         <summary>Administrér kilder</summary>

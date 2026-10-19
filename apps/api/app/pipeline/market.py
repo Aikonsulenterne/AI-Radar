@@ -41,6 +41,7 @@ from app.ai.schemas import (
     RelevanceResult,
     call_with_schema,
 )
+from app.config import get_settings
 from app.enums import AccessClass, EntityType, ProcessingStatus
 from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, OK_PROFILE, TECH_CATALOG
 from app.market.store import decision_key, latest_answers
@@ -522,6 +523,8 @@ def _case_line(i: int, c: CaseCard) -> str:
 
 
 def _answered_lines(db: Session) -> str:
+    if not get_settings().store_decisions:
+        return "- (svar gemmes ikke i radaren)"
     lines = [
         f'- "{a.question}" → {a.answer} ({a.answered_at.date().isoformat()})'
         for a in sorted(latest_answers(db).values(), key=lambda a: a.answered_at, reverse=True)
@@ -598,7 +601,7 @@ def generate_ok_brief(db: Session, provider: AIProvider) -> dict[str, Any]:
             }
             for r in result.recommendations
         ][:3]
-        answered = latest_answers(db)
+        answered = latest_answers(db) if get_settings().store_decisions else {}
         for d in result.decisions:
             question = _line(d.question, 300)
             question_key = decision_key(question)

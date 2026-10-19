@@ -3420,3 +3420,46 @@ body {
 .cm-legend .cm-mark-pilot {
   color: var(--status-try-fg);
 }
+
+.add-link {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+
+.add-link-label {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.add-link-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.add-link-row input[type="url"] {
+  flex: 1 1 320px;
+  min-height: 38px;
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font: inherit;
+}
+
+.add-link-vendor {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 14px;
+}
+
+.add-link-message {
+  margin: 6px 0 0;
+  font-weight: 600;
+}

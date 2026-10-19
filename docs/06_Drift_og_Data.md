@@ -20,6 +20,8 @@ systemer, og den udfører ingen handlinger i dem.
 | Manuelt uploadede dokumenter | Admin uploader (kun offentlige kilder) | Afhænger af dokumentet — se nedenfor |
 | Brugerkonti | Supabase Auth (e-mail, rolle) | Ja, medarbejderes e-mail |
 | Audit-log | Alle beslutninger (aktør, før/efter) | Bruger-id |
+| Direktørens ja/nej-svar | Til OK, kun når `STORE_DECISIONS=true` (standard: fra) | Bruger-id; svaret er intern strategi |
+| Manuelt tilføjede links | Admin indsætter offentlige links (opslag, oplæg, kundecases) | Kan indeholde navne fra opslaget; radaren gemmer organisationer |
 
 **Kundedata:** Radaren er ikke bygget til kundedata og må ikke få dem.
 **Ingen OK-tal og ingen interne dokumenter (besluttet 2026-10-14):** så
@@ -74,3 +76,9 @@ API, ingen proprietær platformlogik. Forslag:
    OK's organisation]**.
 5. Om interne, anonymiserede tal må bruges i radaren, når den kører i OK's
    miljø (indtil da: nej).
+6. Om direktørens ja/nej-svar må gemmes i radaren (`STORE_DECISIONS`).
+   Indtil da svares der på mødet, og radaren gemmer intet.
+7. SMTP til mailen: server, afsender og modtagere (`SMTP_*`,
+   `BRIEF_RECIPIENTS`, `PUBLIC_WEB_URL`). Uden SMTP sendes ingen mail.
+8. Mindst én admin mere end konsulenten, så Til OK kan godkendes ved
+   fravær.

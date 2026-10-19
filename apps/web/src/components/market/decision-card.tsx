@@ -26,7 +26,14 @@ function shortDate(value: string): string {
 
 /** Ét ja/nej-spørgsmål: hvad et ja kræver, hvad andre fik, første skridt.
  * Svaret gemmes med dato (kun beslutning og dato — ingen tal). */
-export function DecisionCard({ decision }: { decision: OkDecision }) {
+export function DecisionCard({
+  decision,
+  stored,
+}: {
+  decision: OkDecision;
+  /** Gemmes svar i radaren? Fra, indtil OK har godkendt det. */
+  stored: boolean;
+}) {
   const router = useRouter();
   const [answer, setAnswer] = useState(decision.answer);
   const [answeredAt, setAnsweredAt] = useState(decision.answered_at);
@@ -73,7 +80,11 @@ export function DecisionCard({ decision }: { decision: OkDecision }) {
         ) : null}
       </dl>
       <div className="decision-answer">
-        {decision.answerable ? (
+        {!stored ? (
+          <span className="answer-given">
+            <strong>Ja / nej</strong> – svar på mødet. Svar gemmes ikke i radaren endnu.
+          </span>
+        ) : decision.answerable ? (
           <div className="answer-buttons no-print" role="group" aria-label="Dit svar">
             {ANSWERS.map((a) => (
               <button
@@ -91,7 +102,7 @@ export function DecisionCard({ decision }: { decision: OkDecision }) {
         ) : (
           <span className="muted small no-print">Kan besvares, når Til OK er godkendt.</span>
         )}
-        {answer && answeredAt ? (
+        {!stored ? null : answer && answeredAt ? (
           <span className="answer-given" role="status">
             Du svarede {answer} {shortDate(answeredAt)}
           </span>

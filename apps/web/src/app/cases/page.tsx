@@ -100,7 +100,7 @@ export default async function CasesPage({
               )}
               {peersWithout.length > 0 ? (
                 <p className="muted small">
-                  Ingen AI-case fundet endnu: {peersWithout.join(" · ")}
+                  Ikke fundet i kilderne endnu: {peersWithout.join(" · ")}
                 </p>
               ) : null}
             </section>

@@ -15,11 +15,22 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.ai.provider import (
+    AIDocumentRejected,
+    AIProvider,
+    AIProviderError,
+    AIProviderRejected,
+    AIRefusal,
+)
+from app.ai.schemas import AISchemaError
 from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, require_role
+from app.config import get_settings
 from app.db import get_db
-from app.enums import AccessClass, RunStatus, UserRole
+from app.enums import AccessClass, Frequency, RetrievalMethod, RunStatus, SourceType, UserRole
 from app.errors import ApiError
+from app.ingestion.fetch import ensure_public_http_url, fetch_url
+from app.ingestion.service import ingest_bytes
 from app.market.catalog import AREA_LABELS, AREAS, PEERS
 from app.market.views import (
     CaseCard,
@@ -34,7 +45,9 @@ from app.models import Document, Source
 from app.models_market import MarketItem
 from app.models_runs import WorkerRun
 from app.models_settings import AppSetting
-from app.pipeline.market import OK_BRIEF_KEY
+from app.pipeline.market import OK_BRIEF_KEY, process_market_document
+from app.routes.documents import ai_provider_dep
+from app.storage import get_storage
 
 router = APIRouter(tags=["market"])
 
@@ -297,3 +310,114 @@ def update_market_item(
         item.hidden_by_user_id = user.user_id if body.hidden else None
     db.commit()
     return ItemOut(id=item.id, hidden=item.hidden)
+
+
+# --- Tilføj case fra link (kun admin) ---
+
+_LINK_SOURCES = {
+    False: ("Manuelt tilføjede links", SourceType.media),
+    True: ("Manuelt tilføjede leverandørsider", SourceType.vendor_case),
+}
+
+
+class LinkIn(BaseModel):
+    url: str = Field(min_length=8, max_length=2000)
+    vendor: bool = False
+
+
+class LinkOut(BaseModel):
+    title: str | None
+    already_known: bool
+    relevant: bool
+    technologies: int
+    cases: int
+    message: str
+
+
+def _link_source(db: Session, vendor: bool) -> Source:
+    name, source_type = _LINK_SOURCES[vendor]
+    source = db.scalar(select(Source).where(Source.name == name))
+    if source is None:
+        source = Source(
+            name=name,
+            source_type=source_type,
+            retrieval_method=RetrievalMethod.manual_upload,
+            frequency=Frequency.manual,
+            access_class=AccessClass.public,
+            active=True,
+            notes="Offentlige links, som konsulenten selv har tilføjet (fx LinkedIn-opslag, "
+            "konferenceoplæg og kundecases).",
+        )
+        db.add(source)
+        db.flush()
+    return source
+
+
+@router.post("/market/links", response_model=LinkOut)
+def add_market_link(
+    body: LinkIn,
+    db: Session = Depends(get_db),
+    provider: AIProvider = Depends(ai_provider_dep),
+    user: CurrentUser = Depends(require_role(UserRole.admin)),
+) -> LinkOut:
+    """Hent ét offentligt link og læs det med det samme. Den stærkeste viden
+    om danske kundecentre står ofte i opslag og oplæg, ikke i nyhederne. Samme
+    regler som alle andre fund: ordret citat, tal skal stå i kilden."""
+    url = body.url.strip()
+    ensure_public_http_url(url)
+    settings = get_settings()
+    source = _link_source(db, body.vendor)
+    fetched = fetch_url(
+        url, timeout_seconds=settings.fetch_timeout_seconds, max_bytes=settings.fetch_max_bytes
+    )
+    result = ingest_bytes(
+        db,
+        get_storage(),
+        source,
+        fetched.data,
+        fetched.content_type,
+        canonical_url=fetched.final_url,
+    )
+    document = result.document
+    if document.market_extracted_at is not None:
+        db.commit()
+        return LinkOut(
+            title=document.title,
+            already_known=True,
+            relevant=bool(document.market_relevant),
+            technologies=0,
+            cases=0,
+            message="Linket er allerede læst af radaren.",
+        )
+    try:
+        outcome = process_market_document(db, provider, document)
+    except AIProviderRejected as exc:
+        raise ApiError(502, "ai_provider_rejected", str(exc)) from exc
+    except (AISchemaError, AIRefusal, AIDocumentRejected, AIProviderError) as exc:
+        raise ApiError(502, "link_failed", "Linket kunne ikke læses. Prøv igen.") from exc
+    record(
+        db,
+        entity_type=AuditEntity.source,
+        entity_id=source.id,
+        action=AuditAction.created,
+        actor_user_id=user.user_id,
+        changes={"link": fetched.final_url, "cases": outcome.cases},
+    )
+    db.commit()
+    if not outcome.relevant:
+        message = "Radaren fandt ikke AI i kundeservice, salg eller support i linket."
+    elif outcome.cases or outcome.technologies:
+        message = (
+            f"Fundet: {outcome.cases} case(s) og {outcome.technologies} teknologi(er). "
+            "Tryk “Opdatér Til OK” for at tage dem med."
+        )
+    else:
+        message = "Linket er relevant, men radaren fandt ingen case med citat i det."
+    return LinkOut(
+        title=document.title,
+        already_known=False,
+        relevant=outcome.relevant,
+        technologies=outcome.technologies,
+        cases=outcome.cases,
+        message=message,
+    )

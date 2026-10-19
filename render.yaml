@@ -48,6 +48,9 @@ services:
         sync: false
       - key: PUBLIC_WEB_URL
         sync: false
+      # Direktørens ja/nej-svar gemmes først, når OK har godkendt det.
+      - key: STORE_DECISIONS
+        value: "false"
       # JWT-validering sker via projektets JWKS (SUPABASE_URL) — ingen
       # SUPABASE_JWT_SECRET nødvendig med moderne signing keys.
       # Claude via Anthropics SDK. Model og nøgle sættes i dashboardet: modellen

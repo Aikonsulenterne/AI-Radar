@@ -395,10 +395,12 @@ PEERS: tuple[Peer, ...] = (
 )
 
 
-def peer_for(company: str | None) -> Peer | None:
+def peer_for(company: str | None, country: str | None = "DK") -> Peer | None:
     """Selskabet er en af dem, der ligner OK, når navnet er peerens navn
-    eller et alias — alene eller efterfulgt af fx "A/S" eller "Danmark"."""
-    if not company:
+    eller et alias — alene eller efterfulgt af fx "A/S" eller "Danmark" — og
+    casen er fra Danmark. Shell i Storbritannien, Vattenfall i Sverige og
+    Telenor i Norge er ikke "dem, der ligner OK" (stresstest 2026-10-19)."""
+    if not company or (country or "").strip().upper() != "DK":
         return None
     name = " ".join(company.casefold().split())
     for peer in PEERS:

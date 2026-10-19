@@ -119,7 +119,7 @@ _CELL_LABELS: dict[str, str] = {
     "drift": "Drift",
     "pilot": "Pilot",
     "omtalt": "Omtalt",
-    "ingen": "Ingen case",
+    "ingen": "Ikke fundet",
 }
 _CELL_RANK = {"drift": 3, "pilot": 2, "omtalt": 1, "ingen": 0}
 
@@ -147,11 +147,16 @@ class MatrixRow(BaseModel):
 
 
 class Matrix(BaseModel):
+    """ "Ikke fundet" betyder: ikke fundet i radarens kilder — ikke at
+    selskabet ikke bruger teknologien."""
+
     columns: list[TechnologyRef] = Field(default_factory=list)
     rows: list[MatrixRow] = Field(default_factory=list)
     peers_without: list[str] = Field(default_factory=list)
     peer_total: int = PEER_TOTAL
     more_columns: int = 0
+    # Seneste gennemførte søgning i kilderne.
+    searched_at: datetime | None = None
 
 
 class OkStatus(BaseModel):
@@ -167,6 +172,7 @@ def build_matrix(
     cases: list[CaseCard],
     technologies: list[TechnologyCard],
     ok_status: dict[str, OkStatus],
+    searched_at: datetime | None = None,
 ) -> Matrix:
     best: dict[tuple[str, uuid.UUID], CaseCard] = {}
     for card in cases:
@@ -234,6 +240,7 @@ def build_matrix(
         rows=rows,
         peers_without=[p.name for p in PEERS if p.name not in with_cases],
         more_columns=max(0, len(ranked) - len(columns)),
+        searched_at=searched_at,
     )
 
 

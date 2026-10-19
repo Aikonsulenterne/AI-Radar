@@ -588,3 +588,12 @@ underafsnit på siden og indgår aldrig i indsigterne.
   Med få fund i starten vil den være lille — det er sandt, ikke en fejl.
 - Ældre gemte versioner (prompt 2.x) vises stadig: tekst-spørgsmål læses som
   spørgsmål uden detaljer, og `must_know` ignoreres.
+
+## Rettelser efter stresstest (2026-10-19)
+
+- Kode: dansk-krav for dem, der ligner OK; "Ikke fundet" med søgedato;
+  gemte svar bag `STORE_DECISIONS`; mail kun ved nyt; Tilføj case fra link.
+- Ikke kode, kræver OK: SMTP, godkendelse af gemte svar, en admin mere og en
+  dato for flytning til OK's konti (docs/06 punkt 6–8).
+- Kørselsplanen (pg_cron ugentligt) er uændret; rytmen hver anden uge styres
+  af, hvornår Admin godkender.

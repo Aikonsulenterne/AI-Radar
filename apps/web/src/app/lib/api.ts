@@ -1043,6 +1043,8 @@ export interface OkMatrix {
   peers_without: string[];
   peer_total: number;
   more_columns: number;
+  /** Seneste gennemførte søgning i kilderne. */
+  searched_at: string | null;
 }
 
 export type DecisionAnswer = "ja" | "nej" | "senere";
@@ -1096,6 +1098,8 @@ export interface OkBrief {
   state: "godkendt" | "kladde" | "ingen";
   approved_at: string | null;
   mail_status: string | null;
+  /** Gemmes direktørens svar i radaren? Fra, indtil OK har godkendt det. */
+  decisions_stored: boolean;
 }
 
 export function answerDecision(
@@ -1115,6 +1119,24 @@ export interface OkPublicStatusRow {
   stage: "drift" | "pilot" | null;
   source_url: string | null;
   note: string | null;
+}
+
+export interface AddedLink {
+  title: string | null;
+  already_known: boolean;
+  relevant: boolean;
+  technologies: number;
+  cases: number;
+  message: string;
+}
+
+/** Admin: læs ét offentligt link (opslag, oplæg, kundecase) med det samme. */
+export function addMarketLink(url: string, vendor: boolean): Promise<AddedLink> {
+  return request("/market/links", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, vendor }),
+  });
 }
 
 export function getOkPublicStatus(): Promise<OkPublicStatusRow[]> {

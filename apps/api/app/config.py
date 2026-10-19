@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     brief_recipients: str = ""
     # Webadressen i mailens link, fx https://ai-radar-xi-teal.vercel.app
     public_web_url: str = ""
+    # Direktørens ja/nej-svar er intern strategi. De gemmes først, når OK
+    # har godkendt det (stresstest 2026-10-19); indtil da svares der på mødet.
+    store_decisions: bool = False
 
     @property
     def brief_recipient_list(self) -> list[str]:

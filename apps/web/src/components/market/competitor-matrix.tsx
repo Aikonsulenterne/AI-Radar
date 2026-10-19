@@ -1,7 +1,15 @@
 import type { MatrixState, OkMatrix } from "../../app/lib/api";
 
+function shortDate(value: string): string {
+  return new Intl.DateTimeFormat("da-DK", {
+    day: "numeric",
+    month: "short",
+    timeZone: "Europe/Copenhagen",
+  }).format(new Date(value));
+}
+
 // Form og tekst, ikke kun farve: fyldt prik = drift, halv = pilot, ring =
-// omtalt, streg = ingen case.
+// omtalt, streg = ikke fundet i kilderne (ikke: "bruger det ikke").
 function Mark({ state }: { state: MatrixState }) {
   return <span className={`cm-mark cm-mark-${state}`} aria-hidden="true" />;
 }
@@ -40,6 +48,7 @@ export function CompetitorMatrix({ matrix }: { matrix: OkMatrix }) {
         <h2 id="cm-title">Dem, der ligner OK</h2>
         <span className="muted small">
           {peers} af {matrix.peer_total} har en dokumenteret AI-case
+          {matrix.searched_at ? ` · søgt i kilderne ${shortDate(matrix.searched_at)}` : ""}
         </span>
       </div>
       {matrix.rows.length === 0 ? (
@@ -92,7 +101,7 @@ export function CompetitorMatrix({ matrix }: { matrix: OkMatrix }) {
                     ),
                   )}
                   {row.cells.every((c) => c.state === "ingen") ? (
-                    <span className="muted">Ingen case</span>
+                    <span className="muted">Ikke fundet i kilderne</span>
                   ) : null}
                 </span>
               </li>
@@ -111,14 +120,16 @@ export function CompetitorMatrix({ matrix }: { matrix: OkMatrix }) {
           <Mark state="omtalt" /> Omtalt, fase ikke oplyst
         </span>
         <span>
-          <Mark state="ingen" /> Ingen case
+          <Mark state="ingen" /> Ikke fundet i kilderne (betyder ikke, at de ikke bruger det)
         </span>
         {matrix.more_columns > 0 ? (
           <span>{matrix.more_columns} teknologier mere under Sådan gør andre</span>
         ) : null}
       </p>
       {matrix.peers_without.length > 0 ? (
-        <p className="muted small">Ingen AI-case fundet endnu: {matrix.peers_without.join(" · ")}</p>
+        <p className="muted small">
+          Ikke fundet i kilderne endnu: {matrix.peers_without.join(" · ")}
+        </p>
       ) : null}
     </section>
   );

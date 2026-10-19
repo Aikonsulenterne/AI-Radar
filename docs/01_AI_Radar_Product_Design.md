@@ -537,3 +537,22 @@ knappen "Svar i radaren". Svar gives på siden (et link i en mail må ikke
 selv afgive et svar).
 
 **Data.** Kun beslutning og dato gemmes for svarene; ingen OK-tal.
+
+## 23. Beslutning 2026-10-19: rettelser efter stresstest
+
+- *Dem, der ligner OK* tæller kun cases fra Danmark. Shell i Storbritannien,
+  Vattenfall i Sverige eller Telenor i Norge er ikke "dem, der ligner OK"
+  (de står som almindelige cases med deres land).
+- En tom celle hedder "Ikke fundet" og forklares som "ikke fundet i kilderne
+  (betyder ikke, at de ikke bruger det)"; overblikket viser, hvornår kilderne
+  sidst blev søgt.
+- Direktørens ja/nej-svar gemmes ikke, før OK har godkendt det
+  (`STORE_DECISIONS`, standard fra). Indtil da står spørgsmålene med "svar
+  på mødet".
+- Rytme: radaren læser kilder hver uge; Til OK godkendes hver anden uge, og
+  mailen sendes kun, når der er noget nyt, et spørgsmål eller en opfølgning.
+- *Tilføj case fra link* (Admin → Kilder): konsulenten indsætter et offentligt
+  link (LinkedIn-opslag, oplæg, kundecase), som læses med det samme efter
+  samme regler som alt andet.
+- Åbne punkter til IT (SMTP, gemte svar, flere admins, flytning til OK's
+  konti) står i `docs/06_Drift_og_Data.md`.

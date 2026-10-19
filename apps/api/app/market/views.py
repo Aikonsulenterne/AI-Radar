@@ -277,7 +277,7 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
     industry = _first(rows, "industry")
     kind = source_kind(effect_row)
     company = _company_name(db, primary.item.company_id) or "Ukendt organisation"
-    peer = peer_for(company)
+    peer = peer_for(company, country)
     also = []
     for r in rows[1:]:
         if r.source.name not in also and r.source.name != effect_row.source.name:

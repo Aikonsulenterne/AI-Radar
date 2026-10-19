@@ -5,6 +5,7 @@ Alt på første skærmbillede beregnes af serveren ud fra fund med kilde."""
 
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from tests.test_market import MARKET, _provider, _run, _upload, market_mode  # noqa: F401
@@ -130,12 +131,40 @@ def test_since_last_shows_what_is_new_and_is_frozen_at_approval(
     assert again["since_last"]["note"].startswith("Intet nyt siden")
 
 
-def test_director_answers_and_a_yes_is_followed_up(
+def test_answers_are_not_stored_until_ok_allows_it(
     client: TestClient,
     admin_headers: dict[str, str],
     reader_headers: dict[str, str],
     market_mode: Any,  # noqa: F811
 ) -> None:
+    _provider(ok_brief=BRIEF)
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    client.post("/api/v1/ok-brief/approve", headers=admin_headers)
+    out = _brief(client, reader_headers)
+    assert out["decisions_stored"] is False
+    [decision] = out["decisions"]
+    assert decision["answerable"] is False
+    refused = client.post(
+        "/api/v1/ok-brief/decisions",
+        json={"key": decision["key"], "answer": "ja"},
+        headers=reader_headers,
+    )
+    assert refused.status_code == 409
+    assert refused.json()["error"]["code"] == "decisions_not_stored"
+
+
+def test_director_answers_and_a_yes_is_followed_up(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,  # noqa: F811
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.config import get_settings
+
+    monkeypatch.setenv("STORE_DECISIONS", "true")
+    get_settings.cache_clear()
     fake = _provider(ok_brief=BRIEF)
     _upload(client, admin_headers)
     _run(client, admin_headers)

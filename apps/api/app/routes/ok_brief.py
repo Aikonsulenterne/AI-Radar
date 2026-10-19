@@ -17,6 +17,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.ai.provider import (
@@ -29,8 +30,9 @@ from app.ai.provider import (
 from app.ai.schemas import AISchemaError
 from app.audit import AuditAction, AuditEntity, record
 from app.auth import CurrentUser, require_role
+from app.config import get_settings
 from app.db import get_db
-from app.enums import UserRole
+from app.enums import RunStatus, UserRole
 from app.errors import ApiError
 from app.mailer import send_brief
 from app.market.catalog import AREA_LABELS, OK_PROBLEMS
@@ -69,6 +71,7 @@ from app.market.views import (
     visible_rows,
 )
 from app.models_claims import Technology
+from app.models_runs import WorkerRun
 from app.models_settings import AppSetting
 from app.pipeline.market import OK_BRIEF_KEY, generate_ok_brief
 from app.routes.documents import ai_provider_dep
@@ -192,6 +195,8 @@ class OkBriefOut(BaseModel):
     approved_at: datetime | None = None
     # Kun til Admin: hvad der skete med mailen ved seneste godkendelse.
     mail_status: str | None = None
+    # Gemmes direktørens svar i radaren? Fra, indtil OK har godkendt det.
+    decisions_stored: bool = False
 
 
 # --- Opbygning ---
@@ -253,8 +258,12 @@ def _brief_out(
             id=tech.id, label=tech.label, status=tech.status, status_label=tech.status_label
         )
 
-    matrix = build_matrix(cases, technologies, ok_status(db))
-    answers = latest_answers(db)
+    searched_at = db.scalar(
+        select(func.max(WorkerRun.finished_at)).where(WorkerRun.status == RunStatus.succeeded)
+    )
+    matrix = build_matrix(cases, technologies, ok_status(db), searched_at)
+    stored_answers = get_settings().store_decisions
+    answers = latest_answers(db) if stored_answers else {}
 
     decisions: list[DecisionOut] = []
     for entry in _stored_decisions(value):
@@ -272,7 +281,7 @@ def _brief_out(
                 gain=gain_for(tech.id if tech else None, cases),
                 answer=given.answer if given else None,
                 answered_at=given.answered_at if given else None,
-                answerable=key in answerable_keys,
+                answerable=stored_answers and key in answerable_keys,
             )
         )
     current_keys = {d.key for d in decisions}
@@ -379,6 +388,7 @@ def _brief_out(
         since_last=since,
         decisions=decisions,
         follow_ups=follow_ups,
+        decisions_stored=stored_answers,
         recommendations=recommendations[:3],
         areas=[
             AreaRows(area=a, label=AREA_LABELS[a], rows=by_area[a])
@@ -519,7 +529,10 @@ def approve_ok_brief(
     )
     db.commit()
     out = _brief_out(db, data, value, since, _published_keys(value))
-    mail = send_brief(out.model_dump(mode="json"))
+    # Mail kun, når der er noget nyt eller noget at tage stilling til:
+    # "Intet nyt" tre gange lærer modtageren at ignorere mailen.
+    has_news = bool(since.lines or out.decisions or out.follow_ups)
+    mail = send_brief(out.model_dump(mode="json")) if has_news else "ikke sendt (intet nyt)"
     stored = db.get(AppSetting, OK_BRIEF_PUBLISHED_KEY)
     if stored is not None:
         stored.value = {**stored.value, "mail_status": mail}
@@ -569,7 +582,14 @@ def answer_decision(
     user: CurrentUser = Depends(require_role(UserRole.reader)),
 ) -> DecisionAnswerOut:
     """Direktørens ja / nej / senere til et spørgsmål i den godkendte Til OK.
-    Kun beslutning og dato gemmes — ingen OK-tal."""
+    Kun beslutning og dato gemmes — ingen OK-tal — og kun når
+    STORE_DECISIONS er slået til efter OK's godkendelse."""
+    if not get_settings().store_decisions:
+        raise ApiError(
+            409,
+            "decisions_not_stored",
+            "Svar gemmes ikke i radaren, før OK har godkendt det. Svar på mødet.",
+        )
     published = _stored(db, OK_BRIEF_PUBLISHED_KEY)
     question = next(
         (

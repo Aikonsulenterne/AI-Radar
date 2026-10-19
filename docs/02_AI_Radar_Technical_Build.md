@@ -903,3 +903,19 @@ ikke af den forenklede visning.
   technology og case (reference). Modellen skriver aldrig tal eller effekter.
 - Mail (`mailer.py`): overskrift, Siden sidst, spørgsmål med "Kræver",
   "Andre fik" og knappen "Svar i radaren" (link til `/#beslutninger`).
+
+## 29. Rettelser efter stresstest (2026-10-19)
+
+- `catalog.peer_for(company, country)` kræver `country == "DK"`.
+- `Matrix.searched_at` = seneste gennemførte kørsel; tom celle = "Ikke fundet".
+- `settings.store_decisions` (env `STORE_DECISIONS`, standard false): uden
+  den afviser `POST /ok-brief/decisions` med 409 `decisions_not_stored`,
+  `answerable` er false, gemte svar læses ikke, og prompten får ingen svar.
+  `OkBriefOut.decisions_stored` styrer UI'et.
+- `POST /ok-brief/approve` sender kun mail, når `since_last.lines`,
+  `decisions` eller `follow_ups` har indhold; ellers mailstatus
+  "ikke sendt (intet nyt)".
+- `POST /market/links` (Admin): `ensure_public_http_url` → `fetch_url` →
+  `ingest_bytes` i kilden "Manuelt tilføjede links" (media) eller
+  "Manuelt tilføjede leverandørsider" (vendor_case) → `process_market_document`
+  med det samme. Allerede læste links giver `already_known`.

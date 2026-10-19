@@ -153,3 +153,8 @@ godkendelse) og gevinstspænd fra casene. Direktørens ja / nej / senere gemmes
 med dato (`POST /ok-brief/decisions`) og følges op. Til OK-endpoints ligger i
 `app/routes/ok_brief.py`; prompt `ok_brief` 3.0.0. Product Master §22,
 Technical Master §28, UI Master §31.
+**Efter stresstest (2026-10-19):** *dem, der ligner OK* tæller kun danske
+cases; tomme celler hedder "Ikke fundet" (i kilderne); direktørens svar gemmes
+kun med `STORE_DECISIONS=true` (standard fra); mail kun ved nyt; Admin kan
+tilføje en case fra et offentligt link (`POST /market/links`). Product Master
+§23, Technical Master §29, åbne IT-punkter i `docs/06_Drift_og_Data.md`.

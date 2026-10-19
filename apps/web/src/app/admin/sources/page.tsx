@@ -17,6 +17,7 @@ import { HideButton } from "../../../components/market/hide-button";
 import { UpdateRadarButton } from "../../../components/market/update-radar-button";
 import { GenerateBriefButton } from "../../../components/market/generate-brief-button";
 import { OkStatusForm } from "../../../components/market/ok-status-form";
+import { AddLinkForm } from "../../../components/market/add-link-form";
 
 export const dynamic = "force-dynamic";
 
@@ -84,8 +85,9 @@ export default async function AdminSourcesPage() {
           <p className="eyebrow">Kilder · kun admin</p>
           <h1>Hvor henter radaren sin viden?</h1>
           <p>
-            Radaren læser disse kilder og opdaterer siderne automatisk hver
-            mandag. Interne OK-dokumenter indgår ikke som markedsviden.
+            Radaren læser disse kilder automatisk hver uge. Godkend Til OK hver
+            anden uge; mailen sendes kun, når der er noget nyt. Interne
+            OK-dokumenter indgår ikke.
           </p>
         </div>
         <div className="page-head-actions">
@@ -93,6 +95,8 @@ export default async function AdminSourcesPage() {
           <UpdateRadarButton />
         </div>
       </header>
+
+      <AddLinkForm />
 
       {marketSources === null ? (
         <ApiErrorAlert error={loadError} />

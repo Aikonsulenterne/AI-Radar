@@ -50,7 +50,7 @@ export default async function TilOkPage() {
           </div>
         </header>
         <p className="empty-line">
-          Til OK er ikke klar endnu. Den opdateres og godkendes hver mandag.
+          Til OK er ikke klar endnu. Den opdateres og godkendes hver anden uge.
         </p>
       </div>
     );
@@ -152,7 +152,7 @@ export default async function TilOkPage() {
                 {brief.decisions.length > 0 ? (
                   <ol className="decision-list">
                     {brief.decisions.map((d) => (
-                      <DecisionCard key={d.key} decision={d} />
+                      <DecisionCard key={d.key} decision={d} stored={brief.decisions_stored} />
                     ))}
                   </ol>
                 ) : (

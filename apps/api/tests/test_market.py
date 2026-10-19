@@ -313,7 +313,9 @@ def test_ok_brief_keeps_only_valid_references_and_each_case_once(
         "Skal vi tale med Norlys?",
     ]
     assert out["decisions"][0]["owner"] == "Kundeservice"
-    assert out["decisions"][0]["answerable"] is True
+    # Svar gemmes ikke, før OK har godkendt det (STORE_DECISIONS).
+    assert out["decisions_stored"] is False
+    assert out["decisions"][0]["answerable"] is False
     assert [a["area"] for a in out["areas"]] == ["kundeservice"]
     row = out["areas"][0]["rows"][0]
     assert row["key"] == "ventetid"
@@ -489,7 +491,7 @@ def test_director_sees_only_the_approved_til_ok_and_mail_is_sent(
 def test_approve_without_mail_setup_still_publishes(
     client: TestClient, admin_headers: dict[str, str], market_mode: Any
 ) -> None:
-    _provider(ok_brief={"must_know": [{"text": "Et punkt.", "source": "C1"}]})
+    _provider(ok_brief={"decisions": [{"question": "Må vi starte et forsøg?"}]})
     _upload(client, admin_headers)
     _run(client, admin_headers)
     approved = client.post("/api/v1/ok-brief/approve", headers=admin_headers).json()
@@ -576,3 +578,59 @@ def test_cases_from_companies_like_ok_are_marked_and_missing_ones_named(
     assert peer_for("Andel Energi A/S").name == "Andel"  # type: ignore[union-attr]
     assert peer_for("3M") is None
     assert peer_for("Shellfish Inc") is None
+
+
+def test_no_mail_when_there_is_nothing_new(
+    client: TestClient, admin_headers: dict[str, str], market_mode: Any
+) -> None:
+    _provider(ok_brief={"per_problem": [{"problem": "P1", "best_case": "C1"}]})
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    approved = client.post("/api/v1/ok-brief/approve", headers=admin_headers).json()
+    assert approved["mail"] == "ikke sendt (intet nyt)"
+
+
+def test_add_case_from_a_public_link(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.ingestion.fetch import FetchResult
+
+    def fake_fetch(url: str, timeout_seconds: float, max_bytes: int) -> FetchResult:
+        return FetchResult(
+            data=f"<html><title>Opslag</title><body>{TEXT}</body></html>".encode(),
+            content_type="text/html",
+            final_url=url,
+        )
+
+    monkeypatch.setattr("app.routes.market.fetch_url", fake_fetch)
+    _provider()
+    body = {"url": "https://www.linkedin.com/posts/norlys-voicebot"}
+    assert client.post("/api/v1/market/links", json=body, headers=reader_headers).status_code == 403
+    unsafe = {"url": "http://127.0.0.1/admin"}
+    assert (
+        client.post("/api/v1/market/links", json=unsafe, headers=admin_headers).status_code == 422
+    )
+
+    added = client.post("/api/v1/market/links", json=body, headers=admin_headers)
+    assert added.status_code == 200, added.text
+    out = added.json()
+    assert out["cases"] == 1 and out["already_known"] is False
+    assert "Opdatér Til OK" in out["message"]
+    [case] = client.get("/api/v1/market/cases", headers=admin_headers).json()["items"]
+    assert case["company"] == "Norlys" and case["peer"] == "Norlys"
+
+    again = client.post("/api/v1/market/links", json=body, headers=admin_headers).json()
+    assert again["already_known"] is True
+
+
+def test_companies_like_ok_only_count_in_denmark() -> None:
+    from app.market.catalog import peer_for
+
+    assert peer_for("Shell", "GB") is None
+    assert peer_for("Telenor", "NO") is None
+    assert peer_for("Vattenfall", None) is None
+    assert peer_for("Telenor Danmark", "DK") is not None

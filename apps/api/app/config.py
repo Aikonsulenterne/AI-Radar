@@ -80,6 +80,11 @@ class Settings(BaseSettings):
     # Direktørens ja/nej-svar er intern strategi. De gemmes først, når OK
     # har godkendt det (stresstest 2026-10-19); indtil da svares der på mødet.
     store_decisions: bool = False
+    # Læseadgang uden login (beslutning 2026-10-20: kolleger og direktør skal
+    # kunne åbne linket uden konto). Anonyme besøgende er Reader; alt, der
+    # ændrer noget eller koster AI-kald, kræver stadig Admin-login.
+    # Slå fra med PUBLIC_READ=false.
+    public_read: bool = True
 
     @property
     def brief_recipient_list(self) -> list[str]:

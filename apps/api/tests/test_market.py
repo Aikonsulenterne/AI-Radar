@@ -634,3 +634,33 @@ def test_companies_like_ok_only_count_in_denmark() -> None:
     assert peer_for("Telenor", "NO") is None
     assert peer_for("Vattenfall", None) is None
     assert peer_for("Telenor Danmark", "DK") is not None
+
+
+def test_public_read_without_login_but_admin_still_needs_login(
+    client: TestClient, admin_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PUBLIC_READ", "true")
+    get_settings.cache_clear()
+    try:
+        me = client.get("/api/v1/me")
+        assert me.status_code == 200 and me.json()["role"] == "reader"
+        assert client.get("/api/v1/ok-brief").status_code == 200
+        assert client.get("/api/v1/market/cases").status_code == 200
+        assert client.get("/api/v1/market/technologies").status_code == 200
+        # Alt, der ændrer noget eller koster AI-kald, kræver stadig Admin.
+        assert client.post("/api/v1/ok-brief/approve").status_code == 401
+        assert client.post("/api/v1/ok-brief/generate").status_code == 401
+        assert client.post("/api/v1/runs", json={}).status_code == 401
+        assert client.get("/api/v1/market/sources").status_code == 401
+        link = client.post("/api/v1/market/links", json={"url": "https://example.org/x"})
+        assert link.status_code == 401
+        # De ældre moduler og svar er ikke offentlige.
+        assert client.get("/api/v1/signals").status_code == 401
+        assert client.get("/api/v1/opportunities").status_code == 401
+        assert client.get("/api/v1/sources").status_code == 401
+        assert client.post("/api/v1/ok-brief/decisions", json={}).status_code == 401
+        # Et ugyldigt token giver stadig 401 — ingen nedgradering til læser.
+        bad = client.get("/api/v1/ok-brief", headers={"Authorization": "Bearer forkert"})
+        assert bad.status_code == 401
+    finally:
+        get_settings.cache_clear()

@@ -13,6 +13,8 @@ export const metadata: Metadata = {
   title: "AI Radar",
   description:
     "Internt, evidensbaseret technology-intelligence-produkt for OK.",
+  // Siden kan læses uden login (PUBLIC_READ), men må ikke findes via søgning.
+  robots: { index: false, follow: false, nocache: true },
 };
 
 export default function RootLayout({

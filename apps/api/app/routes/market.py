@@ -357,8 +357,8 @@ def _link_source(db: Session, vendor: bool) -> Source:
 def add_market_link(
     body: LinkIn,
     db: Session = Depends(get_db),
-    provider: AIProvider = Depends(ai_provider_dep),
     user: CurrentUser = Depends(require_role(UserRole.admin)),
+    provider: AIProvider = Depends(ai_provider_dep),
 ) -> LinkOut:
     """Hent ét offentligt link og læs det med det samme. Den stærkeste viden
     om danske kundecentre står ofte i opslag og oplæg, ikke i nyhederne. Samme

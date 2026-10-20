@@ -83,6 +83,23 @@ def _decode_token(token: str) -> dict[str, Any]:
         raise ApiError(401, "unauthorized", "Ugyldigt eller udløbet token.") from exc
 
 
+# Det, der må læses uden login, når PUBLIC_READ er slået til: Til OK,
+# Teknologier og Sådan gør andre (alle med fund fra offentlige kilder).
+PUBLIC_READ_PATHS = frozenset(
+    {
+        "/api/v1/me",
+        "/api/v1/ok-brief",
+        "/api/v1/ok-brief/regneark.xlsx",
+        "/api/v1/market/technologies",
+        "/api/v1/market/cases",
+    }
+)
+
+
+def _public_path(request: Request) -> bool:
+    return request.method in ("GET", "HEAD") and request.url.path.rstrip("/") in PUBLIC_READ_PATHS
+
+
 def get_current_user(request: Request, db: Session = Depends(get_db)) -> CurrentUser:
     settings = get_settings()
     header = request.headers.get("authorization")
@@ -90,6 +107,10 @@ def get_current_user(request: Request, db: Session = Depends(get_db)) -> Current
     if header is None:
         if settings.auth_dev_bypass:
             return CurrentUser(user_id=None, role=UserRole.admin)
+        if settings.public_read and _public_path(request):
+            # Kun læsning af radarens fire sider. Alt andet — de ældre moduler,
+            # svar, kørsler og administration — kræver login.
+            return CurrentUser(user_id=None, role=UserRole.reader)
         raise ApiError(401, "unauthorized", "Manglende Authorization-header.")
 
     scheme, _, token = header.partition(" ")

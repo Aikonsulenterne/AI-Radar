@@ -556,3 +556,12 @@ selv afgive et svar).
   samme regler som alt andet.
 - Åbne punkter til IT (SMTP, gemte svar, flere admins, flytning til OK's
   konti) står i `docs/06_Drift_og_Data.md`.
+
+## 24. Beslutning 2026-10-20: læsning uden login
+
+Kolleger og direktør skal kunne åbne linket uden konto. Til OK, Teknologier
+og Sådan gør andre kan læses uden login (kun den godkendte Til OK). Alt
+andet — Kilder, godkendelse, kørsler, Tilføj case fra link, svar på
+spørgsmål og de ældre moduler — kræver login. Siden er skjult for
+søgemaskiner. Konsekvens: alle med linket kan se OK's problemliste, OK's
+systemnavne og spørgsmålene til direktøren.

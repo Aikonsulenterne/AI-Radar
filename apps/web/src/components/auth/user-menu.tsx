@@ -38,7 +38,7 @@ export function UserMenu() {
   if (email === null) {
     return (
       <Link href="/login" className="btn btn-secondary">
-        Log ind
+        Admin-login
       </Link>
     );
   }

@@ -51,6 +51,9 @@ services:
       # Direktørens ja/nej-svar gemmes først, når OK har godkendt det.
       - key: STORE_DECISIONS
         value: "false"
+      # Til OK, Teknologier og Sådan gør andre kan læses uden login.
+      - key: PUBLIC_READ
+        value: "true"
       # JWT-validering sker via projektets JWKS (SUPABASE_URL) — ingen
       # SUPABASE_JWT_SECRET nødvendig med moderne signing keys.
       # Claude via Anthropics SDK. Model og nøgle sættes i dashboardet: modellen

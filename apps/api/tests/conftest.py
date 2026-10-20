@@ -31,6 +31,8 @@ os.environ["SUPABASE_URL"] = "https://test-projekt.supabase.co"
 # Den gamle claim-pipeline har sin egen testsuite; markedsudtrækket slås
 # til i test_market.py.
 os.environ["MARKET_PIPELINE"] = "false"
+# Den gamle suite tester login-kravet; læsning uden login har sin egen test.
+os.environ["PUBLIC_READ"] = "false"
 
 import time  # noqa: E402
 import uuid  # noqa: E402

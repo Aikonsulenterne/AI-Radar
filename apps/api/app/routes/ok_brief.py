@@ -543,8 +543,8 @@ def approve_ok_brief(
 @router.post("/ok-brief/generate", response_model=OkBriefOut)
 def post_generate_ok_brief(
     db: Session = Depends(get_db),
-    provider: AIProvider = Depends(ai_provider_dep),
     user: CurrentUser = Depends(require_role(UserRole.admin)),
+    provider: AIProvider = Depends(ai_provider_dep),
 ) -> OkBriefOut:
     try:
         value = generate_ok_brief(db, provider)

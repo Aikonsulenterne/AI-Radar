@@ -919,3 +919,16 @@ ikke af den forenklede visning.
   `ingest_bytes` i kilden "Manuelt tilføjede links" (media) eller
   "Manuelt tilføjede leverandørsider" (vendor_case) → `process_market_document`
   med det samme. Allerede læste links giver `already_known`.
+
+## 30. Læsning uden login (2026-10-20)
+
+- `settings.public_read` (env `PUBLIC_READ`, standard true): uden
+  Authorization-header bliver en GET til `auth.PUBLIC_READ_PATHS` (`/me`,
+  `/ok-brief`, `/ok-brief/regneark.xlsx`, `/market/technologies`,
+  `/market/cases`) en anonym Reader (user_id None). Alle andre stier giver
+  401 som før; et ugyldigt token giver stadig 401.
+- Admin-endpoints, der kalder AI, løser login før AI-provideren.
+- Web: `robots: noindex, nofollow` i layoutet og `public/robots.txt`
+  (Disallow: /). Topbjælkens knap hedder "Admin-login".
+- Testsuiten kører med `PUBLIC_READ=false`; en egen test dækker den åbne
+  læsning og de lukkede stier.

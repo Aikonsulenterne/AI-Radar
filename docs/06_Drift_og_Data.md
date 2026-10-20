@@ -31,6 +31,12 @@ til AI. Kroner regnes i regnearket fra Til OK, som OK udfylder på egen pc;
 radaren ser aldrig tallene. Radaren kender kun navnene på OK's systemer
 (FocalScope, G4), som indgår i Til OK-prompten.
 
+**Læsning uden login (besluttet 2026-10-20):** Til OK, Teknologier og
+Sådan gør andre kan åbnes af alle med linket (`PUBLIC_READ=true`, slås fra med
+`false`). Det betyder, at OK's problemliste, systemnavne og spørgsmålene til
+direktøren kan ses uden login. Siden er skjult for søgemaskiner. Alt, der
+ændrer noget, kræver fortsat login.
+
 ## Hvor det kører i dag (prototype)
 
 | Del | Leverandør | Bemærkning |

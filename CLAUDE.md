@@ -158,3 +158,7 @@ cases; tomme celler hedder "Ikke fundet" (i kilderne); direktørens svar gemmes
 kun med `STORE_DECISIONS=true` (standard fra); mail kun ved nyt; Admin kan
 tilføje en case fra et offentligt link (`POST /market/links`). Product Master
 §23, Technical Master §29, åbne IT-punkter i `docs/06_Drift_og_Data.md`.
+**Læsning uden login (2026-10-20):** `PUBLIC_READ` (standard true) giver
+anonyme besøgende Reader-adgang til Til OK, Teknologier og Sådan gør andre
+(`auth.PUBLIC_READ_PATHS`); alt andet kræver login. Siden er noindex.
+Product Master §24, Technical Master §30.

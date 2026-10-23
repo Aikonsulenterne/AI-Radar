@@ -565,3 +565,23 @@ andet — Kilder, godkendelse, kørsler, Tilføj case fra link, svar på
 spørgsmål og de ældre moduler — kræver login. Siden er skjult for
 søgemaskiner. Konsekvens: alle med linket kan se OK's problemliste, OK's
 systemnavne og spørgsmålene til direktøren.
+
+## 25. Beslutning 2026-10-23: rettelser efter test med kolleger
+
+- **Lær af andres fejl.** Hver case har et resultat ifølge kilden: Virkede /
+  Blandet resultat / Virkede ikke (eller intet). En case, der ikke virkede
+  (fx Klarna, der ansatte igen), står under *Lær af andres fejl* og tæller
+  aldrig som bevis: ikke i status, konkurrentoverblik, gevinstspænd eller som
+  "stærkeste bevis" på Til OK. Admin kan rette resultatet på casen.
+- **Paraplybetegnelser** som "Kundeservice-AI", "AI i kundeservice" eller
+  "Generativ AI" bliver aldrig en teknologi.
+- **Resultat og læring står synligt** på casekortet; omfang, start og citat
+  står bag "Omfang, start og citat".
+- **Fase:** udtrækket aflæser fasen fra kildens ord (planlægger = idé,
+  tester = pilot, bruger/har lanceret = drift, i hele organisationen =
+  skaleret). Siger kilden intet, står der "Fase ikke oplyst i kilden" —
+  radaren gætter ikke.
+- **Filter på leverandør** under Sådan gør andre.
+- **Teknologier** har en indholdsoversigt øverst (Nyt på markedet, status-
+  sektioner, Leverandører på markedet) og viser op til seks nye under Alle.
+- **Til OK** forklarer sit formål øverst, også før første udgave er godkendt.

@@ -937,6 +937,8 @@ export interface MarketTechnology {
   latest_at: string | null;
   first_seen_at: string | null;
   launched: string | null;
+  /** Cases, hvor det ifølge kilden ikke virkede (tæller ikke i status). */
+  failed_case_count: number;
 }
 
 export interface MarketVendorRow {
@@ -979,6 +981,9 @@ export interface MarketCase {
   source_kind: "uafhængig" | "leverandør";
   source_kind_label: string;
   similarity: number;
+  /** Virkede det ifølge kilden (eller Admin)? */
+  outcome: "positiv" | "negativ" | "blandet" | null;
+  outcome_label: string | null;
   /** Et af de selskaber, der ligner OK, og dets branche. */
   peer: string | null;
   peer_group: string | null;
@@ -1204,6 +1209,7 @@ export function getMarketCases(filters: {
   area?: MarketArea;
   region?: MarketRegion;
   technology_id?: string;
+  vendor?: string;
 }): Promise<{
   items: MarketCase[];
   total: number;
@@ -1211,8 +1217,20 @@ export function getMarketCases(filters: {
   danish_total: number;
   technologies: MarketTechnologyRef[];
   peers_without_cases: string[];
+  vendors: string[];
 }> {
   return request(`/market/cases${query(filters)}`);
+}
+
+export function setMarketItemOutcome(
+  itemId: string,
+  outcome: "positiv" | "negativ" | "blandet" | "",
+): Promise<{ id: string; hidden: boolean }> {
+  return request(`/market/items/${itemId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ outcome }),
+  });
 }
 
 export function setMarketItemHidden(

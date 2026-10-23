@@ -365,6 +365,35 @@ OK_PROFILE: tuple[str, ...] = (
 OK_CURRENT_VENDORS: tuple[str, ...] = ("FocalScope",)
 
 
+# Paraplybetegnelser, der ikke siger, hvad teknologien gør. De bliver aldrig
+# en teknologi (feedback 2026-10-23: "Kundeservice-AI" stod som teknologi).
+_GENERIC_TECH_NAMES = frozenset(
+    {
+        "ai",
+        "kunstigintelligens",
+        "generativai",
+        "genai",
+        "kundeserviceai",
+        "aiikundeservice",
+        "aitilkundeservice",
+        "aiikundecentret",
+        "customerserviceai",
+        "ailøsning",
+        "ailøsninger",
+        "aiteknologi",
+        "aiværktøj",
+        "aiværktøjer",
+        "aiisalg",
+        "aiisupport",
+    }
+)
+
+
+def is_generic_technology(name: str | None) -> bool:
+    key = "".join(ch for ch in (name or "").casefold() if ch.isalnum())
+    return key in _GENERIC_TECH_NAMES
+
+
 # Dem, der ligner OK: danske selskaber inden for OK's brancher (energi,
 # brændstof og ladning, mobil). Deres cases står øverst under Sådan gør andre,
 # og radaren viser også, hvem der endnu ikke har en AI-case. Kun offentlige

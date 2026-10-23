@@ -8,6 +8,8 @@ import { ApiErrorAlert } from "../../components/states/api-error";
 import { FilterTabs } from "../../components/market/area-tabs";
 import { CaseCard } from "../../components/market/case-card";
 import { TechnologySelect } from "../../components/market/technology-select";
+import { FilterSelect } from "../../components/market/filter-select";
+import { getRole } from "../lib/me";
 
 export const dynamic = "force-dynamic";
 
@@ -23,31 +25,39 @@ const REGION_TABS = [
 export default async function CasesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ region?: string; teknologi?: string }>;
+  searchParams: Promise<{ region?: string; teknologi?: string; leverandoer?: string }>;
 }) {
   const params = await searchParams;
   const region = REGIONS.includes(params.region as MarketRegion)
     ? (params.region as MarketRegion)
     : undefined;
   const technology = params.teknologi || undefined;
+  const vendor = params.leverandoer || undefined;
+  const isAdmin = (await getRole()) === "admin";
 
   let items: MarketCase[] | null = null;
   let technologies: MarketTechnologyRef[] = [];
   let counts = { all: 0, danish: 0 };
   let peersWithout: string[] = [];
+  let vendors: string[] = [];
   let loadError: unknown = null;
   try {
-    const data = await getMarketCases({ region, technology_id: technology });
+    const data = await getMarketCases({ region, technology_id: technology, vendor });
     items = data.items;
     technologies = data.technologies;
     counts = { all: data.all_total, danish: data.danish_total };
     peersWithout = data.peers_without_cases;
+    vendors = data.vendors;
   } catch (error) {
     loadError = error;
   }
 
-  const peers = (items ?? []).filter((item) => item.peer);
-  const others = (items ?? []).filter((item) => !item.peer);
+  // En case, der ikke virkede, står for sig: man lærer af den, men den er
+  // ikke et eksempel at følge.
+  const failed = (items ?? []).filter((item) => item.outcome === "negativ");
+  const working = (items ?? []).filter((item) => item.outcome !== "negativ");
+  const peers = working.filter((item) => item.peer);
+  const others = working.filter((item) => !item.peer);
 
   return (
     <div className="market-v2">
@@ -67,9 +77,16 @@ export default async function CasesPage({
           tabs={REGION_TABS}
           current={region}
           basePath="/cases"
-          params={{ region, teknologi: technology }}
+          params={{ region, teknologi: technology, leverandoer: vendor }}
         />
         <TechnologySelect options={technologies} current={technology} />
+        <FilterSelect
+          label="Leverandør"
+          param="leverandoer"
+          allLabel="Alle leverandører"
+          options={vendors.map((v) => ({ value: v, label: v }))}
+          current={vendor}
+        />
         {items !== null ? (
           <span className="muted small">
             {items.length} af {counts.all} cases · {counts.danish} fra Danmark
@@ -92,7 +109,7 @@ export default async function CasesPage({
               {peers.length > 0 ? (
                 <div className="case-grid-v2">
                   {peers.map((item) => (
-                    <CaseCard key={item.id} item={item} />
+                    <CaseCard key={item.id} item={item} isAdmin={isAdmin} />
                   ))}
                 </div>
               ) : (
@@ -117,11 +134,26 @@ export default async function CasesPage({
             ) : (
               <div className="case-grid-v2">
                 {others.map((item) => (
-                  <CaseCard key={item.id} item={item} />
+                  <CaseCard key={item.id} item={item} isAdmin={isAdmin} />
                 ))}
               </div>
             )}
           </section>
+          {failed.length > 0 ? (
+            <section className="v2-section" id="fejl" aria-labelledby="fail-title">
+              <div className="v2-section-head">
+                <h2 id="fail-title">Lær af andres fejl</h2>
+                <span className="muted">
+                  Her virkede det ikke ifølge kilden. Tæller ikke som bevis for teknologien.
+                </span>
+              </div>
+              <div className="case-grid-v2">
+                {failed.map((item) => (
+                  <CaseCard key={item.id} item={item} isAdmin={isAdmin} />
+                ))}
+              </div>
+            </section>
+          ) : null}
           <p className="ai-note">AI-sammenfattet · tjek kilden</p>
         </>
       )}

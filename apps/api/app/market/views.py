@@ -24,6 +24,7 @@ from app.market.catalog import (
     TECH_CATALOG,
     VENDOR_TYPES,
     country_name,
+    is_generic_technology,
     peer_for,
     region,
 )
@@ -57,6 +58,12 @@ SOURCE_KIND_LABELS = {"uafhængig": "Uafhængig kilde", "leverandør": "Leverand
 # Brancher, der ligner OK mest.
 OK_INDUSTRIES = {"energi", "forsyning", "telekom", "detail"}
 LIVE_STAGES = {"drift", "skaleret"}
+
+OUTCOME_LABELS = {
+    "positiv": "Virkede",
+    "negativ": "Virkede ikke",
+    "blandet": "Blandet resultat",
+}
 
 EFFECT_SOURCE_LABELS = {
     "virksomheden": "Virksomhedens egne tal",
@@ -136,7 +143,7 @@ def _technology_ref(db: Session, technology_id: uuid.UUID | None) -> TechnologyR
     if technology_id is None:
         return None
     technology = db.get(Technology, technology_id)
-    if technology is None:
+    if technology is None or is_generic_technology(technology.name):
         return None
     return TechnologyRef(id=technology.id, label=technology_label(technology))
 
@@ -181,6 +188,9 @@ class CaseCard(BaseModel):
     # Et af de selskaber, der ligner OK (catalog.PEERS), og dets branche.
     peer: str | None = None
     peer_group: str | None = None
+    # Virkede det ifølge kilden (eller Admin)? positiv | negativ | blandet.
+    outcome: str | None = None
+    outcome_label: str | None = None
 
 
 def source_kind(row: Row) -> str:
@@ -277,6 +287,9 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
     industry = _first(rows, "industry")
     kind = source_kind(effect_row)
     company = _company_name(db, primary.item.company_id) or "Ukendt organisation"
+    outcome = _first(rows, "outcome")
+    if outcome not in OUTCOME_LABELS:
+        outcome = None
     peer = peer_for(company, country)
     also = []
     for r in rows[1:]:
@@ -320,6 +333,8 @@ def case_card(db: Session, group: CaseGroup) -> CaseCard:
         ),
         peer=peer.name if peer else None,
         peer_group=peer.group if peer else None,
+        outcome=outcome,
+        outcome_label=OUTCOME_LABELS.get(outcome) if outcome else None,
     )
 
 
@@ -379,6 +394,8 @@ class TechnologyCard(BaseModel):
     first_seen_at: datetime | None
     # Lancering/annoncering ifølge kilden (YYYY-MM-DD), hvis den er oplyst.
     launched: str | None
+    # Cases, hvor det ifølge kilden ikke virkede (tæller ikke i status).
+    failed_case_count: int = 0
 
 
 def case_summary(card: CaseCard) -> CaseSummary:
@@ -431,7 +448,7 @@ def technology_cards(db: Session, rows: list[Row] | None = None) -> list[Technol
     cards: list[TechnologyCard] = []
     for technology_id in technology_ids:
         technology = db.get(Technology, technology_id)
-        if technology is None:
+        if technology is None or is_generic_technology(technology.name):
             continue
         tech_rows = by_technology.get(technology_id, [])
         entry = CATALOG_BY_NAME.get(technology.name)
@@ -467,7 +484,11 @@ def technology_cards(db: Session, rows: list[Row] | None = None) -> list[Technol
         if entry is None and not tech_rows:
             continue
         areas = list(entry.areas) if entry else _union_areas(tech_rows)
-        tech_cases = cases_by_technology.get(technology_id, [])
+        all_cases = cases_by_technology.get(technology_id, [])
+        # En case, der ikke virkede, er aldrig bevis for teknologien; den
+        # tælles for sig og vises under "Lær af andres fejl".
+        tech_cases = [c for c in all_cases if c.outcome != "negativ"]
+        failed = len(all_cases) - len(tech_cases)
         status = technology_status(tech_cases)
         launched = sorted(
             (str(r.item.data["launched"]) for r in offers if r.item.data.get("launched")),
@@ -491,6 +512,7 @@ def technology_cards(db: Session, rows: list[Row] | None = None) -> list[Technol
                     key=lambda v: (v.via_case, v.danish_supported is not True, v.name.casefold()),
                 ),
                 case_count=len(tech_cases),
+                failed_case_count=failed,
                 best_case=case_summary(tech_cases[0]) if tech_cases else None,
                 latest_at=tech_rows[0].item.observed_at if tech_rows else None,
                 first_seen_at=tech_rows[-1].item.observed_at if tech_rows else None,

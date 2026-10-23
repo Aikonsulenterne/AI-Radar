@@ -162,3 +162,9 @@ tilføje en case fra et offentligt link (`POST /market/links`). Product Master
 anonyme besøgende Reader-adgang til Til OK, Teknologier og Sådan gør andre
 (`auth.PUBLIC_READ_PATHS`); alt andet kræver login. Siden er noindex.
 Product Master §24, Technical Master §30.
+**Efter test med kolleger (2026-10-23):** cases har et resultat (Virkede /
+Blandet / Virkede ikke); en fejl-case står under *Lær af andres fejl* og
+tæller aldrig som bevis. Paraplynavne ("Kundeservice-AI") bliver ingen
+teknologi. Leverandørfilter, indholdsoversigt på Teknologier, formålstekst på
+Til OK. Prompts `market_extraction` 1.2.0 og `ok_brief` 3.1.0. Product Master
+§25, Technical Master §31.

@@ -11,6 +11,12 @@ import { GainLine } from "../components/market/gain-line";
 
 export const dynamic = "force-dynamic";
 
+// Hvad siden er til (feedback 2026-10-23: formålet var ikke tydeligt).
+const PURPOSE =
+  "Radarens anbefaling til OK: hvor vi står i forhold til dem, der ligner os, hvad vi " +
+  "bør gøre nu, og hvad direktøren for Salg, Kundeservice og Support skal tage stilling " +
+  "til. Alt bygger på offentlige kilder og er godkendt af AI-konsulenten.";
+
 export default async function TilOkPage() {
   const [result, role] = await Promise.all([
     getOkBrief().then(
@@ -49,8 +55,10 @@ export default async function TilOkPage() {
             <h1>AI i kundecentret – det korte overblik</h1>
           </div>
         </header>
+        <p className="tilok-purpose">{PURPOSE}</p>
         <p className="empty-line">
-          Til OK er ikke klar endnu. Den opdateres og godkendes hver anden uge.
+          Næste udgave er på vej – den godkendes hver anden uge. Indtil da kan du se{" "}
+          <a href="/teknologier">Teknologier</a> og <a href="/cases">Sådan gør andre</a>.
         </p>
       </div>
     );
@@ -67,6 +75,8 @@ export default async function TilOkPage() {
           <PrintButton />
         </div>
       </header>
+
+      <p className="tilok-purpose">{PURPOSE}</p>
 
       {isAdmin && brief.state === "kladde" && !empty ? (
         <div className="draft-banner no-print" role="status">

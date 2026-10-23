@@ -664,3 +664,103 @@ def test_public_read_without_login_but_admin_still_needs_login(
         assert bad.status_code == 401
     finally:
         get_settings.cache_clear()
+
+
+KLARNA_TEXT = (
+    "Klarna skar 700 kundeservicejob væk og satsede på, at AI kunne overtage arbejdet. "
+    "Inden for et år var kundetilfredsheden faldet, og virksomheden ansatte igen."
+)
+
+
+def test_failed_case_is_a_lesson_not_proof_and_umbrella_names_are_no_technology(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+) -> None:
+    klarna = {
+        "technologies": [],
+        "cases": [
+            {
+                "company": "Klarna",
+                "country": "SE",
+                "what_they_did_da": "Erstattede kundeservicemedarbejdere med AI.",
+                "technology": "Kundeservice-AI",
+                "adoption_stage": "drift",
+                "effect": "kundetilfredsheden faldet, og virksomheden ansatte igen",
+                "kpi": "kundetilfredshed",
+                "outcome": "negativ",
+                "lesson": "Inden for et år var kundetilfredsheden faldet.",
+                "area": ["kundeservice"],
+                "quote": (
+                    "Inden for et år var kundetilfredsheden faldet, og virksomheden ansatte igen."
+                ),
+            }
+        ],
+    }
+    _provider(market=klarna)
+    _upload(client, admin_headers, text=KLARNA_TEXT)
+    _run(client, admin_headers)
+
+    [case] = client.get("/api/v1/market/cases", headers=reader_headers).json()["items"]
+    assert case["outcome"] == "negativ" and case["outcome_label"] == "Virkede ikke"
+    assert case["technology"] is None  # "Kundeservice-AI" er ingen teknologi
+    techs = client.get("/api/v1/market/technologies", headers=reader_headers).json()["items"]
+    assert not any(t["label"] == "Kundeservice-AI" for t in techs)
+
+
+def test_failed_case_does_not_count_for_status_and_admin_can_correct_outcome(
+    client: TestClient,
+    admin_headers: dict[str, str],
+    reader_headers: dict[str, str],
+    market_mode: Any,
+) -> None:
+    _provider()
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    [case] = client.get("/api/v1/market/cases", headers=admin_headers).json()["items"]
+    assert case["outcome"] is None
+
+    patch = {"outcome": "negativ"}
+    url = f"/api/v1/market/items/{case['item_ids'][0]}"
+    assert client.patch(url, json=patch, headers=reader_headers).status_code == 403
+    assert client.patch(url, json=patch, headers=admin_headers).status_code == 200
+
+    [after] = client.get("/api/v1/market/cases", headers=reader_headers).json()["items"]
+    assert after["outcome_label"] == "Virkede ikke"
+    voice = next(
+        t
+        for t in client.get("/api/v1/market/technologies", headers=reader_headers).json()["items"]
+        if t["label"] == "Stemmeagenter og voicebots"
+    )
+    assert voice["case_count"] == 0 and voice["failed_case_count"] == 1
+    assert voice["status"] == "hold_oeje"
+    brief = client.get("/api/v1/ok-brief", headers=admin_headers).json()
+    assert brief["matrix"]["rows"] == []  # en fejl er ikke "drift" hos Norlys
+
+    client.patch(url, json={"outcome": ""}, headers=admin_headers)
+    [cleared] = client.get("/api/v1/market/cases", headers=reader_headers).json()["items"]
+    assert cleared["outcome"] is None
+
+
+def test_cases_can_be_filtered_by_vendor(
+    client: TestClient, admin_headers: dict[str, str], market_mode: Any
+) -> None:
+    _provider()
+    _upload(client, admin_headers)
+    _run(client, admin_headers)
+    data = client.get("/api/v1/market/cases", headers=admin_headers).json()
+    assert data["vendors"] == ["Puzzel"]
+    get = lambda q: client.get(f"/api/v1/market/cases{q}", headers=admin_headers).json()  # noqa: E731
+    assert get("?vendor=puzzel")["total"] == 1
+    assert get("?vendor=Genesys")["total"] == 0
+
+
+def test_generic_names_are_never_technologies() -> None:
+    from app.market.catalog import is_generic_technology
+
+    assert is_generic_technology("Kundeservice-AI")
+    assert is_generic_technology("AI i kundeservice")
+    assert is_generic_technology("Generativ AI")
+    assert not is_generic_technology("Agent Assist")
+    assert not is_generic_technology("Stemningsanalyse")

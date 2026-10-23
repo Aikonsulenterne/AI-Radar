@@ -95,6 +95,16 @@ function TechnologyCard({ tech, showAreas }: { tech: MarketTechnology; showAreas
           </ul>
         </details>
       ) : null}
+      {tech.failed_case_count > 0 ? (
+        <p className="tech-warning">
+          <span aria-hidden="true">✕</span>{" "}
+          <Link href={`/cases?teknologi=${tech.id}#fejl`}>
+            {tech.failed_case_count === 1
+              ? "1 case, hvor det ikke virkede – lær af den"
+              : `${tech.failed_case_count} cases, hvor det ikke virkede – lær af dem`}
+          </Link>
+        </p>
+      ) : null}
       <footer className="tech-foot">
         {tech.case_count > 0 ? (
           <Link href={`/cases?teknologi=${tech.id}`}>
@@ -188,6 +198,23 @@ export default async function TechnologiesPage({
         <ApiErrorAlert error={loadError} />
       ) : (
         <>
+          <nav className="jump-nav" aria-label="Indhold på siden">
+            {data.new_on_market.length > 0 ? (
+              <a href="#new-title">Nyt på markedet ({data.new_on_market.length})</a>
+            ) : null}
+            {SECTIONS.map((section) => {
+              const n = found.filter((t) => t.status === section.status).length;
+              return n > 0 ? (
+                <a key={section.status} href={`#s-${section.status}`}>
+                  {section.title} ({n})
+                </a>
+              ) : null;
+            })}
+            {data.vendors.length > 0 ? (
+              <a href="#vendors-title">Leverandører på markedet ({data.vendors.length})</a>
+            ) : null}
+          </nav>
+
           {data.new_on_market.length > 0 ? (
             <section className="v2-section" aria-labelledby="new-title">
               <div className="v2-section-head">

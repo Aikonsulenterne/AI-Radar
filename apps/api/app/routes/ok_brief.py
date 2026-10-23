@@ -329,7 +329,8 @@ def _brief_out(
     for problem in OK_PROBLEMS:
         entry = stored.get(problem.key, {})
         best = find_case(entry.get("best_case_id"))
-        if best is not None and best.id in shown:
+        # En case, der ikke virkede, er aldrig "stærkeste bevis".
+        if best is not None and (best.id in shown or best.outcome == "negativ"):
             best = None
         if best is None:
             undocumented.append(

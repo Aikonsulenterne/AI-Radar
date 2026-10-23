@@ -932,3 +932,21 @@ ikke af den forenklede visning.
   (Disallow: /). Topbjælkens knap hedder "Admin-login".
 - Testsuiten kører med `PUBLIC_READ=false`; en egen test dækker den åbne
   læsning og de lukkede stier.
+
+## 31. Resultat, paraplynavne og filtre (2026-10-23)
+
+- Prompt `market_extraction` 1.2.0: `outcome` (positiv | negativ | blandet |
+  null), fase aflæses fra kildens ord, paraplynavne giver `technology: null`.
+  `items.data.outcome`; Admin retter via `PATCH /market/items/{id}`
+  `{"outcome": "negativ" | "positiv" | "blandet" | ""}` (audit,
+  `outcome_by_admin`). Ældre fund har intet resultat, indtil Admin sætter det.
+- `catalog.is_generic_technology()`: brugt i `_resolve_technology`,
+  `_technology_ref` og `technology_cards` (også for allerede gemte
+  kandidater).
+- `CaseCard.outcome`/`outcome_label`; `TechnologyCard.failed_case_count`.
+  Cases med `outcome == "negativ"` udelades af `technology_status`,
+  `case_count`, `best_case`, `gain_for`, `build_matrix` og `headline`; Til OK
+  dropper dem som `best_case`; Siden sidst viser "Lær af fejl: …".
+- Prompt `ok_brief` 3.1.0: aldrig en "Virkede ikke"-case som best_case.
+- `GET /market/cases?vendor=` + `vendors` i svaret.
+  `GET /market/technologies`: `new_on_market` højst 3 pr. område, 6 under Alle.

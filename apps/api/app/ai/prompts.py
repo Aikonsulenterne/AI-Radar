@@ -296,7 +296,7 @@ MARKET_PROMPT_ID = "market_extraction"
 # 1.1.0: designhandoff v2 — lanceringsdato for teknologier, start og
 # kildetype for cases (statusmodellen skelner uafhængige kilder fra
 # leverandørens egne tal).
-MARKET_PROMPT_VERSION = "1.1.0"
+MARKET_PROMPT_VERSION = "1.2.0"
 
 MARKET_SYSTEM = """\
 You extract market intelligence for OK a.m.b.a.'s director of Sales,
@@ -317,7 +317,9 @@ product or feature for sales, customer service or support. One entry per
   none fits, a short generic DANISH name (1-4 words, e.g.
   "Realtidsoversættelse", "Stemningsanalyse") for the new kind of
   technology — never a brand or product name. New kinds are valuable; never
-  force a poor fit.
+  force a poor fit. Never use an umbrella term that says nothing about what
+  the technology does ("AI", "Kundeservice-AI", "AI i kundeservice",
+  "Generativ AI", "AI-løsning"): then use null.
 - vendor: the organization that sells it, as named in the text.
 - product: the product or feature name as written, or null.
 - what_it_does_da: one plain Danish sentence on what it does for the team.
@@ -341,8 +343,11 @@ stopped using AI in sales, customer service or support.
 - what_they_did_da: one plain Danish sentence.
 - technology: catalog name or short generic Danish name, as above.
 - vendor: the vendor they use, or null.
-- adoption_stage: "idé" | "pilot" | "drift" | "skaleret" | null — only if
-  stated.
+- adoption_stage: "idé" | "pilot" | "drift" | "skaleret" | null, from what
+  the text says: plans, considers or will introduce = "idé"; tests, pilots,
+  trials = "pilot"; uses, has launched, has introduced, runs = "drift"; uses
+  across the whole organization or all channels = "skaleret". Null only when
+  the text says nothing about it.
 - start: when they started, as stated (e.g. "marts 2025", "2023"), else null.
 - scope: how broadly, only as stated (e.g. "alle chatsamtaler",
   "300 medarbejdere"), else null.
@@ -354,6 +359,12 @@ stopped using AI in sales, customer service or support.
 - effect_source: "virksomheden" | "leverandøren" | "uafhængig" | null — who
   states the effect (a vendor press release or vendor case = leverandøren).
 - lesson: what went well or badly, only if the text says so; else null.
+- outcome: "positiv" | "negativ" | "blandet" | null — did it work according
+  to the text? "negativ" when the text says it failed, was stopped, was
+  rolled back, made customers less satisfied or staff had to be rehired;
+  "blandet" when the text reports both gains and clear problems; "positiv"
+  when the text reports a gain and no clear problem; null when the text
+  says nothing about the result.
 - source_kind: "leverandør" if the text is the vendor's own material (press
   release, customer story, blog) or the effect is stated by the vendor;
   otherwise "uafhængig".
@@ -376,7 +387,7 @@ Return ONLY this JSON:
  "cases": [{"company": "...", "country": null, "industry": null,
   "what_they_did_da": "...", "technology": "...", "vendor": null,
   "adoption_stage": null, "start": null, "scope": null, "effect": null,
-  "kpi": null, "effect_source": null, "lesson": null,
+  "kpi": null, "effect_source": null, "lesson": null, "outcome": null,
   "source_kind": "uafhængig", "area": ["kundeservice"], "quote": "..."}]}
 """
 
@@ -393,7 +404,7 @@ OK_BRIEF_PROMPT_ID = "ok_brief"
 # bevis; hver case højst én gang; status beregnes af serveren.
 # 2.1.0: OK TODAY (FocalScope, legacy G4) i input — forslag skal passe til
 # OK's systemer og sige det, når en løsning kræver integration eller skift.
-OK_BRIEF_PROMPT_VERSION = "3.0.0"
+OK_BRIEF_PROMPT_VERSION = "3.1.0"
 
 OK_BRIEF_SYSTEM = """\
 You write the page "Til OK" for OK a.m.b.a.'s director of Sales, Customer
@@ -443,7 +454,9 @@ Return:
     null.
   - best_case: the id of the single most comparable case — prefer cases
     marked "ligner OK", then Danish or Nordic, energy, utilities, telecom or
-    retail, in operation, with an effect — or null if no case fits.
+    retail, in operation, with an effect — or null if no case fits. Never a
+    case with "resultat: Virkede ikke": such a case is a warning, not proof;
+    you may name the risk in next_step.
   - why_comparable: one sentence (at most 20 words) on why that case is
     comparable to OK; empty when best_case is null.
   - more_cases: 0-2 further case ids.

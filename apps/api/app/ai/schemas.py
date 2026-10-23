@@ -103,6 +103,7 @@ class MarketCaseDraft(BaseModel):
     kpi: str | None = Field(default=None, max_length=60)
     effect_source: str | None = Field(default=None, max_length=30)
     lesson: str | None = Field(default=None, max_length=500)
+    outcome: str | None = Field(default=None, max_length=30)
     source_kind: str | None = Field(default=None, max_length=30)
     area: list[str] = Field(default_factory=list, max_length=3)
     quote: str = Field(min_length=1, max_length=1200)

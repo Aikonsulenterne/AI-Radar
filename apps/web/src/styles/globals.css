@@ -3463,3 +3463,102 @@ body {
   margin: 6px 0 0;
   font-weight: 600;
 }
+
+/* --- Feedback 2026-10-23: resultat, fase, oversigt, formål --- */
+
+.tilok-purpose {
+  margin: 0 0 14px;
+  max-width: 820px;
+  font-size: 14.5px;
+  line-height: 1.45;
+  color: var(--fg-soft);
+}
+
+.jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  margin: 4px 0 22px;
+}
+
+.jump-nav a {
+  padding: 5px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  font-size: 13.5px;
+  color: var(--fg);
+  text-decoration: none;
+  background: var(--bg-elev);
+}
+
+.jump-nav a:hover {
+  border-color: var(--ok-burgundy);
+}
+
+.stage-unknown {
+  margin: 0;
+  padding: 6px 10px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--fg-mute);
+}
+
+.result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.outcome-badge {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.outcome-badge-positiv {
+  color: var(--status-ready-fg);
+  background: var(--status-ready-bg);
+}
+
+.outcome-badge-blandet {
+  color: var(--status-try-fg);
+  background: var(--status-try-bg);
+}
+
+.outcome-badge-negativ {
+  color: var(--state-danger);
+  background: var(--ok-red-pale);
+}
+
+.box-fact.outcome-negativ {
+  border-left-color: var(--state-danger);
+}
+
+.case-lesson {
+  margin: 8px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+}
+
+.outcome-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--fg-mute);
+}
+
+.tech-warning {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--state-danger);
+}
+
+.tech-warning a {
+  color: var(--state-danger);
+}

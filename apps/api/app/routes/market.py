@@ -42,7 +42,7 @@ from app.market.views import (
     vendor_rows,
 )
 from app.models import Document, Source
-from app.models_market import MarketItem
+from app.models_market import KIND_CASE, MarketItem
 from app.models_runs import WorkerRun
 from app.models_settings import AppSetting
 from app.pipeline.market import OK_BRIEF_KEY, process_market_document
@@ -122,9 +122,11 @@ def _month_label(value: datetime) -> str:
     return f"{_MONTHS[value.month - 1][:3]}. {value.year}"
 
 
-def _new_on_market(cards: list[TechnologyCard], why: dict[str, str]) -> list[NewOnMarket]:
-    """Højst tre: teknologier lanceret/annonceret eller fundet de seneste 90
-    dage. Dem, Til OK-prompten har begrundet, først."""
+def _new_on_market(
+    cards: list[TechnologyCard], why: dict[str, str], limit: int = 3
+) -> list[NewOnMarket]:
+    """Teknologier lanceret/annonceret eller fundet de seneste 90 dage: højst
+    tre pr. område, seks under Alle. Dem, Til OK-prompten har begrundet, først."""
     cutoff = datetime.now(UTC) - _NEW_WINDOW
 
     def recent(card: TechnologyCard) -> datetime | None:
@@ -147,7 +149,7 @@ def _new_on_market(cards: list[TechnologyCard], why: dict[str, str]) -> list[New
                 else f"Fundet {_month_label(when)}"
             ),
         )
-        for card, when in found[:3]
+        for card, when in found[:limit]
     ]
 
 
@@ -168,7 +170,7 @@ def list_market_technologies(
     return TechnologiesOut(
         items=cards,
         areas=counts,
-        new_on_market=_new_on_market(cards, why),
+        new_on_market=_new_on_market(cards, why, limit=3 if area else 6),
         vendors=vendor_rows(cards),
     )
 
@@ -182,6 +184,8 @@ class CasesOut(BaseModel):
     all_total: int
     danish_total: int
     technologies: list[TechnologyRef]
+    # Leverandører, der optræder i casene (til filteret).
+    vendors: list[str] = Field(default_factory=list)
     # De selskaber, der ligner OK, som radaren endnu ikke har en AI-case fra.
     peers_without_cases: list[str] = Field(default_factory=list)
 
@@ -191,6 +195,7 @@ def list_market_cases(
     area: Area | None = Query(default=None),
     region: Region | None = Query(default=None),
     technology_id: uuid.UUID | None = Query(default=None),
+    vendor: str | None = Query(default=None, max_length=200),
     db: Session = Depends(get_db),
     _user: CurrentUser = Depends(require_role(UserRole.reader)),
 ) -> CasesOut:
@@ -211,12 +216,16 @@ def list_market_cases(
         cards = [c for c in cards if c.region == "verden"]
     if technology_id is not None:
         cards = [c for c in cards if c.technology and c.technology.id == technology_id]
+    if vendor:
+        wanted = vendor.casefold()
+        cards = [c for c in cards if c.vendor and c.vendor.casefold() == wanted]
     return CasesOut(
         items=cards,
         total=len(cards),
         all_total=len(all_cards),
         danish_total=sum(1 for c in all_cards if c.region == "danmark"),
         technologies=sorted(options.values(), key=lambda t: t.label.casefold()),
+        vendors=sorted({c.vendor for c in all_cards if c.vendor}, key=str.casefold),
         peers_without_cases=[p.name for p in PEERS if not any(c.peer == p.name for c in all_cards)],
     )
 
@@ -277,7 +286,9 @@ def list_market_sources(
 
 
 class ItemUpdate(BaseModel):
-    hidden: bool
+    hidden: bool | None = None
+    # Admin retter resultatet: positiv | negativ | blandet | "" (ikke oplyst).
+    outcome: Literal["positiv", "negativ", "blandet", ""] | None = None
 
 
 class ItemOut(BaseModel):
@@ -296,7 +307,20 @@ def update_market_item(
     item = db.get(MarketItem, item_id)
     if item is None:
         raise ApiError(404, "not_found", "Fundet findes ikke.")
-    if item.hidden != body.hidden:
+    if body.outcome is not None and item.kind == KIND_CASE:
+        before = item.data.get("outcome")
+        after = body.outcome or None
+        if before != after:
+            record(
+                db,
+                entity_type=AuditEntity.market_item,
+                entity_id=item.id,
+                action=AuditAction.updated,
+                actor_user_id=user.user_id,
+                changes={"outcome": {"fra": before, "til": after}},
+            )
+            item.data = {**item.data, "outcome": after, "outcome_by_admin": True}
+    if body.hidden is not None and item.hidden != body.hidden:
         record(
             db,
             entity_type=AuditEntity.market_item,

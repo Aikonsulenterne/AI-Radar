@@ -43,7 +43,14 @@ from app.ai.schemas import (
 )
 from app.config import get_settings
 from app.enums import AccessClass, EntityType, ProcessingStatus
-from app.market.catalog import AREA_LABELS, AREAS, OK_PROBLEMS, OK_PROFILE, TECH_CATALOG
+from app.market.catalog import (
+    AREA_LABELS,
+    AREAS,
+    OK_PROBLEMS,
+    OK_PROFILE,
+    TECH_CATALOG,
+    is_generic_technology,
+)
 from app.market.store import decision_key, latest_answers
 from app.market.views import (
     CaseCard,
@@ -105,6 +112,8 @@ _KPIS = {
     "andet",
 }
 _EFFECT_SOURCES = {"virksomheden", "leverandøren", "uafhængig"}
+# Virkede det ifølge kilden? "negativ" er aldrig bevis for en teknologi.
+OUTCOMES = {"positiv", "negativ", "blandet"}
 _COUNTRY_NAMES = {
     "denmark": "DK",
     "danmark": "DK",
@@ -236,7 +245,7 @@ def _former(name: str) -> tuple[str, ...]:
 def _resolve_technology(
     db: Session, name: str | None, index: dict[str, Technology]
 ) -> Technology | None:
-    if not name:
+    if not name or is_generic_technology(name):
         return None
     hit = index.get(normalize_alias(name))
     if hit is not None:
@@ -445,6 +454,7 @@ def _store_case(
                 "kpi": kpi if effect else None,
                 "effect_source": effect_source if effect else None,
                 "lesson": _clean(draft.lesson),
+                "outcome": draft.outcome if draft.outcome in OUTCOMES else None,
                 "start": _clean(draft.start) if numbers_in_text(draft.start, text) else None,
                 "source_kind": "leverandør"
                 if draft.source_kind == "leverandør" or effect_source == "leverandøren"
@@ -514,6 +524,8 @@ def _case_line(i: int, c: CaseCard) -> str:
     if c.effect:
         effect += f" ({c.source_kind_label})"
     peer = f" | ligner OK: {c.peer_group}" if c.peer_group else ""
+    if c.outcome_label:
+        peer += f" | resultat: {c.outcome_label}"
     return (
         f"- [C{i}] {c.company} ({c.country or 'land ukendt'}, {c.industry or 'branche ukendt'}) "
         f"| {_areas_text(c.areas)} | {_line(c.what_they_did, 200)} | teknologi: {technology} "

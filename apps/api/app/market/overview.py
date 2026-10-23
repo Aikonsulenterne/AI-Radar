@@ -79,7 +79,9 @@ def gain_for(technology_id: uuid.UUID | None, cases: list[CaseCard]) -> Gain | N
     if technology_id is None:
         return None
     with_effect = [
-        c for c in cases if c.technology and c.technology.id == technology_id and c.effect
+        c
+        for c in cases
+        if c.technology and c.technology.id == technology_id and c.effect and c.outcome != "negativ"
     ]
     if not with_effect:
         return None
@@ -176,7 +178,7 @@ def build_matrix(
 ) -> Matrix:
     best: dict[tuple[str, uuid.UUID], CaseCard] = {}
     for card in cases:
-        if card.peer is None or card.technology is None:
+        if card.peer is None or card.technology is None or card.outcome == "negativ":
             continue
         key = (card.peer, card.technology.id)
         current = best.get(key)
@@ -288,7 +290,11 @@ def headline(cases: list[CaseCard], matrix: Matrix) -> Headline:
             text = ""
         if text:
             return Headline(text=text, href="#overblik")
-    nordic = [c for c in cases if c.region in ("danmark", "norden") and c.technology]
+    nordic = [
+        c
+        for c in cases
+        if c.region in ("danmark", "norden") and c.technology and c.outcome != "negativ"
+    ]
     live_nordic = [c for c in nordic if c.stage in LIVE_STAGES] or nordic
     if live_nordic:
         counts: dict[uuid.UUID, int] = {}
@@ -355,7 +361,10 @@ def since_last(
         technology = card.technology.label if card.technology else card.technology_name or "AI"
         stage = card.stage_label.lower() if card.stage_label else "fase ikke oplyst"
         if key not in old_cases:
-            if card.peer:
+            if card.outcome == "negativ":
+                rank = 1 if card.peer else 3
+                text = f"Lær af fejl: {card.company} – {technology} virkede ikke."
+            elif card.peer:
                 rank, text = 0, f"Nyt hos {card.company}: {technology} ({stage})."
             elif card.region in ("danmark", "norden"):
                 where = card.country_label or card.region_label
